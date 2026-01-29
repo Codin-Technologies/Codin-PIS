@@ -13,9 +13,12 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          app-dir: ~/project/pis-platform
       - run:
           name: Run Build
-          command: npm run build
+          command: |
+            cd pis-platform
+            npm run build
       # Uncomment if you have tests
       # - run:
       #     name: Run Tests
