@@ -24,6 +24,7 @@ jobs:
       - jira/notify:
           pipeline_id: << pipeline.id >>
           pipeline_number: << pipeline.number >>
+          webhook_url: "https://128227a1-b1f0-4c2b-b7b6-1b32a1afee83.hello.atlassian-dev.net/x1/HoNpDOdk335SoAoWQfbXe76UeFY"
       # This moves the ticket to a new status (e.g., "Done" or "In Review")
       # - jira/transition:
       #     transition-id: "Done" # Use the exact name or ID from Jira
@@ -40,6 +41,7 @@ jobs:
       - jira/notify:
           pipeline_id: << pipeline.id >>
           pipeline_number: << pipeline.number >>
+          webhook_url: "https://128227a1-b1f0-4c2b-b7b6-1b32a1afee83.hello.atlassian-dev.net/x1/HoNpDOdk335SoAoWQfbXe76UeFY"
 
 workflows:
   version: 2
