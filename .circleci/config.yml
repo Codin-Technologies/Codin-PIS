@@ -1,0 +1,54 @@
+version: 2.1
+
+# 1. Define the Jira Orb for integration
+orbs:
+  jira: circleci/jira@2.2.0
+  node: circleci/node@5.1.0
+
+jobs:
+  build_and_test:
+    docker:
+      - image: cimg/node:20.10.0
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Run Build
+          command: npm run build
+      # Uncomment if you have tests
+      # - run:
+      #     name: Run Tests
+      #     command: npm test
+      # This notifies Jira of the build status
+      - jira/notify:
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
+      # This moves the ticket to a new status (e.g., "Done" or "In Review")
+      # - jira/transition:
+      #     transition-id: "Done" # Use the exact name or ID from Jira
+      #     status-filter: "In Progress" # Only move if it's currently In Progress
+
+  deploy:
+    docker:
+      - image: cimg/node:20.10.0
+    steps:
+      - checkout
+      - run:
+          name: Deploy to Production
+          command: echo "Deploying to prod..." # Replace with actual deploy command
+      - jira/notify:
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
+
+workflows:
+  version: 2
+  development_pipeline:
+    jobs:
+      - build_and_test
+      - deploy:
+          requires:
+            - build_and_test
+          filters:
+            branches:
+              only: main # Deploy only happens after the PR is merged
