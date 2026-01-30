@@ -12,7 +12,7 @@ const navItems = [
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Procurement', href: '/procurement', icon: ShoppingCart },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Settings', href: '/settings/organization', icon: Settings },
 ];
 
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
