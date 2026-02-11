@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     LayoutDashboard, FileText, Users, ShoppingCart, Truck,
@@ -50,7 +50,7 @@ const REQUISITIONS = [
     { id: 'REQ-103', item: 'Beverage Restock', dept: 'Bar', value: '$1,200', status: 'In Review', priority: 'Normal' },
 ];
 
-export default function ProcurementPage() {
+function ProcurementContent() {
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [isReqModalOpen, setIsReqModalOpen] = useState(false);
 
@@ -236,5 +236,13 @@ export default function ProcurementPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ProcurementPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading procurement...</div>}>
+            <ProcurementContent />
+        </Suspense>
     );
 }

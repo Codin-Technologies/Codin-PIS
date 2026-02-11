@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Plus, Minus, Filter, AlertTriangle, CheckCircle, Package, ClipboardList } from 'lucide-react';
 import clsx from 'clsx';
@@ -18,7 +18,7 @@ const INITIAL_INVENTORY = [
     { id: 6, name: 'Pasta', sku: 'GRN-004', dept: 'Kitchen', qty: 30, unit: 'kg', status: 'Good', image: '🍝' },
 ];
 
-export default function InventoryPage() {
+function InventoryContent() {
     const router = useRouter();
     const [inventory, setInventory] = useState(INITIAL_INVENTORY);
     const [departments, setDepartments] = useState(INITIAL_DEPARTMENTS);
@@ -241,5 +241,13 @@ export default function InventoryPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function InventoryPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading inventory...</div>}>
+            <InventoryContent />
+        </Suspense>
     );
 }
