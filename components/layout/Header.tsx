@@ -1,7 +1,21 @@
 'use client';
-import { Bell, Search, Menu } from 'lucide-react';
+import { Bell, Search, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
-export function Header({ onMenuClick }: { onMenuClick: () => void }) {
+const PAGE_TITLES: { [key: string]: string } = {
+    '/': 'Dashboard',
+    '/kitchen': 'Kitchen',
+    '/inventory': 'Inventory',
+    '/inventory/usage': 'Daily Stock Usage',
+    '/procurement': 'Procurement',
+    '/reports': 'Reports Center',
+    '/settings': 'Settings',
+};
+
+export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void; isSidebarOpen: boolean }) {
+    const pathname = usePathname();
+    const pageTitle = PAGE_TITLES[pathname] || 'PIS Platform';
+
     return (
         <header className="flex h-16 items-center justify-between border-b border-[#2a2b2d] bg-[#1e1f21] px-6 shadow-sm">
             <div className="flex items-center space-x-4">
@@ -9,12 +23,18 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     onClick={onMenuClick}
                     className="rounded p-1 text-pink-500 hover:bg-[#2d2e30] focus:outline-none transition-colors"
                 >
-                    <Menu className="h-6 w-6" />
+                    {isSidebarOpen ? (
+                        <PanelLeftClose className="h-6 w-6" />
+                    ) : (
+                        <PanelLeftOpen className="h-6 w-6" />
+                    )}
                 </button>
-                <h2 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-orange-400 tracking-tight">Home</h2>
+                <h2 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-orange-400 tracking-tight">
+                    {pageTitle}
+                </h2>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Bar (Asana style center) */}
             <div className="hidden flex-1 max-w-lg mx-8 md:block">
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

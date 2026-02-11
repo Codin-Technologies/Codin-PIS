@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
+import { Sidebar } from './Sidebar';
+import { Header } from './Header';
 import { Menu } from 'lucide-react';
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Sidebar isOpen={isSidebarOpen} />
 
             <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300">
-                <Header onMenuClick={toggleSidebar} />
+                <Header onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
                 <main className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300">
                     {children}
                 </main>

@@ -1,8 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,7 +11,7 @@ const navItems = [
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Procurement', href: '/procurement', icon: ShoppingCart },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Settings', href: '/settings/organization', icon: Settings },
+    { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
@@ -78,29 +77,14 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
 
             {/* Footer / User Profile if needed */}
             <div className="p-4 border-t border-[#2a2b2d]">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center overflow-hidden">
-                        <div className="w-8 h-8 rounded-full bg-indigo-500 shrink-0 flex items-center justify-center text-xs">U</div>
-                        {isOpen && (
-                            <div className="ml-3 truncate">
-                                <p className="text-sm font-medium">User</p>
-                                <p className="text-xs text-[#9ca6af]">Admin</p>
-                            </div>
-                        )}
-                    </div>
-                    <button
-                        onClick={() => {
-                            document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                            window.location.href = "/login";
-                        }}
-                        className={clsx(
-                            "rounded-md p-2 text-[#9ca6af] hover:bg-[#2d2e30] hover:text-white transition-colors",
-                            !isOpen && "mx-auto"
-                        )}
-                        title="Logout"
-                    >
-                        <LogOut className="h-5 w-5" />
-                    </button>
+                <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500 shrink-0 flex items-center justify-center text-xs">U</div>
+                    {isOpen && (
+                        <div className="ml-3">
+                            <p className="text-sm font-medium">User</p>
+                            <p className="text-xs text-[#9ca6af]">Admin</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </motion.div>
