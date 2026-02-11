@@ -1,7 +1,8 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,6 +17,7 @@ const navItems = [
 
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
     const pathname = usePathname();
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     return (
         <motion.div
@@ -42,15 +44,61 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                 </AnimatePresence>
             </div>
 
-            {/* Quick Action FAB (Asana style) */}
-            <div className={clsx("px-4 py-4 flex", isOpen ? "justify-start" : "justify-center")}>
-                <button className={clsx(
-                    "flex items-center justify-center rounded-full bg-[#f06a6a] hover:bg-[#d95d5d] text-white transition-all shadow-md",
-                    isOpen ? "px-3 py-2 w-full space-x-2" : "w-10 h-10"
-                )}>
-                    <Plus className="w-5 h-5" />
+            {/* Quick Action FAB (Asana style) - DROPDOWN */}
+            <div className={clsx("px-4 py-4 flex flex-col relative", isOpen ? "items-start" : "items-center")}>
+                <button
+                    onClick={() => setIsCreateOpen(!isCreateOpen)}
+                    className={clsx(
+                        "flex items-center justify-center rounded-full bg-[#f06a6a] hover:bg-[#d95d5d] text-white transition-all shadow-md z-20",
+                        isOpen ? "px-3 py-2 w-full space-x-2" : "w-10 h-10"
+                    )}
+                >
+                    <Plus className={clsx("w-5 h-5 transition-transform duration-300", isCreateOpen && "rotate-45")} />
                     {isOpen && <span className="text-sm font-medium">Create New</span>}
                 </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                    {isCreateOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className={clsx(
+                                "absolute left-4 right-4 top-16 bg-[#2a2b2d] border border-[#3e3f42] rounded-xl shadow-xl overflow-hidden z-10",
+                                !isOpen && "left-12 top-0 w-48 ml-2" // Positioning for collapsed sidebar
+                            )}
+                        >
+                            <div className="flex flex-col py-1">
+                                <Link
+                                    href="/inventory?action=new-item"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <Package className="w-4 h-4 text-blue-400" />
+                                    <span>New Item</span>
+                                </Link>
+                                <Link
+                                    href="/procurement?action=new-req"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <FileText className="w-4 h-4 text-green-400" />
+                                    <span>New Requisition</span>
+                                </Link>
+                                <Link
+                                    href="/procurement?tab=orders&action=new-po"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <ShoppingCart className="w-4 h-4 text-orange-400" />
+                                    <span>New PO</span>
+                                </Link>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Navigation */}

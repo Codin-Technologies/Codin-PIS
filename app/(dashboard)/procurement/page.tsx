@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     LayoutDashboard, FileText, Users, ShoppingCart, Truck,
     Receipt, FileCheck, ShieldAlert, BadgeDollarSign,
@@ -52,6 +53,25 @@ const REQUISITIONS = [
 export default function ProcurementPage() {
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [isReqModalOpen, setIsReqModalOpen] = useState(false);
+
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const action = searchParams.get('action');
+        const tabParam = searchParams.get('tab');
+
+        if (tabParam && TABS.some(t => t.id === tabParam)) {
+            setActiveTab(tabParam as Tab);
+        }
+
+        if (action === 'new-req') {
+            setIsReqModalOpen(true);
+        }
+        // For new-po, we expect the tab to be switched to 'orders' via the URL param,
+        // and then we can pass a prop or use state to trigger the create view within PurchaseOrderView.
+        // However, PurchaseOrderView manages its own state. 
+        // We might need to lift state or pass a default view prop to PurchaseOrderView.
+    }, [searchParams]);
 
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
@@ -193,7 +213,7 @@ export default function ProcurementPage() {
                 )}
 
                 {activeTab === 'orders' && (
-                    <PurchaseOrderView />
+                    <PurchaseOrderView initialView={searchParams.get('action') === 'new-po' ? 'CREATE' : 'DASHBOARD'} />
                 )}
 
                 {activeTab !== 'overview' && activeTab !== 'requisitions' && activeTab !== 'rfq' && activeTab !== 'orders' && (

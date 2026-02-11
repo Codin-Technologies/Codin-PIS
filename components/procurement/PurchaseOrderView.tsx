@@ -27,8 +27,8 @@ const PO_STATS = [
 
 // --- Sub-Components ---
 
-export function PurchaseOrderView() {
-    const [view, setView] = useState<'DASHBOARD' | 'CREATE' | 'DETAIL'>('DASHBOARD');
+export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?: 'DASHBOARD' | 'CREATE' | 'DETAIL' }) {
+    const [view, setView] = useState<'DASHBOARD' | 'CREATE' | 'DETAIL'>(initialView);
     const [selectedPO, setSelectedPO] = useState<any>(null);
 
     const PODashboard = () => (

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Plus, Minus, Filter, AlertTriangle, CheckCircle, Package, ClipboardList } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -47,6 +47,18 @@ export default function InventoryPage() {
         setIsAddingDept(false);
         setNewDeptName('');
     };
+
+    // Check for 'new-item' action in URL
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('action') === 'new-item') {
+            setIsAddModalOpen(true);
+            // Optional: clear the param so it doesn't reopen on refresh, 
+            // but for now keeping it simple or user might want to bookmark.
+            // To clear: router.replace('/inventory');
+        }
+    }, [searchParams]);
 
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">

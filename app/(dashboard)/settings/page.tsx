@@ -13,7 +13,7 @@ const TABS = [
     { id: 'orgs', label: 'Organizations', icon: Building2, component: OrgManagement },
 ];
 
-export default function OrganizationSettingsPage() {
+export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState('users');
 
     const ActiveComponent = TABS.find(t => t.id === activeTab)?.component || UserManagement;
