@@ -13,6 +13,10 @@ import { NewRequisitionModal } from '@/components/procurement/NewRequisitionModa
 import { RequisitionList } from '@/components/procurement/RequisitionList';
 import { RFQView } from '@/components/procurement/RFQView';
 import { PurchaseOrderView } from '@/components/procurement/PurchaseOrderView';
+import { SuppliersView } from '@/components/procurement/SuppliersView';
+import { GoodsReceivedView } from '@/components/procurement/GoodsReceivedView';
+import { BudgetView } from '@/components/procurement/BudgetView';
+import { InvoiceView } from '@/components/procurement/InvoiceView';
 
 // --- Types & Mock Data ---
 
@@ -216,24 +220,47 @@ function ProcurementContent() {
                     <PurchaseOrderView initialView={searchParams.get('action') === 'new-po' ? 'CREATE' : 'DASHBOARD'} />
                 )}
 
-                {activeTab !== 'overview' && activeTab !== 'requisitions' && activeTab !== 'rfq' && activeTab !== 'orders' && (
-                    <div className="flex flex-col items-center justify-center h-96 rounded-2xl bg-white border border-gray-100 p-12 text-center">
-                        <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-                            {(() => {
-                                const Icon = TABS.find(t => t.id === activeTab)?.icon;
-                                return Icon ? <Icon className="h-10 w-10 text-gray-400" /> : null;
-                            })()}
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">{TABS.find(t => t.id === activeTab)?.label} Module</h2>
-                        <p className="text-gray-500 max-w-md">
-                            This module is currently under active development.
-                            Features for {TABS.find(t => t.id === activeTab)?.label.toLowerCase()} will be enabled in the next release.
-                        </p>
-                        <button onClick={() => setActiveTab('overview')} className="mt-8 text-sm font-medium text-blue-600 hover:text-blue-800">
-                            Return to Control Tower
-                        </button>
-                    </div>
+                {activeTab === 'receiving' && (
+                    <GoodsReceivedView />
                 )}
+
+                {activeTab === 'invoices' && (
+                    <InvoiceView />
+                )}
+
+                {activeTab === 'suppliers' && (
+                    <SuppliersView />
+                )}
+
+                {activeTab === 'budget' && (
+                    <BudgetView />
+                )}
+
+                {activeTab !== 'overview' &&
+                    activeTab !== 'requisitions' &&
+                    activeTab !== 'rfq' &&
+                    activeTab !== 'orders' &&
+                    activeTab !== 'receiving' &&
+                    activeTab !== 'invoices' &&
+                    activeTab !== 'suppliers' &&
+                    activeTab !== 'budget' && (
+                        <div className="flex flex-col items-center justify-center h-96 rounded-2xl bg-white border border-gray-100 p-12 text-center">
+                            <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+                                {(() => {
+                                    const Icon = TABS.find(t => t.id === activeTab)?.icon;
+                                    return Icon ? <Icon className="h-10 w-10 text-gray-400" /> : null;
+                                })()}
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">{TABS.find(t => t.id === activeTab)?.label} Module</h2>
+                            <p className="text-gray-500 max-w-md">
+                                This module is currently under active development.
+                                Features for {TABS.find(t => t.id === activeTab)?.label.toLowerCase()} will be enabled in the next release.
+                            </p>
+                            <button onClick={() => setActiveTab('overview')} className="mt-8 text-sm font-medium text-blue-600 hover:text-blue-800">
+                                Return to Control Tower
+                            </button>
+                        </div>
+                    )}
             </div>
         </div>
     );
