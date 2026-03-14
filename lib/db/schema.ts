@@ -67,11 +67,24 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   fullName: text('full_name').notNull(),
   email: text('email').notNull().unique(),
+  passwordHash: text('password_hash'),
+  loginAt: timestamp('login_at'),
   roleId: uuid('role_id')
     .notNull()
     .references(() => roles.id, { onDelete: 'restrict' }),
   organizationId: uuid('organization_id')
     .notNull()
     .references(() => organizations.id, { onDelete: 'restrict' }),
+  ...timestamps,
+});
+
+export const passwordResets = pgTable('password_resets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  otp: text('otp').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
   ...timestamps,
 });
