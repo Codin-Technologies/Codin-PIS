@@ -1,453 +1,273 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ShoppingBag, Plus, Minus, CreditCard, Wallet, Printer, Package, Settings, LayoutGrid, Edit, Trash2, X, Save, Image as ImageIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import {
+    Search, Plus, ClipboardList, UtensilsCrossed,
+    Zap, AlertCircle, ChefHat, Timer,
+    Activity, History, Filter, MoreHorizontal
+} from 'lucide-react';
 import clsx from 'clsx';
+import { CookingPlanCard } from '@/components/kitchen/CookingPlanCard';
+import { SpecialOrderForm } from '@/components/kitchen/SpecialOrderForm';
+import { NewProductionModal } from '@/components/kitchen/NewProductionModal';
 
-// Mock Data
-const INITIAL_CATEGORIES = [
-    { id: 'pasta', name: 'Pasta', count: 12, image: '🍝' },
-    { id: 'pizza', name: 'Pizza', count: 14, image: '🍕' },
-    { id: 'steak', name: 'Steak', count: 9, image: '🥩' },
-    { id: 'rice', name: 'Rice', count: 19, image: '🍚' },
-    { id: 'noodle', name: 'Noodle', count: 5, image: '🍜' },
+// --- Mock Data ---
+
+const INITIAL_PLANNED_COOKINGS = [
+    {
+        id: 'PC-001',
+        dish: 'Braised Beef Short Ribs',
+        servings: 40,
+        status: 'In Prep' as const,
+        startTime: '10:00 AM',
+        ingredients: [
+            { id: 'i1', name: 'Beef Short Ribs', qty: 15, unit: 'kg', inventoryId: 'MEA-002' },
+            { id: 'i2', name: 'Red Wine', qty: 4, unit: 'btl', inventoryId: 'BEV-005' },
+            { id: 'i3', name: 'Carrots', qty: 5, unit: 'kg', inventoryId: 'VEG-003' }
+        ]
+    },
+    {
+        id: 'PC-002',
+        dish: 'Creamy Mushroom Risotto',
+        servings: 25,
+        status: 'Planned' as const,
+        startTime: '11:30 AM',
+        ingredients: [
+            { id: 'i4', name: 'Arborio Rice', qty: 5, unit: 'kg', inventoryId: 'GRN-003' },
+            { id: 'i5', name: 'Mixed Mushrooms', qty: 3, unit: 'kg', inventoryId: 'VEG-008' },
+            { id: 'i6', name: 'Parmesan', qty: 1, unit: 'kg', inventoryId: 'DAI-001' }
+        ]
+    },
+    {
+        id: 'PC-003',
+        dish: 'Pan-Seared Sea Bass',
+        servings: 15,
+        status: 'Completed' as const,
+        startTime: '09:00 AM',
+        ingredients: [
+            { id: 'i7', name: 'Sea Bass Fillets', qty: 15, unit: 'pcs', inventoryId: 'SEA-001' },
+            { id: 'i8', name: 'Lemon', qty: 10, unit: 'pcs', inventoryId: 'VEG-012' }
+        ]
+    }
 ];
 
-const INITIAL_MENU_ITEMS = [
-    { id: 1, name: 'Margherita', category: 'pizza', price: 29.00, image: '🍕', desc: 'Classic Pizzas' },
-    { id: 2, name: 'BBQ Chicken', category: 'pizza', price: 32.98, image: '🍗', desc: 'Meat Lovers Pizzas' },
-    { id: 3, name: 'Veggie Supreme', category: 'pizza', price: 24.99, image: '🥬', desc: 'Veggie Pizzas' },
-    { id: 4, name: 'Pesto Delight', category: 'pizza', price: 27.50, image: '🌿', desc: 'Veggie Pizzas' },
-    { id: 5, name: 'Bolognese', category: 'pasta', price: 18.00, image: '🍝', desc: 'Classic Pasta' },
-];
-
-const TABLES = [
-    { id: '16', label: '16', status: 'Dine in', orderId: '#F0945', time: 'Just now', items: ['Veggie Supreme'] },
-    { id: '09', label: '09', status: 'Served', orderId: '#F0956', time: '5m ago', items: ['Steak', 'Rice'] },
-    { id: '24', label: '24', status: 'Wait list', orderId: '#F0949', time: '12m ago', items: ['Pasta'] },
-];
-
-const AVAILABLE_TABLES = [
-    { id: '5', label: '5', status: 'Available' },
-    { id: '8', label: '8', status: 'Available' },
-    { id: '12', label: '12', status: 'Available' },
-    { id: '2', label: '2', status: 'Available' },
+const INITIAL_SPECIAL_ORDERS = [
+    { id: 1, request: 'Gluten-Free Pasta - Table 4', notes: 'Severe celiac, separate pot.', time: '12:05 PM', status: 'Pending', priority: 'Critical' },
+    { id: 2, request: 'No Onions Burger - Table 12', notes: 'Preference.', time: '12:15 PM', status: 'Cooked', priority: 'Normal' },
 ];
 
 export default function KitchenPage() {
-    const router = useRouter();
-    const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-    const [menuItems, setMenuItems] = useState(INITIAL_MENU_ITEMS);
-    const [selectedCategory, setSelectedCategory] = useState('pizza');
-    const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-    const [isEditingMenu, setIsEditingMenu] = useState(false);
+    const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'SPECIAL'>('PRODUCTION');
+    const [plannedCookings, setPlannedCookings] = useState(INITIAL_PLANNED_COOKINGS);
+    const [specialOrders, setSpecialOrders] = useState(INITIAL_SPECIAL_ORDERS);
+    const [isSpecialOrderModalOpen, setIsSpecialOrderModalOpen] = useState(false);
+    const [isProductionModalOpen, setIsProductionModalOpen] = useState(false);
 
-    // Simple state for entering new item details (could be a modal in a real app)
-    const [newItemName, setNewItemName] = useState('');
-    const [newItemPrice, setNewItemPrice] = useState('');
-    const [isAddingItem, setIsAddingItem] = useState(false);
-
-    // Simple state for new category
-    const [newCategoryName, setNewCategoryName] = useState('');
-    const [isAddingCategory, setIsAddingCategory] = useState(false);
-    const [cart, setCart] = useState<{ item: any, qty: number }[]>([
-        // Initial empty state or keep mock if needed, but logic should now be tied to table
-    ]);
-
-    // In a real app, cart would be keyed by tableId. For this demo, we'll just clear cart when switching tables (simulated)
-    // or keep a simple cart state that resets. Let's keep the mock cart for 'Table 16' if selected, otherwise empty.
-
-    const handleTableSelect = (tableId: string) => {
-        setSelectedTableId(tableId);
-        // Mock: If existing table (16), load its items. Else empty.
-        if (tableId === '16') {
-            setCart([
-                { item: menuItems[2] || INITIAL_MENU_ITEMS[2], qty: 2 }, // Veggie
-                { item: menuItems[0] || INITIAL_MENU_ITEMS[0], qty: 1 }, // Margherita
-            ]);
-        } else {
-            setCart([]);
-        }
-    };
-
-    const handleAddCategory = () => {
-        if (!newCategoryName.trim()) return;
-        const newId = newCategoryName.toLowerCase().replace(/\s+/g, '-');
-        setCategories([...categories, { id: newId, name: newCategoryName, count: 0, image: '🍽️' }]);
-        setNewCategoryName('');
-        setIsAddingCategory(false);
-    };
-
-    const handleDeleteCategory = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (confirm('Delete this category?')) {
-            setCategories(categories.filter(c => c.id !== id));
-            if (selectedCategory === id) setSelectedCategory(categories[0]?.id || '');
-        }
-    };
-
-    const handleAddItem = () => {
-        if (!newItemName.trim() || !newItemPrice) return;
-        const newItem = {
-            id: Date.now(),
-            name: newItemName,
-            category: selectedCategory,
-            price: parseFloat(newItemPrice),
-            image: '🍱',
-            desc: 'New Item'
-        };
-        setMenuItems([...menuItems, newItem]);
-
-        // Update category count
-        setCategories(categories.map(c =>
-            c.id === selectedCategory ? { ...c, count: c.count + 1 } : c
+    const handleDeduct = (id: string) => {
+        alert(`Inventory Deducted for ${id}`);
+        setPlannedCookings(prev => prev.map(pc =>
+            pc.id === id ? { ...pc, status: 'Completed' as const } : pc
         ));
-
-        setNewItemName('');
-        setNewItemPrice('');
-        setIsAddingItem(false);
     };
 
-    const handleDeleteItem = (item: any, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (confirm(`Delete ${item.name}?`)) {
-            setMenuItems(menuItems.filter(i => i.id !== item.id));
-            // Update category count
-            setCategories(categories.map(c =>
-                c.id === item.category ? { ...c, count: Math.max(0, c.count - 1) } : c
-            ));
-        }
+    const handleStatusUpdate = (id: string, newStatus: any) => {
+        setPlannedCookings(prev => prev.map(pc =>
+            pc.id === id ? { ...pc, status: newStatus } : pc
+        ));
     };
 
-    const addToCart = (item: any) => {
-        if (!selectedTableId) {
-            alert('Please select a table using the Order Line/Reference first!');
-            return;
-        }
-        const existing = cart.find(c => c.item.id === item.id);
-        if (existing) {
-            setCart(cart.map(c => c.item.id === item.id ? { ...c, qty: c.qty + 1 } : c));
-        } else {
-            setCart([...cart, { item, qty: 1 }]);
-        }
+    const handleAddSpecialOrder = (newOrder: any) => {
+        setSpecialOrders([newOrder, ...specialOrders]);
     };
 
-    const calculateTotal = () => {
-        const subtotal = cart.reduce((acc, curr) => acc + (curr.item.price * curr.qty), 0);
-        const tax = subtotal * 0.10;
-        return { subtotal, tax, total: subtotal + tax };
-    };
-
-    const { subtotal, tax, total } = calculateTotal();
-
-    const handlePlaceOrder = async () => {
-        // Mock API trigger
-        alert('Order Placed! Stock deducted.');
-        // In real implementation: POST /sales/transactions
+    const handleAddProduction = (newPlan: any) => {
+        setPlannedCookings([newPlan, ...plannedCookings]);
     };
 
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
-            {/* Left Section: Order Line & Menu */}
-            <div className="flex flex-1 flex-col gap-6 overflow-hidden pr-2">
+            <SpecialOrderForm
+                isOpen={isSpecialOrderModalOpen}
+                onClose={() => setIsSpecialOrderModalOpen(false)}
+                onSubmit={handleAddSpecialOrder}
+            />
 
-                {/* Order Line Section */}
-                <div className="rounded-2xl bg-white p-6 shadow-sm flex-shrink-0 flex flex-col max-h-[45%]">
-                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                        <h2 className="text-xl font-bold text-gray-900">Order Line</h2>
-                        <div className="flex space-x-2">
+            <NewProductionModal
+                isOpen={isProductionModalOpen}
+                onClose={() => setIsProductionModalOpen(false)}
+                onAdd={handleAddProduction}
+            />
 
-                            <button
-                                onClick={() => router.push('/kitchen/tables')}
-                                className="flex items-center space-x-2 rounded-full bg-[#2a2b2d] px-3 py-1 text-xs font-bold text-white hover:bg-gray-800 transition-colors"
-                            >
-                                <LayoutGrid className="h-3 w-3" />
-                                <span>Manage Tables</span>
-                            </button>
-                            {['All', 'Dine in', 'Take away', 'Delivery'].map(filter => (
-                                <button key={filter} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200">
-                                    {filter}
-                                </button>
-                            ))}
+            {/* Left: Production Dashboard */}
+            <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+                {/* Dashboard Header */}
+                <div className="bg-[#1e1f21] rounded-3xl p-6 text-white shadow-xl flex items-center justify-between shrink-0 border border-white/5">
+                    <div className="flex items-center gap-6">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                            <ChefHat className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold">Chef's Production Floor</h1>
+                            <p className="text-gray-400 text-sm flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-green-500" />
+                                3 Active Cookings • Lunch Shift
+                            </p>
                         </div>
                     </div>
-                    <div className="overflow-y-auto pr-2 scrollbar-thin -mr-2 flex-1">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
-                            {TABLES.map(table => (
-                                <div
-                                    key={table.id}
-                                    onClick={() => handleTableSelect(table.id)}
-                                    className={clsx(
-                                        "rounded-xl border p-4 relative cursor-pointer transition-all hover:shadow-md",
-                                        selectedTableId === table.id ? "border-[#2a2b2d] bg-gray-50 ring-1 ring-[#2a2b2d]" : "border-gray-100 bg-white"
-                                    )}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900">Table {table.label}</h3>
-                                            <p className="text-xs text-gray-500">Order {table.orderId}</p>
-                                        </div>
-                                        <span className="text-xs text-gray-400">{table.time}</span>
-                                    </div>
-                                    <div className="flex justify-center my-4">
-                                        <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl">🍽️</div>
-                                    </div>
-                                    <div className={`text-center rounded-full py-1 text-xs font-semibold ${table.status === 'Dine in' ? 'bg-yellow-100 text-yellow-700' :
-                                        table.status === 'Served' ? 'bg-green-100 text-green-700' :
-                                            'bg-orange-100 text-orange-700'
-                                        }`}>
-                                        {table.status}
-                                    </div>
-                                </div>
-                            ))}
-
-                            {/* Display Available Tables */}
-                            {['All', 'Dine in'].includes('All') && AVAILABLE_TABLES.map(table => (
-                                <div
-                                    key={table.id}
-                                    onClick={() => handleTableSelect(table.id)}
-                                    className={clsx(
-                                        "rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-4 relative cursor-pointer transition-all hover:bg-gray-100 hover:border-gray-400",
-                                        selectedTableId === table.id && "bg-blue-50/50 border-blue-400 ring-1 ring-blue-400"
-                                    )}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 className="font-bold text-gray-700">Table {table.label}</h3>
-                                            <p className="text-xs text-green-600 font-medium">Available</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-center my-4 opacity-50">
-                                        <div className="h-16 w-16 rounded-full bg-white border border-gray-200 flex items-center justify-center text-2xl">🪑</div>
-                                    </div>
-                                    <div className="text-center rounded-full py-1 text-xs font-semibold bg-gray-200 text-gray-500">
-                                        Empty
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Menu Header */}
-                <div className="flex items-center justify-between px-1 py-2 flex-shrink-0">
-                    <h2 className="text-xl font-bold text-gray-900">Menu</h2>
-                    <button
-                        onClick={() => setIsEditingMenu(!isEditingMenu)}
-                        className={clsx(
-                            "flex items-center space-x-2 rounded-full px-3 py-1 text-xs font-bold transition-colors",
-                            isEditingMenu ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        )}
-                    >
-                        {isEditingMenu ? <Save className="h-3 w-3" /> : <Settings className="h-3 w-3" />}
-                        <span>{isEditingMenu ? 'Done' : 'Manage'}</span>
-                    </button>
-                </div>
-
-                {/* Categories */}
-                <div className="flex space-x-4 overflow-x-auto pb-2 flex-shrink-0 scrollbar-thin items-center">
-                    {categories.map(cat => (
-                        <div key={cat.id} className="relative group">
+                    <div className="flex gap-4">
+                        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                             <button
-                                onClick={() => setSelectedCategory(cat.id)}
+                                onClick={() => setActiveTab('PRODUCTION')}
                                 className={clsx(
-                                    "flex items-center space-x-2 rounded-full px-4 py-2 min-w-[120px] transition-all relative",
-                                    selectedCategory === cat.id ? "bg-gray-900 text-white shadow-lg" : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-100"
+                                    "px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                                    activeTab === 'PRODUCTION' ? "bg-white text-gray-900 shadow-lg" : "text-gray-400 hover:text-white"
                                 )}
                             >
-                                <span className="text-xl">{cat.image}</span>
-                                <div className="text-left">
-                                    <div className="text-sm font-bold">{cat.name}</div>
-                                    <div className={clsx("text-xs", selectedCategory === cat.id ? "text-gray-400" : "text-gray-500")}>{cat.count} items</div>
-                                </div>
+                                Planned Production
                             </button>
-                            {isEditingMenu && (
-                                <button
-                                    onClick={(e) => handleDeleteCategory(cat.id, e)}
-                                    className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-white flex items-center justify-center shadow-md hover:bg-red-600"
-                                >
-                                    <X className="h-3 w-3" />
-                                </button>
-                            )}
-                        </div>
-                    ))}
-
-                    {isEditingMenu && (
-                        isAddingCategory ? (
-                            <div className="flex items-center space-x-2 bg-white p-1 rounded-full border border-gray-200 shadow-sm animate-in fade-in zoom-in">
-                                <input
-                                    autoFocus
-                                    placeholder="Name"
-                                    className="w-24 text-sm px-2 py-1 outline-none bg-transparent"
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                                />
-                                <button onClick={handleAddCategory} className="p-1.5 bg-green-500 rounded-full text-white hover:bg-green-600"><Save className="h-3 w-3" /></button>
-                                <button onClick={() => setIsAddingCategory(false)} className="p-1.5 bg-gray-200 rounded-full text-gray-600 hover:bg-gray-300"><X className="h-3 w-3" /></button>
-                            </div>
-                        ) : (
                             <button
-                                onClick={() => setIsAddingCategory(true)}
-                                className="h-10 w-10 flex-shrink-0 rounded-full bg-white border border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-colors"
+                                onClick={() => setActiveTab('SPECIAL')}
+                                className={clsx(
+                                    "px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                                    activeTab === 'SPECIAL' ? "bg-white text-gray-900 shadow-lg" : "text-gray-400 hover:text-white"
+                                )}
                             >
-                                <Plus className="h-5 w-5" />
+                                Special Orders
+                                {specialOrders.filter(o => o.status === 'Pending').length > 0 && (
+                                    <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] rounded-full">
+                                        {specialOrders.filter(o => o.status === 'Pending').length}
+                                    </span>
+                                )}
                             </button>
-                        )
-                    )}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Menu Grid */}
-                <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin pb-2">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {menuItems.filter(m => m.category === selectedCategory).map(item => (
-                            <div key={item.id} className={clsx("group rounded-2xl bg-white p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 h-full flex flex-col relative", isEditingMenu && "border-dashed border-gray-300")}>
-                                {isEditingMenu && (
-                                    <button
-                                        onClick={(e) => handleDeleteItem(item, e)}
-                                        className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 rounded-full text-white flex items-center justify-center shadow-md hover:bg-red-600 z-10"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </button>
-                                )}
-                                <div className="flex justify-center mb-4 text-6xl group-hover:scale-110 transition-transform cursor-pointer flex-shrink-0" onClick={() => !isEditingMenu && addToCart(item)}>
-                                    {item.image}
-                                </div>
-                                <h3 className="font-bold text-gray-900 text-lg">{item.name}</h3>
-                                <p className="text-xs text-gray-500 mb-3 flex-1">{item.desc}</p>
-                                <div className="flex items-center justify-between mt-auto pt-2">
-                                    <span className="font-bold text-gray-900">${item.price}</span>
-                                    {!isEditingMenu && (
-                                        <button onClick={() => addToCart(item)} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors">
-                                            <Plus className="h-4 w-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Add Item Card */}
-                        {isEditingMenu && (
-                            isAddingItem ? (
-                                <div className="rounded-2xl bg-gray-50 border-2 border-dashed border-blue-300 p-4 flex flex-col justify-center gap-3 animate-in fade-in zoom-in h-full">
-                                    <input
-                                        autoFocus
-                                        placeholder="Item Name"
-                                        className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-blue-500"
-                                        value={newItemName}
-                                        onChange={(e) => setNewItemName(e.target.value)}
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500">$</span>
-                                        <input
-                                            placeholder="Price"
-                                            type="number"
-                                            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-blue-500"
-                                            value={newItemPrice}
-                                            onChange={(e) => setNewItemPrice(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 mt-auto">
-                                        <button onClick={handleAddItem} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700">Add</button>
-                                        <button onClick={() => setIsAddingItem(false)} className="flex-1 py-1.5 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-300">Cancel</button>
-                                    </div>
-                                </div>
-                            ) : (
+                {/* Main View Area */}
+                <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin pb-6">
+                    {activeTab === 'PRODUCTION' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {plannedCookings.map((cooking) => (
+                                <CookingPlanCard
+                                    key={cooking.id}
+                                    {...cooking}
+                                    onStatusChange={(status) => handleStatusUpdate(cooking.id, status)}
+                                    onIngredientsDeduct={() => handleDeduct(cooking.id)}
+                                />
+                            ))}
+                            <button
+                                onClick={() => setIsProductionModalOpen(true)}
+                                className="h-full min-h-[160px] rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-all hover:bg-gray-50 bg-white/50"
+                            >
+                                <Plus className="h-6 w-6" />
+                                <span className="font-bold text-sm">Add to Production Plan</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold text-gray-900">Specialty Requests Log</h3>
                                 <button
-                                    onClick={() => setIsAddingItem(true)}
-                                    className="rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50 transition-colors h-full min-h-[200px]"
+                                    onClick={() => setIsSpecialOrderModalOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800 shadow-lg transition-all"
                                 >
-                                    <div className="h-10 w-10 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-                                        <Plus className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-500">Add Item</span>
+                                    <Plus className="h-4 w-4" />
+                                    New Special Order
                                 </button>
-                            )
-                        )}
-                    </div>
+                            </div>
+                            {specialOrders.map((order) => (
+                                <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+                                    <div className="flex items-center gap-5">
+                                        <div className={clsx("h-12 w-12 rounded-xl flex items-center justify-center shadow-inner",
+                                            order.priority === 'Critical' ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400"
+                                        )}>
+                                            <Zap className={clsx("h-6 w-6", order.priority === 'Critical' ? "fill-red-500" : "")} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900">{order.request}</h4>
+                                            <p className="text-sm text-gray-500">{order.notes}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="text-right">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{order.time}</p>
+                                            <span className={clsx("text-xs font-bold",
+                                                order.status === 'Pending' ? "text-orange-500" : "text-green-600"
+                                            )}>{order.status}</span>
+                                        </div>
+                                        <button className="p-2 hover:bg-gray-100 rounded-full text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <MoreHorizontal className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Right Section: Sidebar Cart */}
-            <div className="w-96 flex flex-col rounded-2xl bg-white p-6 shadow-sm border border-gray-100 h-full">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">
-                            {selectedTableId ? `Table No #${selectedTableId}` : 'Select a Table'}
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                            {selectedTableId ? (cart.length > 0 ? 'Current Order' : 'New Order') : 'No table selected'}
-                        </p>
+            {/* Right: Chef's Sidebar */}
+            <div className="w-80 flex flex-col gap-6 h-full shrink-0">
+                {/* Shift Clocking */}
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-gray-900">Shift Status</h3>
+                        <Timer className="h-5 w-5 text-gray-400" />
                     </div>
-                    <button className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
-                        <Package className="h-5 w-5" />
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                            <span className="text-xs font-bold text-gray-500">Service Duration</span>
+                            <span className="text-sm font-bold text-gray-900">03:45:12</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                            <span className="text-xs font-bold text-gray-500">Yield Progress</span>
+                            <span className="text-sm font-bold text-gray-900">72% Target</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Inventory Shortcuts / Low Stock Alerts */}
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex-1 overflow-hidden flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-bold text-gray-900">Critical Ingredients</h3>
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+                        {[
+                            { name: 'Beef Short Ribs', qty: '4kg', status: 'Running Low' },
+                            { name: 'Heavy Cream', qty: '5L', status: 'Near Expiry' },
+                            { name: 'Arborio Rice', qty: '2kg', status: 'Critically Low' }
+                        ].map((item, i) => (
+                            <div key={i} className="p-3 rounded-xl bg-red-50/30 border border-red-100">
+                                <p className="text-sm font-bold text-gray-900">{item.name}</p>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-red-600 font-medium">{item.status}</span>
+                                    <span className="text-xs font-bold text-gray-900">{item.qty}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
+                        <ClipboardList className="h-4 w-4" />
+                        Procurement Request
                     </button>
                 </div>
 
-                {/* Cart Items */}
-                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-                    <h3 className="font-medium text-gray-900">Ordered Items ({cart.length})</h3>
-                    {cart.map((line, idx) => (
-                        <div key={idx} className="flex justify-between items-center">
-                            <div className="flex items-center space-x-3">
-                                <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center text-lg">{line.item.image}</div>
-                                <div>
-                                    <p className="font-bold text-gray-900 text-sm">{line.item.name}</p>
-                                    <p className="text-xs text-gray-500">${line.item.price}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <div className="font-bold text-gray-900">x{line.qty}</div>
-                                <div className="font-bold text-gray-900">${(line.item.price * line.qty).toFixed(2)}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Payment Summary */}
-                <div className="mt-6 space-y-4 border-t border-gray-100 pt-6">
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Subtotal</span>
-                            <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Tax (10%)</span>
-                            <span className="font-medium text-gray-900">${tax.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-base pt-2">
-                            <span className="font-bold text-gray-900">Total</span>
-                            <span className="font-bold text-gray-900">${total.toFixed(2)}</span>
-                        </div>
+                {/* Kitchen History */}
+                <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center gap-2 mb-2 text-gray-500">
+                        <History className="h-4 w-4" />
+                        <span className="text-xs font-bold uppercase tracking-widest">Recent Logs</span>
                     </div>
-
-                    {/* Payment Methods */}
-                    <div>
-                        <h3 className="font-medium text-gray-900 mb-3">Payment Method</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button className="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-3 hover:border-gray-900 hover:bg-gray-50 transition-all">
-                                <Wallet className="h-6 w-6 text-gray-700 mb-1" />
-                                <span className="text-xs font-medium text-gray-700">Cash</span>
-                            </button>
-                            <button className="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-3 hover:border-gray-900 hover:bg-gray-50 transition-all">
-                                <CreditCard className="h-6 w-6 text-gray-700 mb-1" />
-                                <span className="text-xs font-medium text-gray-700">Card</span>
-                            </button>
+                    <div className="space-y-4 pt-2">
+                        <div className="border-l-2 border-green-500 pl-4">
+                            <p className="text-xs font-bold text-gray-900">PC-003 Completed</p>
+                            <p className="text-[10px] text-gray-500">15 Servings Pan-Seared Sea Bass</p>
                         </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                        <button className="flex items-center justify-center space-x-2 rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50">
-                            <Printer className="h-4 w-4" />
-                            <span>Receipt</span>
-                        </button>
-                        <button onClick={handlePlaceOrder} className="flex items-center justify-center space-x-2 rounded-xl bg-[#2a2b2d] py-3 text-sm font-bold text-white hover:bg-gray-800 shadow-lg">
-                            <ShoppingBag className="h-4 w-4" />
-                            <span>Place Order</span>
-                        </button>
+                        <div className="border-l-2 border-gray-300 pl-4">
+                            <p className="text-xs font-bold text-gray-900">Inventory Sync</p>
+                            <p className="text-[10px] text-gray-500">Manual stock update for Salmon</p>
+                        </div>
                     </div>
                 </div>
             </div>
