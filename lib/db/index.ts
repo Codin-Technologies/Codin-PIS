@@ -4,12 +4,12 @@ import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL;
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL is not set");
+if (!connectionString && process.env.NODE_ENV === 'production') {
+  console.warn("DATABASE_URL is not set. Database connection will fail at runtime.");
 }
 
 const pool = new Pool({
-  connectionString,
+  connectionString: connectionString || "",
   ssl: connectionString?.includes("supabase")
     ? { rejectUnauthorized: false }
     : false,
