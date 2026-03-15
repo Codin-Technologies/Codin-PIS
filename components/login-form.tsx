@@ -145,10 +145,10 @@ export function LoginForm({
                 <Field className="mt-2">
                     <Button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isLoading}
                         className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
                     >
-                        {isSubmitting ? (
+                        {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                                 Authenticating...
