@@ -1,0 +1,37 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Codin-PIS API",
+    "description": "REST API for Codin-PIS — Roles, Organizations, and Users management with RBAC.",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT token (obtained from login) to authenticate."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Roles",
+      "description": "Manage roles in the system."
+    },
+    {
+      "name": "Organizations",
+      "description": "Manage organizations and company assignments."
+    },
+    {
+      "name": "Users",
+      "description": "Manage users, assign roles and organizations."
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication and password management."
+    }
+  ]
+}

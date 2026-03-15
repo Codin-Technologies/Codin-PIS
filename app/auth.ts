@@ -1,5 +1,5 @@
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -9,30 +9,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
       },
       authorize: async (credentials) => {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/login`, {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: credentials?.email,
+            password: credentials?.password,
+          }),
+        })
+
+        const data = await res.json()
+
+        if (res.ok && data.user) {
+          return {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.fullName,
+            roleId: data.user.roleId,
+            organizationId: data.user.organizationId,
+          } as any
         }
 
-        let user = null;
-
-        // logic to verify if the user exists
-        user = {
-          id: "usr_8f3a92kdl",
-          email: credentials.email as string,
-          fullName: "Kelvin Kijazi",
-          phone: "+2557XXXXXXXX",
-        };
-
-        if (!user) {
-          throw new Error("Invalid credentials.");
-        }
-
-        return user;
+        throw new Error(data.message || "Invalid credentials.")
       },
     }),
   ],
-  // Tell NextAuth to use your custom login page.
-  pages: {
-    signIn: "/login",
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.roleId = (user as any).roleId
+        token.organizationId = (user as any).organizationId
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).roleId = token.roleId;
+        (session.user as any).organizationId = token.organizationId;
+        session.user.id = token.sub as string;
+      }
+      return session
+    }
   },
-});
+  pages: {
+    signIn: '/login',
+  },
+  session: { strategy: "jwt" }
+})

@@ -1,39 +1,44 @@
 'use client';
 
-import React from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
     Field,
     FieldDescription,
     FieldGroup,
     FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 
-type LoginFormValues = {
-    email: string;
-    password: string;
-    remember?: boolean;
-};
+const loginSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(1, "Password is required"),
+    remember: z.boolean().optional(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm({
     className,
     ...props
 }: React.ComponentProps<"form">) {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const callbackUrl =
-        (searchParams.get("callbackUrl") as string | null) ?? "/";
+    const [isLoading, setIsLoading] = useState(false);
+    const [authError, setAuthError] = useState<string | null>(null);
 
     const {
         register,
         handleSubmit,
-        formState: { isSubmitting },
+        formState: { errors },
     } = useForm<LoginFormValues>({
+        resolver: zodResolver(loginSchema),
         defaultValues: {
             email: "",
             password: "",
@@ -41,13 +46,28 @@ export function LoginForm({
         },
     });
 
-    const onSubmit = async (values: LoginFormValues) => {
-        // Let NextAuth handle redirect back to the originally requested page.
-        await signIn("credentials", {
-            email: values.email,
-            password: values.password,
-            callbackUrl,
-        });
+    const onSubmit = async (data: LoginFormValues) => {
+        setIsLoading(true);
+        setAuthError(null);
+
+        try {
+            const res = await signIn("credentials", {
+                email: data.email,
+                password: data.password,
+                redirect: false,
+            });
+
+            if (res?.error) {
+                setAuthError("Invalid email or password");
+                setIsLoading(false);
+            } else if (res?.ok) {
+                router.push("/");
+                router.refresh();
+            }
+        } catch (error) {
+            setAuthError("An unexpected error occurred. Please try again.");
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -66,6 +86,12 @@ export function LoginForm({
                     </p>
                 </div>
 
+                {authError && (
+                    <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-md mb-4 text-center">
+                        {authError}
+                    </div>
+                )}
+
                 <Field>
                     <FieldLabel htmlFor="email" className="text-gray-300 text-xs uppercase tracking-wider font-semibold">Email Address</FieldLabel>
                     <Input
@@ -73,8 +99,12 @@ export function LoginForm({
                         type="email"
                         {...register("email", { required: true })}
                         placeholder="admin@pis-system.com"
+                        {...register("email")}
                         className="bg-[#2a2b2d] border-[#3a3b3d] text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
                     />
+                    {errors.email && (
+                        <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                    )}
                 </Field>
 
                 <Field>
@@ -90,9 +120,12 @@ export function LoginForm({
                     <Input
                         id="password"
                         type="password"
-                        {...register("password", { required: true })}
+                        {...register("password")}
                         className="bg-[#2a2b2d] border-[#3a3b3d] text-white focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
                     />
+                    {errors.password && (
+                        <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                    )}
                 </Field>
 
                 <Field>
