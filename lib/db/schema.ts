@@ -1,12 +1,14 @@
 import { pgTable, text, timestamp, uuid, primaryKey } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
-// Reusable timestamp columns for all tables
+// ─── Shared audit columns ─────────────────────────────────────────────────────
 const timestamps = {
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
-  deletedAt: timestamp('deleted_at'), // Nullable for soft deletes
+  updatedAt: timestamp('updated_at'),
+  deletedAt: timestamp('deleted_at'), // null until soft-deleted
 };
 
+// ─── 1. Permission Groups ──────────────────────────────────────────────────────
 export const permissionGroups = pgTable('permission_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull().unique(),
@@ -14,9 +16,10 @@ export const permissionGroups = pgTable('permission_groups', {
   ...timestamps,
 });
 
+// ─── 2. Permissions ───────────────────────────────────────────────────────────
 export const permissions = pgTable('permissions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull().unique(), // e.g., 'users.create'
+  name: text('name').notNull().unique(), // e.g. 'users.create'
   description: text('description'),
   groupId: uuid('group_id')
     .notNull()
@@ -24,6 +27,7 @@ export const permissions = pgTable('permissions', {
   ...timestamps,
 });
 
+// ─── 3. Roles ─────────────────────────────────────────────────────────────────
 export const roles = pgTable('roles', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull().unique(),
@@ -31,6 +35,7 @@ export const roles = pgTable('roles', {
   ...timestamps,
 });
 
+// ─── 4. Role-Permissions (many-to-many) ──────────────────────────────────────
 export const rolePermissions = pgTable('role_permissions', {
   roleId: uuid('role_id')
     .notNull()
@@ -39,12 +44,11 @@ export const rolePermissions = pgTable('role_permissions', {
     .notNull()
     .references(() => permissions.id, { onDelete: 'cascade' }),
   ...timestamps,
-}, (table) => {
-  return [
-    primaryKey({ columns: [table.roleId, table.permissionId] })
-  ];
-});
+}, (table) => [
+  primaryKey({ columns: [table.roleId, table.permissionId] }),
+]);
 
+// ─── 5. Organization Types ────────────────────────────────────────────────────
 export const organizationTypes = pgTable('organization_types', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull().unique(),
@@ -52,6 +56,7 @@ export const organizationTypes = pgTable('organization_types', {
   ...timestamps,
 });
 
+// ─── 6. Organizations ─────────────────────────────────────────────────────────
 export const organizations = pgTable('organizations', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
@@ -63,6 +68,7 @@ export const organizations = pgTable('organizations', {
   ...timestamps,
 });
 
+// ─── 7. Users ─────────────────────────────────────────────────────────────────
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   fullName: text('full_name').notNull(),
@@ -78,6 +84,7 @@ export const users = pgTable('users', {
   ...timestamps,
 });
 
+// ─── 8. Password Resets (OTP) ─────────────────────────────────────────────────
 export const passwordResets = pgTable('password_resets', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
@@ -85,6 +92,54 @@ export const passwordResets = pgTable('password_resets', {
     .references(() => users.id, { onDelete: 'cascade' }),
   otp: text('otp').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
-  usedAt: timestamp('used_at'),
   ...timestamps,
 });
+
+// ─── Relations ────────────────────────────────────────────────────────────────
+export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
+  permissions: many(permissions),
+}));
+
+export const permissionsRelations = relations(permissions, ({ one, many }) => ({
+  group: one(permissionGroups, {
+    fields: [permissions.groupId],
+    references: [permissionGroups.id],
+  }),
+  rolePermissions: many(rolePermissions),
+}));
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+  users: many(users),
+}));
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, {
+    fields: [rolePermissions.roleId],
+    references: [roles.id],
+  }),
+  permission: one(permissions, {
+    fields: [rolePermissions.permissionId],
+    references: [permissions.id],
+  }),
+}));
+
+export const usersRelations = relations(users, ({ one }) => ({
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.id],
+  }),
+  organization: one(organizations, {
+    fields: [users.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
+  organizationType: one(organizationTypes, {
+    fields: [organizations.organizationTypeId],
+    references: [organizationTypes.id],
+  }),
+  users: many(users),
+}));
+
