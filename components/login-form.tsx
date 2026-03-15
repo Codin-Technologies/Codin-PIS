@@ -1,39 +1,58 @@
 'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import React from "react";
+import { useForm } from "react-hook-form";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
     Field,
     FieldDescription,
     FieldGroup,
     FieldLabel,
-    FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+
+type LoginFormValues = {
+    email: string;
+    password: string;
+    remember?: boolean;
+};
 
 export function LoginForm({
     className,
     ...props
 }: React.ComponentProps<"form">) {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const callbackUrl =
+        (searchParams.get("callbackUrl") as string | null) ?? "/";
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+    const {
+        register,
+        handleSubmit,
+        formState: { isSubmitting },
+    } = useForm<LoginFormValues>({
+        defaultValues: {
+            email: "",
+            password: "",
+            remember: false,
+        },
+    });
 
-        // Mock login - just sets a cookie and redirects
-        document.cookie = "session=active; path=/; max-age=86400"; // 24 hours
-
-        router.push("/");
-        router.refresh();
+    const onSubmit = async (values: LoginFormValues) => {
+        // Let NextAuth handle redirect back to the originally requested page.
+        await signIn("credentials", {
+            email: values.email,
+            password: values.password,
+            callbackUrl,
+        });
     };
 
     return (
         <form
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit(onSubmit)}
             className={cn("flex flex-col gap-6", className)}
             {...props}
         >
@@ -52,8 +71,8 @@ export function LoginForm({
                     <Input
                         id="email"
                         type="email"
+                        {...register("email", { required: true })}
                         placeholder="admin@pis-system.com"
-                        required
                         className="bg-[#2a2b2d] border-[#3a3b3d] text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
                     />
                 </Field>
@@ -71,7 +90,7 @@ export function LoginForm({
                     <Input
                         id="password"
                         type="password"
-                        required
+                        {...register("password", { required: true })}
                         className="bg-[#2a2b2d] border-[#3a3b3d] text-white focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
                     />
                 </Field>
@@ -81,6 +100,7 @@ export function LoginForm({
                         <input
                             type="checkbox"
                             id="remember"
+                            {...register("remember")}
                             className="h-4 w-4 rounded border-[#3a3b3d] bg-[#2a2b2d] text-pink-500 focus:ring-pink-500 accent-pink-500"
                         />
                         <FieldLabel htmlFor="remember" className="font-normal text-[#9ca6af] text-sm">
@@ -92,10 +112,10 @@ export function LoginForm({
                 <Field className="mt-2">
                     <Button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
                     >
-                        {isLoading ? (
+                        {isSubmitting ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                                 Authenticating...
