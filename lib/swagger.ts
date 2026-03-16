@@ -14,6 +14,10 @@ export const getApiDocs = async () => {
           url: 'http://localhost:3000',
           description: 'Local Development Server',
         },
+        {
+          url: 'https://codin-pis-yetb.vercel.app',
+          description: 'Production Server',
+        },
       ],
       components: {
         securitySchemes: {
@@ -31,8 +35,9 @@ export const getApiDocs = async () => {
       ],
     },
     apis: [
-      './app/api/**/*.ts', 
-      './app/api/**/*.tsx'
+      `${process.cwd()}/app/api/**/*.ts`,
+      `${process.cwd()}/app/api/**/*.tsx`,
+      `${process.cwd()}/app/api/**/*.js`,
     ],
   };
 
