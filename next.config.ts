@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingIncludes: {
+    "/api/swagger": ["./public/openapi.json"],
+  },
 };
 
 export default nextConfig;
