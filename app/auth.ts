@@ -9,7 +9,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
       },
       authorize: async (credentials) => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/login`, {
+        const res = await fetch(`${process.env.APP_URL || 'https://codin-pis-yetb.vercel.app'}/api/auth/login`, {
           method: 'POST',
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
