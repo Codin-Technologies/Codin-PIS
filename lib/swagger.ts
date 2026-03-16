@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 
 export const getApiDocs = async () => {
   const options: swaggerJsdoc.Options = {
@@ -35,9 +36,9 @@ export const getApiDocs = async () => {
       ],
     },
     apis: [
-      `${process.cwd()}/app/api/**/*.ts`,
-      `${process.cwd()}/app/api/**/*.tsx`,
-      `${process.cwd()}/app/api/**/*.js`,
+      path.join(process.cwd(), 'app/api/**/*.ts'),
+      path.join(process.cwd(), 'app/api/**/*.tsx'),
+      path.join(process.cwd(), 'app/api/**/*.js'),
     ],
   };
 
