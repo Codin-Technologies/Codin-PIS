@@ -27,7 +27,7 @@ export default function LoginPage() {
                     {/* Footer Links */}
                     <div className="mt-12 flex items-center justify-between text-[#9ca6af] text-xs font-semibold uppercase tracking-widest">
                         <button className="hover:text-white transition-colors">Support Center.</button>
-                        <button className="hover:text-white transition-colors">Security Policy</button>
+                        <button className="hover:text-white transition-colors">Security Policy.</button>
                     </div>
                 </div>
             </div>
