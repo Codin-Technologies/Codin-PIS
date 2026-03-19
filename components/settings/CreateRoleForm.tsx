@@ -1,31 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { X, Shield, Check, Lock } from 'lucide-react';
+import { X, Shield, Check, CheckCircle2, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
-
-interface PermissionRow {
-    module: string;
-    feature: string;
-    permissions: {
-        access: boolean;
-        create: boolean;
-        update: boolean;
-        delete: boolean;
-    };
-}
-
-const MODULES: { name: string; features: string[] }[] = [
-    { name: 'Dashboard', features: ['Analytics View', 'Activity Feed'] },
-    { name: 'Inventory', features: ['SKU Catalog', 'Stock Inventory', 'Warehouse Management'] },
-    { name: 'Procurement', features: ['Requisitions', 'RFQs', 'Purchase Orders', 'Suppliers'] },
-    { name: 'Kitchen', features: ['Recipe Management', 'Daily Stock Usage', 'Production Planning'] },
-    { name: 'Reports', features: ['Financial Reports', 'Operational Analytics', 'Inventory Valuations'] },
-    { name: 'System', features: ['Users', 'Roles', 'Organizations / Branches'] },
-];
+import { usePermissions, useCreateRole } from '@/hooks/useUsers';
 
 interface CreateRoleFormProps {
     onClose: () => void;
@@ -33,50 +14,90 @@ interface CreateRoleFormProps {
 }
 
 export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
-    const [isLoading, setIsLoading] = useState(false);
-    const [permissions, setPermissions] = useState<Record<string, PermissionRow['permissions']>>(() => {
-        const initial: Record<string, PermissionRow['permissions']> = {};
-        MODULES.forEach(m => {
-            m.features.forEach(f => {
-                initial[f] = { access: false, create: false, update: false, delete: false };
-            });
-        });
-        return initial;
-    });
+    const { data: groups, isLoading: isLoadingPermissions } = usePermissions();
+    const createRoleMutation = useCreateRole();
 
-    const togglePermission = (feature: string, type: keyof PermissionRow['permissions']) => {
-        setPermissions(prev => ({
-            ...prev,
-            [feature]: {
-                ...prev[feature],
-                [type]: !prev[feature][type]
-            }
-        }));
+    const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
+
+    // Process permissions into a matrix structure
+    const matrixData = useMemo(() => {
+        if (!groups) return [];
+
+        return groups.map(group => {
+            const features: Record<string, { read?: string; create?: string; update?: string; delete?: string }> = {};
+            
+            group.permissions.forEach(perm => {
+                const [feature, action] = perm.name.split('.');
+                if (!features[feature]) features[feature] = {};
+                
+                if (action === 'read') features[feature].read = perm.id;
+                else if (action === 'create') features[feature].create = perm.id;
+                else if (action === 'update') features[feature].update = perm.id;
+                else if (action === 'delete') features[feature].delete = perm.id;
+                else {
+                    // Fallback for non-standard actions, map to 'read' if it's the only one or something
+                    features[feature].read = features[feature].read || perm.id;
+                }
+            });
+
+            return {
+                name: group.name,
+                features: Object.entries(features).map(([name, actions]) => ({
+                    name,
+                    actions
+                }))
+            };
+        });
+    }, [groups]);
+
+    const togglePermission = (permId: string) => {
+        setSelectedPermissions(prev => 
+            prev.includes(permId) 
+                ? prev.filter(id => id !== permId)
+                : [...prev, permId]
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-
+        setError(null);
+        setSuccess(false);
+        
         const formData = new FormData(e.target as HTMLFormElement);
-
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        const activePermissionsCount = Object.values(permissions).reduce((acc, curr) => {
-            return acc + Object.values(curr).filter(Boolean).length;
-        }, 0);
-
-        const newRole = {
-            id: Math.random(),
-            name: formData.get('name'),
-            permissions: `${activePermissionsCount} Permissions Active`,
-            users: 0,
+        const payload = {
+            name: formData.get('name') as string,
+            description: formData.get('description') as string,
+            permissions: selectedPermissions,
         };
 
-        onSuccess(newRole);
-        setIsLoading(false);
+        createRoleMutation.mutate(payload, {
+            onSuccess: (data) => {
+                setSuccess(true);
+                setTimeout(() => {
+                    onSuccess(data);
+                }, 1500);
+            },
+            onError: (err: any) => {
+                setError(err.message || 'Failed to create role. Please try again.');
+            }
+        });
     };
+
+    if (success) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 gap-4 animate-in fade-in zoom-in duration-300">
+                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500">
+                    <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-xl font-bold text-gray-900">Role Created!</h3>
+                    <p className="text-gray-500">The system role has been successfully defined.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8 h-full max-h-[85vh]">
@@ -97,6 +118,13 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                     <X className="w-5 h-5" />
                 </button>
             </div>
+
+            {error && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-sm font-medium">{error}</p>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8 overflow-hidden">
                 <div className="overflow-y-auto pr-2 flex flex-col gap-8 scrollbar-thin">
@@ -136,32 +164,46 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {MODULES.map((module) => (
+                                    {isLoadingPermissions && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-gray-400 italic animate-pulse">Loading permissions...</td>
+                                        </tr>
+                                    )}
+                                    {matrixData.map((module) => (
                                         <div key={module.name} className="contents">
                                             <tr className="bg-gray-50/30">
-                                                <td colSpan={5} className="px-6 py-2 text-[10px] font-bold text-pink-500 uppercase tracking-widest leading-none bg-pink-50/20">{module.name}</td>
+                                                <td colSpan={5} className="px-6 py-2 text-[10px] font-bold text-pink-500 uppercase tracking-widest leading-none bg-pink-50/20 underline decoration-pink-500/30 underline-offset-4">{module.name}</td>
                                             </tr>
                                             {module.features.map((feature) => (
-                                                <tr key={feature} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                                <tr key={feature.name} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                                     <td className="px-6 py-4">
-                                                        <div className="text-sm font-bold text-gray-900">{feature}</div>
+                                                        <div className="text-sm font-bold text-gray-900 capitalize">{feature.name.replace(/-/g, ' ')}</div>
                                                     </td>
-                                                    {(['access', 'create', 'update', 'delete'] as const).map((type) => (
-                                                        <td key={type} className="px-4 py-4 text-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => togglePermission(feature, type)}
-                                                                className={clsx(
-                                                                    "w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center mx-auto",
-                                                                    permissions[feature][type]
-                                                                        ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-                                                                        : "border-gray-200 hover:border-pink-300"
+                                                    {(['read', 'create', 'update', 'delete'] as const).map((type) => {
+                                                        const permId = feature.actions[type];
+                                                        return (
+                                                            <td key={type} className="px-4 py-4 text-center">
+                                                                {permId ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => togglePermission(permId)}
+                                                                        className={clsx(
+                                                                            "w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center mx-auto",
+                                                                            selectedPermissions.includes(permId)
+                                                                                ? "bg-pink-500 border-pink-500 text-white shadow-sm"
+                                                                                : "border-gray-200 hover:border-pink-300"
+                                                                        )}
+                                                                    >
+                                                                        {selectedPermissions.includes(permId) && <Check className="w-4 h-4 stroke-[3px]" />}
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="w-6 h-6 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto opacity-40">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                                                                    </div>
                                                                 )}
-                                                            >
-                                                                {permissions[feature][type] && <Check className="w-4 h-4 stroke-[3px]" />}
-                                                            </button>
-                                                        </td>
-                                                    ))}
+                                                            </td>
+                                                        );
+                                                    })}
                                                 </tr>
                                             ))}
                                         </div>
@@ -183,10 +225,10 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                     </Button>
                     <Button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={createRoleMutation.isPending}
                         className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
                     >
-                        {isLoading ? (
+                        {createRoleMutation.isPending ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                                 Creating Role...

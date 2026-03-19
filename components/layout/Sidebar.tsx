@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSession, signOut } from 'next-auth/react';
+import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed, FileText, LogOut } from 'lucide-react';
 
 const navItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -17,7 +18,14 @@ const navItems = [
 
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
     const pathname = usePathname();
+    const { data: session } = useSession();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    const userInitial = session?.user?.email?.charAt(0).toUpperCase() || 'U';
+
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: '/login' });
+    };
 
     return (
         <motion.div
@@ -123,17 +131,51 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                 })}
             </nav>
 
-            {/* Footer / User Profile if needed */}
-            <div className="p-4 border-t border-[#2a2b2d]">
-                <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500 shrink-0 flex items-center justify-center text-xs">U</div>
-                    {isOpen && (
-                        <div className="ml-3">
-                            <p className="text-sm font-medium">User</p>
-                            <p className="text-xs text-[#9ca6af]">Admin</p>
+            {/* Footer / User Profile & Logout */}
+            <div className="p-4 border-t border-[#2a2b2d] mt-auto">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 shrink-0 flex items-center justify-center font-bold text-white shadow-md">
+                            {userInitial}
                         </div>
+                        <AnimatePresence>
+                            {isOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: "auto" }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    className="ml-3 overflow-hidden"
+                                >
+                                    <p className="text-sm font-medium text-white truncate w-32">
+                                        {session?.user?.name || session?.user?.email?.split('@')[0] || "User"}
+                                    </p>
+                                    <p className="text-[10px] text-[#9ca6af] uppercase tracking-widest truncate">
+                                        Session Active
+                                    </p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    {isOpen && (
+                        <button 
+                            onClick={handleLogout}
+                            className="p-2 ml-2 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors flex shrink-0"
+                            title="Sign Out"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </button>
                     )}
-                </div>
+                 </div>
+                 {/* Compact logout for closed sidebar */}
+                 {!isOpen && (
+                     <button 
+                         onClick={handleLogout}
+                         className="mt-4 p-2 w-full flex justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                         title="Sign Out"
+                     >
+                         <LogOut className="w-5 h-5" />
+                     </button>
+                 )}
             </div>
         </motion.div>
     );

@@ -1,16 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Shield, Building2, Settings } from 'lucide-react';
+import { Users, Shield, Building2, Settings, KeyRound } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { UserManagement } from '@/components/settings/UserManagement';
 import { RoleManagement } from '@/components/settings/RoleManagement';
 import { OrgManagement } from '@/components/settings/OrgManagement';
 import clsx from 'clsx';
 
+import { ChangePasswordForm } from '@/components/settings/ChangePasswordForm';
+
+function SecuritySettings() {
+    const { data: session } = useSession();
+    if (!session?.user?.id) return <div className="text-gray-500 animate-pulse">Loading security profile...</div>;
+    return (
+        <div className="max-w-2xl m-auto mt-8">
+            <ChangePasswordForm userId={session.user.id} />
+        </div>
+    );
+}
+
 const TABS = [
     { id: 'users', label: 'Users', icon: Users, component: UserManagement },
     { id: 'roles', label: 'Roles', icon: Shield, component: RoleManagement },
     { id: 'orgs', label: 'Organizations', icon: Building2, component: OrgManagement },
+    { id: 'security', label: 'Security', icon: KeyRound, component: SecuritySettings },
 ];
 
 export default function SettingsPage() {

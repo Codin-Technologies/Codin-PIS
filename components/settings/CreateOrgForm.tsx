@@ -4,35 +4,71 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { X, Building2, MapPin, Phone, Globe } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useOrganizationTypes, useCreateOrganization, useUpdateOrganization } from '@/hooks/useUsers';
+import { Organization } from '@/lib/api';
 
 interface CreateOrgFormProps {
     onClose: () => void;
-    onSuccess: (newOrg: any) => void;
+    onSuccess: (org: any) => void;
+    organization?: Organization;
 }
 
-export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
-    const [isLoading, setIsLoading] = useState(false);
+export function CreateOrgForm({ onClose, onSuccess, organization }: CreateOrgFormProps) {
+    const isEditing = !!organization;
+    const { data: orgTypes, isLoading: isLoadingTypes } = useOrganizationTypes();
+    const createOrgMutation = useCreateOrganization();
+    const updateOrgMutation = useUpdateOrganization();
+    
+    const mutation = isEditing ? updateOrgMutation : createOrgMutation;
+
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setError(null);
+        setSuccess(false);
 
         const formData = new FormData(e.target as HTMLFormElement);
-        const newOrg = {
-            id: Math.random(),
-            name: formData.get('name'),
-            type: formData.get('type') || 'Branch',
-            location: formData.get('location'),
-            users: 0,
+        const payload = {
+            name: formData.get('name') as string,
+            organizationTypeId: formData.get('type') as string,
+            location: formData.get('location') as string,
+            contact: formData.get('phone') as string,
         };
 
-        onSuccess(newOrg);
-        setIsLoading(false);
+        const mutationPayload = isEditing 
+            ? { id: organization.id, payload } 
+            : payload;
+
+        (mutation.mutate as any)(mutationPayload, {
+            onSuccess: (data: any) => {
+                setSuccess(true);
+                setTimeout(() => {
+                    onSuccess(data || { ...organization, ...payload });
+                    onClose();
+                }, 1500);
+            },
+            onError: (err: any) => {
+                setError(err.message || `Failed to ${isEditing ? 'update' : 'create'} organization. Please try again.`);
+            }
+        });
     };
+
+    if (success) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 gap-4 animate-in fade-in zoom-in duration-300">
+                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500">
+                    <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-xl font-bold text-gray-900">Organization {isEditing ? 'Updated' : 'Created'}!</h3>
+                    <p className="text-gray-500">The branch details have been successfully {isEditing ? 'updated' : 'registered'}.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8">
@@ -42,8 +78,8 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                         <Building2 className="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Add New Organization</h2>
-                        <p className="text-gray-500 text-sm">Register a new branch or security entity.</p>
+                        <h2 className="text-xl font-bold text-gray-900">{isEditing ? 'Edit' : 'Add New'} Organization</h2>
+                        <p className="text-gray-500 text-sm">{isEditing ? 'Modify branch details and settings.' : 'Register a new branch or security entity.'}</p>
                     </div>
                 </div>
                 <button
@@ -54,6 +90,13 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                 </button>
             </div>
 
+            {error && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-sm font-medium">{error}</p>
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 <FieldGroup className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Field className="md:col-span-2">
@@ -63,6 +106,7 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                             name="name"
                             placeholder="e.g. Westlands Distribution Center"
                             required
+                            defaultValue={organization?.name}
                             className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 rounded-xl"
                         />
                     </Field>
@@ -74,14 +118,14 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                                 id="type"
                                 name="type"
                                 className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-sans"
-                                defaultValue=""
+                                defaultValue={organization?.organizationTypeId || ""}
                                 required
+                                disabled={isLoadingTypes}
                             >
-                                <option value="" disabled>Select type...</option>
-                                <option value="Headquarters">Headquarters (HQ)</option>
-                                <option value="Branch">Standard Branch</option>
-                                <option value="Regional Hub">Regional Hub</option>
-                                <option value="Warehouse">Warehouse / Logistics</option>
+                                <option value="" disabled>{isLoadingTypes ? 'Loading types...' : 'Select type...'}</option>
+                                {orgTypes?.map(type => (
+                                    <option key={type.id} value={type.id}>{type.name}</option>
+                                ))}
                             </select>
                             <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -95,6 +139,7 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                                 name="location"
                                 placeholder="City, Country"
                                 required
+                                defaultValue={organization?.location}
                                 className="h-12 pl-10 border-gray-200 focus:border-orange-500 focus:focus:ring-orange-500/20 rounded-xl"
                             />
                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -109,6 +154,7 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                                 name="phone"
                                 type="tel"
                                 placeholder="+254 700 000 000"
+                                defaultValue={organization?.contact}
                                 className="h-12 pl-10 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 rounded-xl"
                             />
                             <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -127,18 +173,18 @@ export function CreateOrgForm({ onClose, onSuccess }: CreateOrgFormProps) {
                     </Button>
                     <Button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={mutation.isPending}
                         className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
                     >
-                        {isLoading ? (
+                        {mutation.isPending ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                                Creating...
+                                {isEditing ? 'Updating...' : 'Creating...'}
                             </div>
-                        ) : "Register Organization"}
+                        ) : isEditing ? "Update Organization" : "Register Organization"}
                     </Button>
                 </div>
             </form>
         </div>
-    );
+);
 }

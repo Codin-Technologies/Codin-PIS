@@ -4,20 +4,13 @@ import { useState } from 'react';
 import { Shield, Lock, CheckCircle2, MoreVertical, Plus } from 'lucide-react';
 import { CreateRoleForm } from './CreateRoleForm';
 import { AnimatePresence, motion } from 'framer-motion';
-
-const initialRoles = [
-    { id: 1, name: 'Super Admin', permissions: 'Full access to all modules', users: 2 },
-    { id: 2, name: 'Procurement Manager', permissions: 'Manage RFQs, POs, and Suppliers', users: 5 },
-    { id: 3, name: 'Kitchen Lead', permissions: 'Manage stocks and kitchen inventory', users: 12 },
-    { id: 4, name: 'Branch Manager', permissions: 'View reports and manage local staff', users: 8 },
-];
+import { useRoles } from '@/hooks/useUsers';
 
 export function RoleManagement() {
-    const [roles, setRoles] = useState(initialRoles);
+    const { data: roles, isLoading } = useRoles();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const handleAddRole = (role: any) => {
-        setRoles([role, ...roles]);
+    const handleAddRole = () => {
         setIsModalOpen(false);
     };
 
@@ -30,7 +23,7 @@ export function RoleManagement() {
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all shadow-sm font-sans"
                 >
                     <Plus className="w-4 h-4 text-pink-500" />
                     Create Role
@@ -38,7 +31,10 @@ export function RoleManagement() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {roles.map((role) => (
+                {isLoading && Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-2xl p-6 h-40 shadow-sm" />
+                ))}
+                {!isLoading && roles?.map((role) => (
                     <div key={role.id} className="group relative bg-white border border-gray-100 rounded-2xl p-6 hover:border-pink-500/30 transition-all shadow-sm">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
@@ -48,7 +44,7 @@ export function RoleManagement() {
                                 <div>
                                     <h4 className="font-bold text-gray-900">{role.name}</h4>
                                     <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-0.5">
-                                        {role.users} Users Assigned
+                                        {(role as any).usersCount ?? 0} Users Assigned
                                     </p>
                                 </div>
                             </div>
@@ -60,16 +56,21 @@ export function RoleManagement() {
                         <div className="space-y-3">
                             <div className="flex items-start gap-2">
                                 <Lock className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
-                                <p className="text-sm text-gray-600 leading-relaxed">{role.permissions}</p>
+                                <p className="text-sm text-gray-600 leading-relaxed truncate">
+                                    {role.description || 'No description provided.'}
+                                </p>
                             </div>
                             <div className="flex items-center gap-2 pt-2">
                                 <span className="text-[10px] text-green-600 uppercase tracking-widest font-bold flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> System Verified
+                                    <CheckCircle2 className="w-3 h-3" /> system verified
                                 </span>
                             </div>
                         </div>
                     </div>
                 ))}
+                {!isLoading && roles?.length === 0 && (
+                    <div className="col-span-full py-20 text-center text-gray-400 italic">No roles defined.</div>
+                )}
             </div>
 
             {/* Create Role Modal */}

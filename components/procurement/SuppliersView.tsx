@@ -2,81 +2,66 @@
 
 import { useState } from 'react';
 import {
-    Users, Star, MapPin, Phone, Mail,
-    ShieldCheck, Globe, Search, Filter,
-    Plus, MoreHorizontal, ExternalLink,
-    TrendingUp, AlertCircle, FileText
+    Users, Star, MapPin, AlertCircle,
+    ShieldCheck,
+    Plus, ExternalLink,
+    TrendingUp
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import { NewSupplierModal } from './NewSupplierModal';
+import { useSuppliers, useCreateSupplier } from '@/hooks/useSuppliers';
+import { useBranch } from '@/hooks/useBranch';
+import { ErrorState } from '@/components/ui/error-state';
+import type { CreateSupplierPayload } from '@/lib/api';
 
-const MOCK_SUPPLIERS = [
-    {
-        id: 'SUP-001',
-        name: 'Premium Foods Ltd',
-        category: 'Food & Beverage',
-        rating: 4.8,
-        location: 'London, UK',
-        status: 'Active',
-        reliability: 98,
-        spend: '$145,000',
-        contacts: 'John Doe',
-        tags: ['Preferred', 'Bulk']
-    },
-    {
-        id: 'SUP-002',
-        name: 'Global Provisions',
-        category: 'Dry Goods',
-        rating: 4.5,
-        location: 'New York, USA',
-        status: 'Active',
-        reliability: 94,
-        spend: '$82,000',
-        contacts: 'Jane Smith',
-        tags: ['International']
-    },
-    {
-        id: 'SUP-003',
-        name: 'Winelands Estate',
-        category: 'Wine & Spirits',
-        rating: 4.9,
-        location: 'Cape Town, SA',
-        status: 'Active',
-        reliability: 99,
-        spend: '$210,000',
-        contacts: 'Marius van Wyk',
-        tags: ['Premium', 'Direct']
-    },
-    {
-        id: 'SUP-004',
-        name: 'CleanChem Inc',
-        category: 'Cleaning Supplies',
-        rating: 4.2,
-        location: 'Berlin, Germany',
-        status: 'Under Review',
-        reliability: 88,
-        spend: '$12,500',
-        contacts: 'Hans Müller',
-        tags: ['Eco-Friendly']
-    }
+const SUPPLIER_STATS_META = [
+    { label: 'Total Suppliers',    icon: Users,       color: 'text-indigo-600',  bg: 'bg-indigo-50'  },
+    { label: 'Avg Lead Time',      icon: TrendingUp,  color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Risk Alerts',        icon: AlertCircle, color: 'text-amber-600',   bg: 'bg-amber-50'   },
+    { label: 'Preferred Partners', icon: ShieldCheck, color: 'text-blue-600',    bg: 'bg-blue-50'    },
 ];
 
-const SUPPLIER_STATS = [
-    { label: 'Total Suppliers', value: '142', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Avg lead time', value: '2.4 Days', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Risk Alerts', value: '3', icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Preferred Partners', value: '12', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
-];
+function SupplierSkeleton() {
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm animate-pulse space-y-3">
+            <div className="flex justify-between">
+                <div className="h-12 w-12 rounded-xl bg-gray-200" />
+                <div className="h-5 w-20 rounded bg-gray-200" />
+            </div>
+            <div className="h-4 w-32 rounded bg-gray-200" />
+            <div className="h-3 w-24 rounded bg-gray-100" />
+            <div className="h-3 w-40 rounded bg-gray-100" />
+        </div>
+    );
+}
 
 export function SuppliersView() {
-    const [view, setView] = useState<'GRID' | 'LIST' | 'DETAIL'>('GRID');
-    const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+    const { branchId } = useBranch();
+    const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const { data, isLoading, isError, error } = useSuppliers(branchId, {
+        search: searchTerm || undefined,
+    });
+
+    const createSupplierMutation = useCreateSupplier(branchId);
+
+    const suppliers = data?.data ?? [];
+
+    function handleCreateSupplier(payload: CreateSupplierPayload) {
+        createSupplierMutation.mutate(payload, {
+            onSuccess: () => setIsModalOpen(false),
+        });
+    }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <NewSupplierModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <NewSupplierModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+            />
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -85,8 +70,13 @@ export function SuppliersView() {
                 </div>
                 <div className="flex gap-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input type="text" placeholder="Search suppliers..." className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]" />
+                        <input
+                            type="text"
+                            placeholder="Search suppliers..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-4 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                        />
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -98,13 +88,15 @@ export function SuppliersView() {
                 </div>
             </div>
 
-            {/* Stats */}
+            {/* Stats — placeholder values until a dedicated stats endpoint is added */}
             <div className="grid grid-cols-4 gap-6">
-                {SUPPLIER_STATS.map((stat, idx) => (
+                {SUPPLIER_STATS_META.map((stat, idx) => (
                     <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-gray-400 uppercase">{stat.label}</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-1">
+                                {isLoading ? '—' : idx === 0 ? (data?.total ?? '—') : '—'}
+                            </p>
                         </div>
                         <div className={clsx("h-12 w-12 rounded-xl flex items-center justify-center", stat.bg, stat.color)}>
                             <stat.icon className="h-6 w-6" />
@@ -113,57 +105,81 @@ export function SuppliersView() {
                 ))}
             </div>
 
-            {/* Grid View */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {MOCK_SUPPLIERS.map((supplier) => (
-                    <motion.div
-                        key={supplier.id}
-                        whileHover={{ y: -4 }}
-                        className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                        onClick={() => { setSelectedSupplier(supplier); setView('DETAIL'); }}
-                    >
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="h-12 w-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                                <span className="text-lg font-bold text-gray-400">{supplier.name.charAt(0)}</span>
-                            </div>
-                            <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
-                                supplier.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                            )}>
-                                {supplier.status}
-                            </span>
-                        </div>
+            {/* Error state */}
+            {isError && (
+                <div className="py-12">
+                    <ErrorState 
+                        title="Supplier Directory Error"
+                        error={error as Error}
+                        onRetry={() => window.location.reload()}
+                    />
+                </div>
+            )}
 
-                        <h3 className="font-bold text-gray-900 text-lg">{supplier.name}</h3>
-                        <p className="text-sm text-gray-500 mb-4">{supplier.category}</p>
+            {/* Supplier Grid */}
+            {!isError && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {isLoading && Array.from({ length: 6 }).map((_, i) => <SupplierSkeleton key={i} />)}
 
-                        <div className="space-y-2 mb-6 text-xs text-gray-600">
-                            <div className="flex items-center gap-2">
-                                <MapPin className="h-3 w-3 text-gray-400" />
-                                {supplier.location}
+                    {!isLoading && suppliers.map((supplier) => (
+                        <motion.div
+                            key={supplier.id}
+                            whileHover={{ y: -4 }}
+                            className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                        >
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="h-12 w-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                                    <span className="text-lg font-bold text-gray-400">{supplier.name.charAt(0)}</span>
+                                </div>
+                                <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
+                                    supplier.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                )}>
+                                    {supplier.status}
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                                <span className="font-bold">{supplier.rating}</span>
-                                <span className="text-gray-400">• Reliability {supplier.reliability}%</span>
-                            </div>
-                        </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                            <div>
-                                <p className="text-[10px] text-gray-400 uppercase font-bold">Total Spend</p>
-                                <p className="text-sm font-bold text-gray-900">{supplier.spend}</p>
+                            <h3 className="font-bold text-gray-900 text-lg">{supplier.name}</h3>
+                            <p className="text-sm text-gray-500 mb-4">{supplier.category}</p>
+
+                            <div className="space-y-2 mb-6 text-xs text-gray-600">
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="h-3 w-3 text-gray-400" />
+                                    {supplier.location}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                                    <span className="font-bold">{supplier.rating}</span>
+                                    <span className="text-gray-400">• Reliability {supplier.reliability}%</span>
+                                </div>
                             </div>
-                            <div className="flex -space-x-2">
-                                {supplier.tags.map((tag, i) => (
-                                    <div key={i} className="h-6 px-2 rounded-full bg-gray-100 border border-white text-[10px] flex items-center justify-center font-medium capitalize">
-                                        {tag}
-                                    </div>
-                                ))}
+
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Total Spend</p>
+                                    <p className="text-sm font-bold text-gray-900">
+                                        ${supplier.spend.toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                    {supplier.tags.map((tag, i) => (
+                                        <div key={i} className="h-6 px-2 rounded-full bg-gray-100 text-[10px] flex items-center justify-center font-medium capitalize">
+                                            {tag}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !isError && suppliers.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <Users className="h-12 w-12 mb-2 opacity-50" />
+                    <p>No suppliers found. Add your first supplier to get started.</p>
+                </div>
+            )}
         </div>
     );
 }

@@ -7,11 +7,21 @@ export async function getUserById(id: string) {
   try {
     const user = await db.query.users.findFirst({
       where: eq(users.id, id),
+      with: {
+        role: true,
+        organization: true,
+      },
     });
     if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
-    const { passwordHash, ...safeUser } = user;
-    return NextResponse.json(safeUser, { status: 200 });
+    const { passwordHash, role, organization, ...safeUser } = user;
+    return NextResponse.json({ 
+      data: {
+        ...safeUser,
+        roleName: role?.name,
+        branchName: organization?.name,
+      } 
+    }, { status: 200 });
   } catch (err) {
     console.error('[getUserById]', err);
     return NextResponse.json({ message: 'Error fetching user' }, { status: 500 });

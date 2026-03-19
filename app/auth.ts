@@ -39,6 +39,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.roleId = (user as any).roleId
         token.organizationId = (user as any).organizationId
+        token.branchId = (user as any).organizationId // Mapping organizationId as branchId for now
       }
       return token
     },
@@ -46,6 +47,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token && session.user) {
         (session.user as any).roleId = token.roleId;
         (session.user as any).organizationId = token.organizationId;
+        (session.user as any).branchId = token.branchId;
         session.user.id = token.sub as string;
       }
       return session
