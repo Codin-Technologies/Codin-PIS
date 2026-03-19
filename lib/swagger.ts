@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 
 export const getApiDocs = async () => {
   const options: swaggerJsdoc.Options = {
@@ -13,6 +14,10 @@ export const getApiDocs = async () => {
         {
           url: 'http://localhost:3000',
           description: 'Local Development Server',
+        },
+        {
+          url: 'https://codin-pis-yetb.vercel.app',
+          description: 'Production Server',
         },
       ],
       components: {
@@ -31,8 +36,9 @@ export const getApiDocs = async () => {
       ],
     },
     apis: [
-      './app/api/**/*.ts', 
-      './app/api/**/*.tsx'
+      path.join(process.cwd(), 'app/api/**/*.ts'),
+      path.join(process.cwd(), 'app/api/**/*.tsx'),
+      path.join(process.cwd(), 'app/api/**/*.js'),
     ],
   };
 

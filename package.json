@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/generate-swagger.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "generate:api": "next-rest-framework generate && node scripts/postprocess-spec.mjs"
