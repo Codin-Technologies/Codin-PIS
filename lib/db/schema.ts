@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ─── Shared audit columns ─────────────────────────────────────────────────────
@@ -96,6 +96,31 @@ export const passwordResets = pgTable('password_resets', {
   ...timestamps,
 });
 
+// ─── 9. Departments ───────────────────────────────────────────────────────────
+export const departments = pgTable('departments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+// ─── 10. Inventory Items ──────────────────────────────────────────────────────
+export const inventoryItems = pgTable('inventory_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  sku: text('sku').notNull(), // not unique — same SKU may appear in different orgs
+  departmentId: uuid('department_id')
+    .notNull()
+    .references(() => departments.id, { onDelete: 'restrict' }),
+  qty: integer('qty').notNull().default(0),
+  unit: text('unit').notNull().default('pcs'),
+  icon: text('icon').notNull().default('📦'),
+  minQty: integer('min_qty').notNull().default(10), // threshold for Low/Critical status
+  ...timestamps,
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
   permissions: many(permissions),
@@ -142,5 +167,20 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
     references: [organizationTypes.id],
   }),
   users: many(users),
+  departments: many(departments),
 }));
 
+export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [departments.organizationId],
+    references: [organizations.id],
+  }),
+  inventoryItems: many(inventoryItems),
+}));
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  department: one(departments, {
+    fields: [inventoryItems.departmentId],
+    references: [departments.id],
+  }),
+}));
