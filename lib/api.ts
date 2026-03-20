@@ -234,6 +234,25 @@ export async function createGRN(payload: CreateGRNPayload): Promise<GRN> {
 
 // ─── Inventory ─────────────────────────────────────────────────────────────────
 
+export interface Department {
+    id: string;
+    branchId: string;
+    name: string;
+    createdAt?: string;
+}
+
+export interface InventoryAlert {
+    id: string;
+    inventoryItemId: string;
+    name: string;
+    message: string;
+    severity: 'Low' | 'Critical';
+    qty: number;
+    unit: string;
+    createdAt?: string;
+    image?: string;
+}
+
 export interface InventoryItem {
     id: string;
     branchId: string;

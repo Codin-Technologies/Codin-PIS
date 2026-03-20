@@ -1,53 +1,58 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Plus, Image as ImageIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { X, Save } from 'lucide-react';
+import { motion } from 'framer-motion';
+import type { InventoryItem, Department } from '@/lib/api';
 
-import type { Department } from '@/lib/api';
-
-interface AddItemModalProps {
+interface UpdateItemModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (item: any) => void;
+    onUpdate: (id: string, payload: any) => void;
     departments: Department[];
+    item: InventoryItem | null;
 }
 
-export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddItemModalProps) {
-    const [newItem, setNewItem] = useState({
+export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item }: UpdateItemModalProps) {
+    const [formData, setFormData] = useState({
         name: '',
         sku: '',
         dept: 'Kitchen',
         qty: 0,
         unit: 'kg',
-        status: 'Good',
-        image: '📦',
-        minQty: 0
+        minQty: 0,
+        unitCost: 0,
+        image: '📦'
     });
+
+    useEffect(() => {
+        if (item) {
+            setFormData({
+                name: item.name,
+                sku: item.sku,
+                dept: item.dept,
+                qty: item.qty,
+                unit: item.unit,
+                minQty: item.minQty || 0,
+                unitCost: item.unitCost || 0,
+                image: item.image || '📦'
+            });
+        }
+    }, [item]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onAdd({
-            id: Date.now(), // Mock ID
-            ...newItem,
-            qty: Number(newItem.qty),
-            minQty: Number(newItem.minQty)
-        });
-        // Reset form
-        setNewItem({
-            name: '',
-            sku: '',
-            dept: 'Kitchen',
-            qty: 0,
-            unit: 'kg',
-            status: 'Good',
-            image: '📦',
-            minQty: 0
-        });
-        onClose();
+        if (item) {
+            onUpdate(item.id, {
+                ...formData,
+                qty: Number(formData.qty),
+                minQty: Number(formData.minQty),
+                unitCost: Number(formData.unitCost)
+            });
+        }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !item) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -58,7 +63,7 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                 className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900">Add New Inventory Item</h2>
+                    <h2 className="text-lg font-bold text-gray-900">Update Inventory Item</h2>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                         <X className="h-5 w-5 text-gray-500" />
                     </button>
@@ -70,10 +75,9 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                         <input
                             required
                             type="text"
-                            placeholder="e.g. Olive Oil"
                             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
-                            value={newItem.name}
-                            onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
                         />
                     </div>
 
@@ -83,20 +87,18 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                             <input
                                 required
                                 type="text"
-                                placeholder="e.g. OIL-005"
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
-                                value={newItem.sku}
-                                onChange={e => setNewItem({ ...newItem, sku: e.target.value })}
+                                value={formData.sku}
+                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Department</label>
                             <select
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white"
-                                value={newItem.dept}
-                                onChange={e => setNewItem({ ...newItem, dept: e.target.value })}
+                                value={formData.dept}
+                                onChange={e => setFormData({ ...formData, dept: e.target.value })}
                             >
-                                <option value="All" disabled>Select Department</option>
                                 {departments.map(d => (
                                     <option key={d.id} value={d.name}>{d.name}</option>
                                 ))}
@@ -104,7 +106,7 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         <div className="col-span-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Qty</label>
                             <input
@@ -112,8 +114,18 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                                 type="number"
                                 min="0"
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
-                                value={newItem.qty}
-                                onChange={e => setNewItem({ ...newItem, qty: Number(e.target.value) })}
+                                value={formData.qty}
+                                onChange={e => setFormData({ ...formData, qty: Number(e.target.value) })}
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Unit</label>
+                            <input
+                                required
+                                type="text"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                                value={formData.unit}
+                                onChange={e => setFormData({ ...formData, unit: e.target.value })}
                             />
                         </div>
                         <div className="col-span-1">
@@ -123,40 +135,9 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                                 type="number"
                                 min="0"
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
-                                value={newItem.minQty}
-                                onChange={e => setNewItem({ ...newItem, minQty: Number(e.target.value) })}
+                                value={formData.minQty}
+                                onChange={e => setFormData({ ...formData, minQty: Number(e.target.value) })}
                             />
-                        </div>
-                        <div className="col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Unit</label>
-                            <select
-                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white"
-                                value={newItem.unit}
-                                onChange={e => setNewItem({ ...newItem, unit: e.target.value })}
-                            >
-                                <option value="kg">kg</option>
-                                <option value="L">L</option>
-                                <option value="pcs">pcs</option>
-                                <option value="btl">btl</option>
-                                <option value="can">can</option>
-                                <option value="box">box</option>
-                            </select>
-                        </div>
-                        <div className="col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Icon</label>
-                            <select
-                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white text-xl"
-                                value={newItem.image}
-                                onChange={e => setNewItem({ ...newItem, image: e.target.value })}
-                            >
-                                <option value="📦">📦</option>
-                                <option value="🍅">🍅</option>
-                                <option value="🥩">🥩</option>
-                                <option value="🍷">🍷</option>
-                                <option value="🧼">🧼</option>
-                                <option value="🍚">🍚</option>
-                                <option value="🍝">🍝</option>
-                            </select>
                         </div>
                     </div>
 
@@ -172,8 +153,8 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                             type="submit"
                             className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2"
                         >
-                            <Plus className="h-4 w-4" />
-                            Add Item
+                            <Save className="h-4 w-4" />
+                            Update Item
                         </button>
                     </div>
                 </form>

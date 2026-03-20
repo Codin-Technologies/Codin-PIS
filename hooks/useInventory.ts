@@ -1,38 +1,74 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
-import {
-    fetchInventory,
-    createInventoryItem,
-    type InventoryFilters,
-    type CreateInventoryItemPayload,
-} from '@/lib/api';
+import type { InventoryFilters, CreateInventoryItemPayload } from '@/lib/api';
+import { 
+    getInventoryItemsAction, 
+    getInventoryAlertsAction,
+    createInventoryItemAction,
+    updateInventoryItemAction,
+    deleteInventoryItemAction,
+    adjustInventoryQuantityAction
+} from '@/app/actions/inventory';
 
-/**
- * useInventory — paginated inventory query.
- * Filter params (dept, search, status) are included in the query key
- * so each unique filter combination gets its own cache entry.
- *
- * NOTE: No optimistic stock recalculation. The backend is the source
- * of truth for quantities; we refetch after mutations.
- */
 export function useInventory(branchId: string, filters: InventoryFilters = {}) {
     return useQuery({
         queryKey: queryKeys.inventory(branchId, filters),
-        queryFn: () => fetchInventory(branchId, filters),
+        queryFn: () => getInventoryItemsAction(branchId, filters),
         enabled: !!branchId,
     });
 }
 
-/**
- * useCreateInventoryItem — invalidates the entire inventory list
- * for this branch (all filter variants) on success.
- */
+export function useInventoryAlerts(branchId: string) {
+    return useQuery({
+        // use a custom key here or extend queryKeys in the future
+        queryKey: ['inventory', 'alerts', branchId],
+        queryFn: () => getInventoryAlertsAction(branchId),
+        enabled: !!branchId,
+    });
+}
+
 export function useCreateInventoryItem(branchId: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (payload: CreateInventoryItemPayload) => createInventoryItem(payload),
+        mutationFn: (payload: CreateInventoryItemPayload) => createInventoryItemAction(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
+        },
+    });
+}
+
+export function useUpdateInventoryItem(branchId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateInventoryItemPayload> }) => 
+            updateInventoryItemAction(id, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
+        },
+    });
+}
+
+export function useDeleteInventoryItem(branchId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => deleteInventoryItemAction(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
+        },
+    });
+}
+
+export function useAdjustInventoryQuantity(branchId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: { qtyDelta: number; reason?: string } }) => 
+            adjustInventoryQuantityAction(id, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
         },
     });
 }
