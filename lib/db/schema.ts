@@ -121,6 +121,41 @@ export const inventoryItems = pgTable('inventory_items', {
   ...timestamps,
 });
 
+// ─── 11. Production Plans ─────────────────────────────────────────────────────
+export const productionPlans = pgTable('production_plans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  dishName: text('dish_name').notNull(),
+  targetServings: integer('target_servings').notNull().default(1),
+  estimatedStartTime: text('estimated_start_time'),
+  status: text('status').notNull().default('Planned'), // Planned | In Prep | Cooked | Completed
+  deductedAt: timestamp('deducted_at'),               // set when stock is deducted
+  ...timestamps,
+});
+
+// ─── 12. Production Plan Ingredients ─────────────────────────────────────────
+export const productionPlanIngredients = pgTable('production_plan_ingredients', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productionPlanId: uuid('production_plan_id')
+    .notNull()
+    .references(() => productionPlans.id, { onDelete: 'cascade' }),
+  inventoryItemId: uuid('inventory_item_id')
+    .notNull()
+    .references(() => inventoryItems.id, { onDelete: 'restrict' }),
+  qty: integer('qty').notNull().default(1),
+  ...timestamps,
+});
+
+// ─── 13. Special Orders ───────────────────────────────────────────────────────
+export const specialOrders = pgTable('special_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  requestName: text('request_name').notNull(),
+  preparationNotes: text('preparation_notes'),
+  priorityLevel: text('priority_level').notNull().default('Normal'), // Normal | High | Critical
+  logTime: text('log_time'),                                          // time string from client
+  status: text('status').notNull().default('Pending'),                // Pending | Cooked
+  ...timestamps,
+});
+
 // ─── 11. Stock Usages (header) ────────────────────────────────────────────────
 export const stockUsages = pgTable('stock_usages', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -211,6 +246,22 @@ export const inventoryItemsRelations = relations(inventoryItems, ({ one, many })
     references: [departments.id],
   }),
   stockUsageItems: many(stockUsageItems),
+  productionPlanIngredients: many(productionPlanIngredients),
+}));
+
+export const productionPlansRelations = relations(productionPlans, ({ many }) => ({
+  ingredients: many(productionPlanIngredients),
+}));
+
+export const productionPlanIngredientsRelations = relations(productionPlanIngredients, ({ one }) => ({
+  productionPlan: one(productionPlans, {
+    fields: [productionPlanIngredients.productionPlanId],
+    references: [productionPlans.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [productionPlanIngredients.inventoryItemId],
+    references: [inventoryItems.id],
+  }),
 }));
 
 export const stockUsagesRelations = relations(stockUsages, ({ one, many }) => ({
