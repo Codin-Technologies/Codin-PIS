@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { InventoryItem, Department } from '@/lib/api';
 
@@ -11,9 +11,11 @@ interface UpdateItemModalProps {
     onUpdate: (id: string, payload: any) => void;
     departments: Department[];
     item: InventoryItem | null;
+    isPending?: boolean;
+    error?: Error | null;
 }
 
-export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item }: UpdateItemModalProps) {
+export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item, isPending, error }: UpdateItemModalProps) {
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
@@ -68,6 +70,13 @@ export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item }
                         <X className="h-5 w-5 text-gray-500" />
                     </button>
                 </div>
+
+                {error && (
+                    <div className="mx-6 mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-sm text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{error.message || 'Failed to update item. Please try again.'}</span>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
@@ -151,10 +160,15 @@ export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item }
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2"
+                            disabled={isPending}
+                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Save className="h-4 w-4" />
-                            Update Item
+                            {isPending ? (
+                                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Save className="h-4 w-4" />
+                            )}
+                            {isPending ? 'Updating...' : 'Update Item'}
                         </button>
                     </div>
                 </form>

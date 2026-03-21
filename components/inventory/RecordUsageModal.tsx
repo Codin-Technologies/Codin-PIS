@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, SlidersHorizontal } from 'lucide-react';
+import { X, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { InventoryItem } from '@/lib/api';
 
@@ -10,9 +10,11 @@ interface RecordUsageModalProps {
     onClose: () => void;
     onAdjust: (id: string, payload: { qtyDelta: number; reason: string }) => void;
     item: InventoryItem | null;
+    isPending?: boolean;
+    error?: Error | null;
 }
 
-export function RecordUsageModal({ isOpen, onClose, onAdjust, item }: RecordUsageModalProps) {
+export function RecordUsageModal({ isOpen, onClose, onAdjust, item, isPending, error }: RecordUsageModalProps) {
     const [qtyDelta, setQtyDelta] = useState('');
     const [reason, setReason] = useState('');
 
@@ -44,6 +46,13 @@ export function RecordUsageModal({ isOpen, onClose, onAdjust, item }: RecordUsag
                         <X className="h-5 w-5 text-gray-500" />
                     </button>
                 </div>
+
+                {error && (
+                    <div className="mx-6 mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-sm text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{error.message || 'Failed to adjust quantity.'}</span>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div className="mb-4">
@@ -87,10 +96,15 @@ export function RecordUsageModal({ isOpen, onClose, onAdjust, item }: RecordUsag
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2"
+                            disabled={isPending}
+                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <SlidersHorizontal className="h-4 w-4" />
-                            Apply Change
+                            {isPending ? (
+                                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <SlidersHorizontal className="h-4 w-4" />
+                            )}
+                            {isPending ? 'Applying...' : 'Apply Change'}
                         </button>
                     </div>
                 </form>

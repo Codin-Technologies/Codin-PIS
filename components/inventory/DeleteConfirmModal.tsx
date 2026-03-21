@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { InventoryItem } from '@/lib/api';
 
@@ -9,9 +9,11 @@ interface DeleteConfirmModalProps {
     onClose: () => void;
     onConfirm: (id: string) => void;
     item: InventoryItem | null;
+    isPending?: boolean;
+    error?: Error | null;
 }
 
-export function DeleteConfirmModal({ isOpen, onClose, onConfirm, item }: DeleteConfirmModalProps) {
+export function DeleteConfirmModal({ isOpen, onClose, onConfirm, item, isPending, error }: DeleteConfirmModalProps) {
     if (!isOpen || !item) return null;
 
     return (
@@ -30,6 +32,13 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, item }: DeleteC
                     Are you sure you want to delete <strong>{item.name}</strong>? This action cannot be undone.
                 </p>
 
+                {error && (
+                    <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-sm text-red-600 text-left">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span>{error.message || 'Failed to delete item.'}</span>
+                    </div>
+                )}
+
                 <div className="flex gap-3">
                     <button
                         onClick={onClose}
@@ -41,9 +50,11 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, item }: DeleteC
                         onClick={() => {
                             onConfirm(item.id);
                         }}
-                        className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg"
+                        disabled={isPending}
+                        className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Delete
+                        {isPending && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isPending ? 'Deleting...' : 'Delete'}
                     </button>
                 </div>
             </motion.div>

@@ -129,6 +129,8 @@ function InventoryContent() {
                 onClose={() => setIsAddModalOpen(false)}
                 onAdd={handleAddItem as any}
                 departments={departments}
+                isPending={createItemMutation.isPending}
+                error={createItemMutation.error}
             />
             
             <UpdateItemModal
@@ -137,6 +139,8 @@ function InventoryContent() {
                 onUpdate={handleUpdateItem}
                 departments={departments}
                 item={updateItem}
+                isPending={updateItemMutation.isPending}
+                error={updateItemMutation.error}
             />
 
             <DeleteConfirmModal
@@ -144,6 +148,8 @@ function InventoryContent() {
                 onClose={() => setDeleteItem(null)}
                 onConfirm={handleDeleteItem}
                 item={deleteItem}
+                isPending={deleteItemMutation.isPending}
+                error={deleteItemMutation.error}
             />
 
             <RecordUsageModal
@@ -151,6 +157,8 @@ function InventoryContent() {
                 onClose={() => setUsageItem(null)}
                 onAdjust={handleAdjustQty}
                 item={usageItem}
+                isPending={adjustQtyMutation.isPending}
+                error={adjustQtyMutation.error}
             />
 
             {/* Left Section: Inventory Grid */}

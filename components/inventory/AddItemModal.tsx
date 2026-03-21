@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { Department } from '@/lib/api';
@@ -11,9 +11,11 @@ interface AddItemModalProps {
     onClose: () => void;
     onAdd: (item: any) => void;
     departments: Department[];
+    isPending?: boolean;
+    error?: Error | null;
 }
 
-export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddItemModalProps) {
+export function AddItemModal({ isOpen, onClose, onAdd, departments = [], isPending, error }: AddItemModalProps) {
     const [newItem, setNewItem] = useState({
         name: '',
         sku: '',
@@ -63,6 +65,13 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                         <X className="h-5 w-5 text-gray-500" />
                     </button>
                 </div>
+
+                {error && (
+                    <div className="mx-6 mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-sm text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{error.message || 'Failed to add item. Please try again.'}</span>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
@@ -170,10 +179,15 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [] }: AddIt
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2"
+                            disabled={isPending}
+                            className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Plus className="h-4 w-4" />
-                            Add Item
+                            {isPending ? (
+                                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Plus className="h-4 w-4" />
+                            )}
+                            {isPending ? 'Adding...' : 'Add Item'}
                         </button>
                     </div>
                 </form>
