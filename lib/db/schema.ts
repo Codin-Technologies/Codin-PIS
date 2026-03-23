@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, primaryKey, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ─── Shared audit columns ─────────────────────────────────────────────────────
@@ -121,6 +121,33 @@ export const inventoryItems = pgTable('inventory_items', {
   ...timestamps,
 });
 
+// ─── 11. Stock Usages (header) ────────────────────────────────────────────────
+export const stockUsages = pgTable('stock_usages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  date: text('date').notNull(),                       // ISO date e.g. '2026-03-23'
+  reason: text('reason').notNull(),                   // 'Waste' | 'Consumption' | 'Theft' | 'Other'
+  notes: text('notes'),
+  recordedById: uuid('recorded_by_id')
+    .references(() => users.id, { onDelete: 'set null' }),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+// ─── 12. Stock Usage Items (lines) ────────────────────────────────────────────
+export const stockUsageItems = pgTable('stock_usage_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  stockUsageId: uuid('stock_usage_id')
+    .notNull()
+    .references(() => stockUsages.id, { onDelete: 'cascade' }),
+  inventoryItemId: uuid('inventory_item_id')
+    .notNull()
+    .references(() => inventoryItems.id, { onDelete: 'restrict' }),
+  qtyUsed: numeric('qty_used', { precision: 10, scale: 3 }).notNull(), // supports decimal units (kg, l, etc.)
+  ...timestamps,
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
   permissions: many(permissions),
@@ -178,9 +205,33 @@ export const departmentsRelations = relations(departments, ({ one, many }) => ({
   inventoryItems: many(inventoryItems),
 }));
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+export const inventoryItemsRelations = relations(inventoryItems, ({ one, many }) => ({
   department: one(departments, {
     fields: [inventoryItems.departmentId],
     references: [departments.id],
+  }),
+  stockUsageItems: many(stockUsageItems),
+}));
+
+export const stockUsagesRelations = relations(stockUsages, ({ one, many }) => ({
+  recordedBy: one(users, {
+    fields: [stockUsages.recordedById],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [stockUsages.organizationId],
+    references: [organizations.id],
+  }),
+  items: many(stockUsageItems),
+}));
+
+export const stockUsageItemsRelations = relations(stockUsageItems, ({ one }) => ({
+  stockUsage: one(stockUsages, {
+    fields: [stockUsageItems.stockUsageId],
+    references: [stockUsages.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [stockUsageItems.inventoryItemId],
+    references: [inventoryItems.id],
   }),
 }));
