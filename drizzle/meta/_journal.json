@@ -15,6 +15,13 @@
       "when": 1773479506457,
       "tag": "0001_same_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774292680964,
+      "tag": "0002_legal_lenny_balinger",
+      "breakpoints": true
     }
   ]
 }
