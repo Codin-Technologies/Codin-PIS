@@ -277,11 +277,11 @@ export interface CreateInventoryItemPayload {
     branchId: string;
     name: string;
     sku: string;
-    dept: string;
+    departmentId: string;
     qty: number;
     unit: string;
     minQty: number;
-    unitCost: number;
+    unitCost?: number;
 }
 
 export async function fetchInventory(

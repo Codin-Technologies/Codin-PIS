@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { InventoryFilters, CreateInventoryItemPayload } from '@/lib/api';
-import { 
-    getInventoryItemsAction, 
+import {
+    getInventoryItemsAction,
     getInventoryAlertsAction,
     createInventoryItemAction,
     updateInventoryItemAction,
@@ -41,7 +41,7 @@ export function useCreateInventoryItem(branchId: string) {
 export function useUpdateInventoryItem(branchId: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateInventoryItemPayload> }) => 
+        mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateInventoryItemPayload> }) =>
             updateInventoryItemAction(id, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
@@ -64,7 +64,7 @@ export function useDeleteInventoryItem(branchId: string) {
 export function useAdjustInventoryQuantity(branchId: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, payload }: { id: string; payload: { qtyDelta: number; reason?: string } }) => 
+        mutationFn: ({ id, payload }: { id: string; payload: { qtyDelta: number; reason?: string } }) =>
             adjustInventoryQuantityAction(id, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });

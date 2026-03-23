@@ -19,11 +19,12 @@ export async function getInventory(req: NextRequest) {
       with: { department: true },
     });
 
-    const enriched = items.map(({ minQty, qty, ...rest }) => ({
+    const enriched = items.map(({ minQty, qty, department, ...rest }) => ({
       ...rest,
       qty,
       minQty,
       status: computeStatus(qty, minQty),
+      dept: department?.name || 'Unknown',
     }));
 
     return NextResponse.json({ data: enriched, message: 'Inventory fetched successfully' }, { status: 200 });

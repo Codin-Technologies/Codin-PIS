@@ -19,32 +19,36 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [], isPendi
     const [newItem, setNewItem] = useState({
         name: '',
         sku: '',
-        dept: 'Kitchen',
+        departmentId: '',
         qty: 0,
         unit: 'kg',
-        status: 'Good',
         image: '📦',
-        minQty: 0
+        minQty: 0,
+        unitCost: 0
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!newItem.departmentId) {
+            alert('Please select a department');
+            return;
+        }
         onAdd({
-            id: Date.now(), // Mock ID
             ...newItem,
             qty: Number(newItem.qty),
-            minQty: Number(newItem.minQty)
+            minQty: Number(newItem.minQty),
+            unitCost: Number(newItem.unitCost)
         });
         // Reset form
         setNewItem({
             name: '',
             sku: '',
-            dept: 'Kitchen',
+            departmentId: '',
             qty: 0,
             unit: 'kg',
-            status: 'Good',
             image: '📦',
-            minQty: 0
+            minQty: 0,
+            unitCost: 0
         });
         onClose();
     };
@@ -101,13 +105,14 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [], isPendi
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Department</label>
                             <select
+                                required
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white"
-                                value={newItem.dept}
-                                onChange={e => setNewItem({ ...newItem, dept: e.target.value })}
+                                value={newItem.departmentId}
+                                onChange={e => setNewItem({ ...newItem, departmentId: e.target.value })}
                             >
-                                <option value="All" disabled>Select Department</option>
+                                <option value="">Select Department</option>
                                 {departments.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
+                                    <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -152,20 +157,16 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [], isPendi
                             </select>
                         </div>
                         <div className="col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Icon</label>
-                            <select
-                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white text-xl"
-                                value={newItem.image}
-                                onChange={e => setNewItem({ ...newItem, image: e.target.value })}
-                            >
-                                <option value="📦">📦</option>
-                                <option value="🍅">🍅</option>
-                                <option value="🥩">🥩</option>
-                                <option value="🍷">🍷</option>
-                                <option value="🧼">🧼</option>
-                                <option value="🍚">🍚</option>
-                                <option value="🍝">🍝</option>
-                            </select>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Unit Cost</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                                value={newItem.unitCost}
+                                onChange={e => setNewItem({ ...newItem, unitCost: Number(e.target.value) })}
+                            />
                         </div>
                     </div>
 

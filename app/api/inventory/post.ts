@@ -5,7 +5,7 @@ import { inventoryItems } from '@/lib/db/schema';
 export async function postInventory(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, sku, departmentId, qty, unit, icon, minQty } = body;
+    const { name, sku, departmentId, qty, unit, icon, minQty, unitCost } = body;
 
     if (!name || !sku || !departmentId) {
       return NextResponse.json({ message: 'name, sku, and departmentId are required' }, { status: 400 });
@@ -24,7 +24,19 @@ export async function postInventory(req: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json({ data: item, message: 'Inventory item created successfully' }, { status: 201 });
+    // Fetch the item with department details
+    const itemWithDept = await db.query.inventoryItems.findFirst({
+      where: (table, { eq }) => eq(table.id, item.id),
+      with: { department: true },
+    });
+
+    const response = itemWithDept ? {
+      ...itemWithDept,
+      dept: itemWithDept.department?.name || 'Unknown',
+      status: 'Good' as const,
+    } : item;
+
+    return NextResponse.json({ data: response, message: 'Inventory item created successfully' }, { status: 201 });
   } catch (err) {
     console.error('[postInventory]', err);
     return NextResponse.json({ message: 'Error creating inventory item' }, { status: 500 });
