@@ -16,7 +16,8 @@ import {
     useCreateInventoryItem, 
     useUpdateInventoryItem,
     useDeleteInventoryItem,
-    useAdjustInventoryQuantity
+    useAdjustInventoryQuantity,
+    useRecordInventoryUsage
 } from '@/hooks/useInventory';
 import { useDepartments, useCreateDepartment } from '@/hooks/useDepartments';
 import { useBranch } from '@/hooks/useBranch';
@@ -53,6 +54,7 @@ function InventoryContent() {
     const [updateItem, setUpdateItem]         = useState<InventoryItem | null>(null);
     const [deleteItem, setDeleteItem]         = useState<InventoryItem | null>(null);
     const [usageItem, setUsageItem]           = useState<InventoryItem | null>(null);
+    const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
     const [openDropdown, setOpenDropdown]     = useState<string | null>(null);
 
     useEffect(() => {
@@ -72,6 +74,7 @@ function InventoryContent() {
     const updateItemMutation = useUpdateInventoryItem(branchId);
     const deleteItemMutation = useDeleteInventoryItem(branchId);
     const adjustQtyMutation = useAdjustInventoryQuantity(branchId);
+    const recordUsageMutation = useRecordInventoryUsage(branchId);
     const createDeptMutation = useCreateDepartment(branchId);
 
     const items: InventoryItem[]  = data?.data ?? [];
@@ -102,6 +105,19 @@ function InventoryContent() {
     function handleAdjustQty(id: string, payload: { qtyDelta: number; reason: string }) {
         adjustQtyMutation.mutate({ id, payload }, {
             onSuccess: () => setUsageItem(null)
+        });
+    }
+
+    function handleRecordUsage(payload: {
+        date: string;
+        reason: string;
+        notes: string;
+        organizationId: string;
+        recordedById: string;
+        items: { inventoryItemId: string; qtyUsed: number }[];
+    }) {
+        recordUsageMutation.mutate(payload, {
+            onSuccess: () => setIsUsageModalOpen(false)
         });
     }
 
@@ -153,12 +169,12 @@ function InventoryContent() {
             />
 
             <RecordUsageModal
-                isOpen={!!usageItem}
-                onClose={() => setUsageItem(null)}
-                onAdjust={handleAdjustQty}
-                item={usageItem}
-                isPending={adjustQtyMutation.isPending}
-                error={adjustQtyMutation.error}
+                isOpen={isUsageModalOpen}
+                onClose={() => { setIsUsageModalOpen(false); setUsageItem(null); }}
+                onRecord={handleRecordUsage}
+                defaultItemId={usageItem?.id}
+                isPending={recordUsageMutation.isPending}
+                error={recordUsageMutation.error}
             />
 
             {/* Left Section: Inventory Grid */}
@@ -309,7 +325,7 @@ function InventoryContent() {
                                     <div className="absolute top-12 right-4 z-10 w-40 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden">
                                         <div className="py-1">
                                             <button 
-                                                onClick={() => { setUsageItem(item); setOpenDropdown(null); }}
+                                                onClick={() => { setUsageItem(item); setIsUsageModalOpen(true); setOpenDropdown(null); }}
                                                 className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                             >
                                                 <ClipboardList className="mr-3 h-4 w-4 text-gray-400" />

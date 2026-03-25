@@ -143,3 +143,108 @@ export async function adjustInventoryQuantityAction(id: string, payload: { qtyDe
     if (!res.ok) throw new Error(`Failed to adjust inventory item quantity: ${res.statusText}`);
     return await res.json();
 }
+
+export interface RecordUsagePayload {
+    date: string;
+    reason: string;
+    notes?: string;
+    organizationId: string;
+    recordedById: string;
+    items: {
+        inventoryItemId: string;
+        qtyUsed: number;
+    }[];
+}
+
+export interface UsageRecord {
+    id: string;
+    date: string;
+    reason: string;
+    notes?: string;
+    organizationId: string;
+    createdAt: string;
+    recordedBy: {
+        id: string;
+        fullName: string;
+        email: string;
+    };
+    itemsCount: number;
+    items: {
+        id: string;
+        inventoryItemId: string;
+        inventoryItemName: string;
+        unit: string;
+        qtyUsed: number;
+    }[];
+}
+
+export interface UsageDetail extends Omit<UsageRecord, 'itemsCount'> {
+    items: {
+        id: string;
+        inventoryItemId: string;
+        inventoryItemName: string;
+        unit: string;
+        currentStock: number;
+        qtyUsed: number;
+    }[];
+}
+
+export async function getInventoryUsageAction(branchId: string): Promise<{ data: UsageRecord[]; message: string }> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/inventory/usage?branchId=${branchId}`, {
+        method: 'GET',
+        headers: { 'Cookie': cookieHeader }
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch inventory usage: ${res.statusText}`);
+    return await res.json();
+}
+
+export async function getInventoryUsageByIdAction(id: string): Promise<{ data: UsageDetail; message: string }> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/inventory/usage/${id}`, {
+        method: 'GET',
+        headers: { 'Cookie': cookieHeader }
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch inventory usage detail: ${res.statusText}`);
+    return await res.json();
+}
+
+export async function recordInventoryUsageAction(payload: RecordUsagePayload): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+
+    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
+
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/inventory/usage`, {
+        method: 'POST',
+        headers: {
+            'Cookie': cookieHeader,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to record inventory usage: ${res.status} ${res.statusText} - ${errorText}`);
+    }
+}

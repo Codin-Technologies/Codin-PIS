@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stockUsages, stockUsageItems, inventoryItems } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, inArray } from 'drizzle-orm';
 
 interface UsageLineItem {
   inventoryItemId: string;
@@ -57,10 +57,15 @@ export async function postStockUsage(req: NextRequest) {
 
     // ── Pre-flight: check stock levels prevent negative inventory ────────────
     const inventoryIds = items.map((i) => i.inventoryItemId);
-    const stockRows = await db
-      .select({ id: inventoryItems.id, name: inventoryItems.name, qty: inventoryItems.qty })
-      .from(inventoryItems)
-      .where(sql`${inventoryItems.id} = ANY(${inventoryIds})`);
+
+    const stockRows = await db.query.inventoryItems.findMany({
+      where: inArray(inventoryItems.id, inventoryIds),
+      columns: {
+        id: true,
+        name: true,
+        qty: true,
+      },
+    });
 
     const stockMap = new Map(stockRows.map((r) => [r.id, r]));
 
@@ -134,6 +139,7 @@ export async function postStockUsage(req: NextRequest) {
     );
   } catch (err) {
     console.error('[postStockUsage]', err);
-    return NextResponse.json({ message: 'Error recording stock usage' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Error recording stock usage';
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

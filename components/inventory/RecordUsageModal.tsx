@@ -1,36 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import { useInventory } from '@/hooks/useInventory';
+import { useBranch } from '@/hooks/useBranch';
 import type { InventoryItem } from '@/lib/api';
 
 interface RecordUsageModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdjust: (id: string, payload: { qtyDelta: number; reason: string }) => void;
-    item: InventoryItem | null;
+    onRecord: (payload: {
+        date: string;
+        reason: string;
+        notes: string;
+        organizationId: string;
+        recordedById: string;
+        items: { inventoryItemId: string; qtyUsed: number }[];
+    }) => void;
+    defaultItemId?: string;
     isPending?: boolean;
     error?: Error | null;
 }
 
-export function RecordUsageModal({ isOpen, onClose, onAdjust, item, isPending, error }: RecordUsageModalProps) {
-    const [qtyDelta, setQtyDelta] = useState('');
+export function RecordUsageModal({ isOpen, onClose, onRecord, defaultItemId, isPending, error }: RecordUsageModalProps) {
+    const { data: session } = useSession();
+    const { branchId } = useBranch();
+    const { data: inventoryData } = useInventory(branchId);
+    const inventoryItems = inventoryData?.data ?? [];
+
+    const [selectedItemId, setSelectedItemId] = useState(defaultItemId ?? '');
+    const [qtyUsed, setQtyUsed] = useState('');
     const [reason, setReason] = useState('');
+    const [notes, setNotes] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
+
+    const selectedItem = inventoryItems.find(item => item.id === selectedItemId);
+
+    useEffect(() => {
+        if (defaultItemId) {
+            setSelectedItemId(defaultItemId);
+        }
+    }, [defaultItemId]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (item) {
-            onAdjust(item.id, {
-                qtyDelta: Number(qtyDelta), // usually negative for usage
-                reason
+        if (selectedItem && session?.user) {
+            onRecord({
+                date,
+                reason,
+                notes,
+                organizationId: (session.user as any).organizationId,
+                recordedById: (session.user as any).id,
+                items: [{
+                    inventoryItemId: selectedItem.id,
+                    qtyUsed: Number(qtyUsed)
+                }]
             });
-            setQtyDelta('');
+            setSelectedItemId('');
+            setQtyUsed('');
             setReason('');
+            setNotes('');
         }
     };
 
-    if (!isOpen || !item) return null;
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -57,32 +92,84 @@ export function RecordUsageModal({ isOpen, onClose, onAdjust, item, isPending, e
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div className="mb-4">
                         <p className="text-sm text-gray-500">
-                            Current Stock for <strong>{item.name}</strong>: <span className="text-gray-900 font-bold">{item.qty} {item.unit}</span>
+                            Record usage for inventory items
                         </p>
                     </div>
 
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                            Quantity Change (e.g. -5 for usage, +10 for finding stock)
+                            Select Item
+                        </label>
+                        <select
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                            value={selectedItemId}
+                            onChange={e => setSelectedItemId(e.target.value)}
+                        >
+                            <option value="">Select an item</option>
+                            {inventoryItems.map(item => (
+                                <option key={item.id} value={item.id}>
+                                    {item.name} (Current: {item.qty} {item.unit})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                            Date
                         </label>
                         <input
                             required
-                            type="number"
+                            type="date"
                             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
-                            value={qtyDelta}
-                            onChange={e => setQtyDelta(e.target.value)}
+                            value={date}
+                            onChange={e => setDate(e.target.value)}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Notes</label>
-                        <textarea
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                            Quantity Used
+                        </label>
+                        <input
                             required
-                            rows={3}
-                            placeholder="e.g. Used for daily prep, found extra in storage..."
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] resize-none"
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                            value={qtyUsed}
+                            onChange={e => setQtyUsed(e.target.value)}
+                            placeholder="e.g. 0.5"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason</label>
+                        <select
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
                             value={reason}
                             onChange={e => setReason(e.target.value)}
+                        >
+                            <option value="">Select a reason</option>
+                            <option value="Waste">Waste</option>
+                            <option value="Used in Production">Used in Production</option>
+                            <option value="Expired">Expired</option>
+                            <option value="Damaged">Damaged</option>
+                            <option value="Sold">Sold</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notes (Optional)</label>
+                        <textarea
+                            rows={3}
+                            placeholder="Additional notes about this usage..."
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] resize-none"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
                         />
                     </div>
 
@@ -104,7 +191,7 @@ export function RecordUsageModal({ isOpen, onClose, onAdjust, item, isPending, e
                             ) : (
                                 <SlidersHorizontal className="h-4 w-4" />
                             )}
-                            {isPending ? 'Applying...' : 'Apply Change'}
+                            {isPending ? 'Recording...' : 'Record Usage'}
                         </button>
                     </div>
                 </form>

@@ -14,6 +14,9 @@ export const queryKeys = {
     inventory: (branchId: string, filters?: object) =>
         ['inventory', branchId, filters] as const,
 
+    inventoryUsage: (branchId: string) => ['inventory', 'usage', branchId] as const,
+    inventoryUsageDetail: (id: string) => ['inventory', 'usage', 'detail', id] as const,
+
     suppliers: (branchId: string, params?: object) =>
         ['suppliers', branchId, params] as const,
 

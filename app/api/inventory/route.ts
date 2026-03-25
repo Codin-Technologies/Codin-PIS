@@ -16,6 +16,16 @@ import { postInventory } from './post';
  *         schema:
  *           type: string
  *         description: Filter items by department UUID
+ *       - in: query
+ *         name: organizationId
+ *         schema:
+ *           type: string
+ *         description: Filter items by organization UUID (returns all items from all departments in the organization)
+ *       - in: query
+ *         name: branchId
+ *         schema:
+ *           type: string
+ *         description: Alias for organizationId
  *     responses:
  *       200:
  *         description: List of inventory items with status (Good/Low/Critical)

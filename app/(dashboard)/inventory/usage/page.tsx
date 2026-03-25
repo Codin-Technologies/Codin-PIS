@@ -1,30 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Filter, FileText, Calendar, Trash2 } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, Loader2 } from 'lucide-react';
 import { NewUsageModal } from '@/components/inventory/NewUsageModal';
+import { UsageDetailModal } from '@/components/inventory/UsageDetailModal';
+import { useInventoryUsage } from '@/hooks/useInventory';
+import { useBranch } from '@/hooks/useBranch';
 import clsx from 'clsx';
 
 export default function DailyStockUsagePage() {
+    const { branchId } = useBranch();
+    const { data: usageResponse, isLoading } = useInventoryUsage(branchId);
+    const usageHistory = usageResponse?.data ?? [];
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUsageId, setSelectedUsageId] = useState<string | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-    // Mock History Data
-    const [usageHistory, setUsageHistory] = useState<any[]>([
-        { id: 1, date: '2026-01-20', reason: 'Waste', itemsCount: 2, recordedBy: 'Chef Kelvin', status: 'Recorded' },
-        { id: 2, date: '2026-01-19', reason: 'Consumption', itemsCount: 15, recordedBy: 'Chef Kelvin', status: 'Recorded' },
-    ]);
+    const filteredUsage = usageHistory.filter(record => 
+        record.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.recordedBy.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    const handleNewUsage = (data: any) => {
-        const newRecord = {
-            id: Date.now(),
-            date: data.date,
-            reason: data.reason,
-            itemsCount: data.items.length,
-            recordedBy: 'Current User', // Mock
-            status: 'Recorded'
-        };
-        setUsageHistory([newRecord, ...usageHistory]);
+    const handleRowClick = (id: string) => {
+        setSelectedUsageId(id);
+        setIsDetailModalOpen(true);
     };
 
     return (
@@ -36,7 +38,7 @@ export default function DailyStockUsagePage() {
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 bg-[#2a2b2d] text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-lg"
+                    className="flex items-center gap-2 bg-[#2a2b2d] text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-lg active:scale-95"
                 >
                     <Plus className="h-5 w-5" />
                     Record Usage
@@ -70,27 +72,40 @@ export default function DailyStockUsagePage() {
 
                 {/* Table */}
                 <div className="flex-1 overflow-y-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                    <table className="w-full text-left text-sm border-separate border-spacing-0">
+                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs sticky top-0 z-10">
                             <tr>
-                                <th className="px-6 py-4 rounded-tl-xl">Date / ID</th>
-                                <th className="px-6 py-4">Reason</th>
-                                <th className="px-6 py-4">Items</th>
-                                <th className="px-6 py-4">Recorded By</th>
-                                <th className="px-6 py-4 rounded-tr-xl">Action</th>
+                                <th className="px-6 py-4 border-b border-gray-100">Date / ID</th>
+                                <th className="px-6 py-4 border-b border-gray-100">Reason</th>
+                                <th className="px-6 py-4 border-b border-gray-100">Items</th>
+                                <th className="px-6 py-4 border-b border-gray-100">Recorded By</th>
+                                <th className="px-6 py-4 border-b border-gray-100 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {usageHistory.map((record) => (
-                                <tr key={record.id} className="group hover:bg-gray-50 transition-colors">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12">
+                                        <div className="flex flex-col items-center justify-center space-y-3">
+                                            <Loader2 className="h-8 w-8 text-[#2a2b2d] animate-spin" />
+                                            <p className="text-gray-500 font-medium">Loading usage records...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredUsage.map((record) => (
+                                <tr 
+                                    key={record.id} 
+                                    className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                                    onClick={() => handleRowClick(record.id)}
+                                >
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
                                                 <Calendar className="h-5 w-5" />
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-900">{record.date}</p>
-                                                <p className="text-xs text-gray-500">ID: #{record.id}</p>
+                                                <p className="text-[10px] font-mono text-gray-400">ID: {record.id.split('-')[0]}...</p>
                                             </div>
                                         </div>
                                     </td>
@@ -105,19 +120,22 @@ export default function DailyStockUsagePage() {
                                     <td className="px-6 py-4 font-medium text-gray-700">
                                         {record.itemsCount} items
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500">
-                                        {record.recordedBy}
-                                    </td>
                                     <td className="px-6 py-4">
-                                        <button className="text-gray-400 hover:text-gray-600">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-gray-900">{record.recordedBy.fullName}</span>
+                                            <span className="text-xs text-gray-500">{record.recordedBy.email}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button className="text-gray-400 hover:text-[#2a2b2d] transition-colors p-2 hover:bg-gray-100 rounded-lg">
                                             <FileText className="h-5 w-5" />
                                         </button>
                                     </td>
                                 </tr>
                             ))}
-                            {usageHistory.length === 0 && (
+                            {!isLoading && filteredUsage.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic font-medium">
                                         No usage records found.
                                     </td>
                                 </tr>
@@ -130,7 +148,12 @@ export default function DailyStockUsagePage() {
             <NewUsageModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSubmit={handleNewUsage}
+            />
+
+            <UsageDetailModal 
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                usageId={selectedUsageId}
             />
         </div>
     );

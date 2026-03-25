@@ -2,28 +2,29 @@
 
 import { useState } from 'react';
 import {
-    X, Plus, Trash2, Save, FileText,
-    ChevronRight, CheckCircle, AlertTriangle
+    X, Trash2, Save, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
-// Mock Data
-const MOCK_ITEMS = [
-    { id: '1', name: 'Tomato', uom: 'kg', stock: 50 },
-    { id: '2', name: 'Flour', uom: 'kg', stock: 120 },
-    { id: '3', name: 'Milk', uom: 'l', stock: 24 },
-    { id: '4', name: 'Beef', uom: 'kg', stock: 15 },
-    { id: '5', name: 'Eggs', uom: 'tray', stock: 8 },
-];
+import { useInventory, useRecordInventoryUsage } from '@/hooks/useInventory';
+import { useBranch } from '@/hooks/useBranch';
+import type { InventoryItem } from '@/lib/api';
 
 interface NewUsageModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
 }
 
-export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps) {
+export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
+    const { data: session } = useSession();
+    const { branchId } = useBranch();
+    const { data: inventoryData, isLoading: isInventoryLoading } = useInventory(branchId);
+    const { mutate: recordUsage, isPending: isSaving } = useRecordInventoryUsage(branchId);
+    
+    const inventoryItems = inventoryData?.data ?? [];
     const [lineItems, setLineItems] = useState<any[]>([]);
 
     // Form State
@@ -33,21 +34,42 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
         notes: ''
     });
 
-    const addItem = (item: any) => {
+    const addItem = (item: InventoryItem) => {
         if (!lineItems.find(i => i.id === item.id)) {
-            setLineItems([...lineItems, { ...item, qty: 0 }]);
+            setLineItems([...lineItems, { ...item, usageQty: 0 }]);
         }
     };
 
     const handleSave = () => {
         if (lineItems.length === 0) return;
-        onSubmit({
-            ...formData,
-            items: lineItems
+        if (!session?.user?.id) {
+            toast.error("You must be logged in to record usage");
+            return;
+        }
+
+        const payload = {
+            date: formData.date,
+            reason: formData.reason,
+            notes: formData.notes,
+            organizationId: (session.user as any).organizationId || '',
+            recordedById: session.user.id,
+            items: lineItems.map(line => ({
+                inventoryItemId: line.id,
+                qtyUsed: line.usageQty
+            }))
+        };
+
+        recordUsage(payload, {
+            onSuccess: () => {
+                toast.success("Usage recorded successfully");
+                onClose();
+                setLineItems([]);
+                setFormData({ date: new Date().toISOString().split('T')[0], reason: 'Waste', notes: '' });
+            },
+            onError: (error: any) => {
+                toast.error(error.message || "Failed to record usage");
+            }
         });
-        onClose();
-        setLineItems([]);
-        setFormData({ date: new Date().toISOString().split('T')[0], reason: 'Waste', notes: '' });
     };
 
     if (!isOpen) return null;
@@ -87,7 +109,7 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
                                         type="date"
                                         value={formData.date}
                                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700"
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-[#2a2b2d] focus:border-transparent outline-none"
                                     />
                                 </div>
                                 <div>
@@ -111,7 +133,7 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notes</label>
                                     <textarea
-                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 h-20"
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 h-20 focus:ring-2 focus:ring-[#2a2b2d] focus:border-transparent outline-none resize-none"
                                         placeholder="Optional notes..."
                                         value={formData.notes}
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -132,17 +154,18 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
                             {/* Quick Add */}
                             <div className="mb-4">
                                 <select
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                    disabled={isInventoryLoading}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50 focus:ring-2 focus:ring-[#2a2b2d] outline-none"
                                     onChange={(e) => {
-                                        const item = MOCK_ITEMS.find(i => i.id === e.target.value);
+                                        const item = inventoryItems.find(i => i.id === e.target.value);
                                         if (item) {
                                             addItem(item);
                                             e.target.value = ""; // Reset select
                                         }
                                     }}
                                 >
-                                    <option value="">+ Add Item to List...</option>
-                                    {MOCK_ITEMS.map(i => <option key={i.id} value={i.id}>{i.name} ({i.stock} {i.uom} on hand)</option>)}
+                                    <option value="">{isInventoryLoading ? 'Loading items...' : '+ Add Item to List...'}</option>
+                                    {inventoryItems.map(i => <option key={i.id} value={i.id}>{i.name} ({i.qty} {i.unit} on hand)</option>)}
                                 </select>
                             </div>
 
@@ -160,16 +183,18 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
                                             <tr key={idx} className="group hover:bg-gray-50">
                                                 <td className="px-4 py-3">
                                                     <p className="font-bold text-gray-900">{line.name}</p>
-                                                    <p className="text-xs text-gray-500">{line.uom} • Stock: {line.stock}</p>
+                                                    <p className="text-xs text-gray-500">{line.unit} • Stock: {line.qty}</p>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <input
                                                         type="number"
-                                                        className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-center font-bold"
-                                                        value={line.qty}
+                                                        step="0.001"
+                                                        min="0"
+                                                        className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-center font-bold focus:ring-2 focus:ring-[#2a2b2d] outline-none"
+                                                        value={line.usageQty}
                                                         onChange={(e) => {
                                                             const newItems = [...lineItems];
-                                                            newItems[idx].qty = parseFloat(e.target.value) || 0;
+                                                            newItems[idx].usageQty = parseFloat(e.target.value) || 0;
                                                             setLineItems(newItems);
                                                         }}
                                                     />
@@ -193,16 +218,29 @@ export function NewUsageModal({ isOpen, onClose, onSubmit }: NewUsageModalProps)
 
                         {/* Actions */}
                         <div className="pb-10 pt-4 flex items-center justify-end gap-4">
-                            <button onClick={onClose} className="px-6 py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50">
+                            <button 
+                                onClick={onClose} 
+                                disabled={isSaving}
+                                className="px-6 py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={lineItems.length === 0}
-                                className="px-8 py-3 rounded-xl bg-[#2a2b2d] font-bold text-white shadow-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={lineItems.length === 0 || isSaving}
+                                className="px-8 py-3 rounded-xl bg-[#2a2b2d] font-bold text-white shadow-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                             >
-                                <Save className="h-4 w-4" />
-                                Save Record
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4" />
+                                        Save Record
+                                    </>
+                                )}
                             </button>
                         </div>
 

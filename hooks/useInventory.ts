@@ -7,7 +7,13 @@ import {
     createInventoryItemAction,
     updateInventoryItemAction,
     deleteInventoryItemAction,
-    adjustInventoryQuantityAction
+    adjustInventoryQuantityAction,
+    recordInventoryUsageAction,
+    getInventoryUsageAction,
+    getInventoryUsageByIdAction,
+    type RecordUsagePayload,
+    type UsageRecord,
+    type UsageDetail
 } from '@/app/actions/inventory';
 
 export function useInventory(branchId: string, filters: InventoryFilters = {}) {
@@ -69,6 +75,34 @@ export function useAdjustInventoryQuantity(branchId: string) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
             queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
+        },
+    });
+}
+
+export function useInventoryUsage(branchId: string) {
+    return useQuery({
+        queryKey: queryKeys.inventoryUsage(branchId),
+        queryFn: () => getInventoryUsageAction(branchId),
+        enabled: !!branchId,
+    });
+}
+
+export function useInventoryUsageDetail(id: string) {
+    return useQuery({
+        queryKey: queryKeys.inventoryUsageDetail(id),
+        queryFn: () => getInventoryUsageByIdAction(id),
+        enabled: !!id,
+    });
+}
+
+export function useRecordInventoryUsage(branchId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: RecordUsagePayload) => recordInventoryUsageAction(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts', branchId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'usage', branchId] });
         },
     });
 }
