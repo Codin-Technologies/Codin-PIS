@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
+import { verifyUserCredentials } from "@/lib/auth"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -9,28 +10,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
       },
       authorize: async (credentials) => {
-        const res = await fetch(`${process.env.APP_URL || 'https://codin-pis-yetb.vercel.app'}/api/auth/login`, {
-          method: 'POST',
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: credentials?.email,
-            password: credentials?.password,
-          }),
-        })
+        try {
+          const user = await verifyUserCredentials(
+            credentials?.email as string,
+            credentials?.password as string
+          );
 
-        const data = await res.json()
-
-        if (res.ok && data.user) {
           return {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.fullName,
-            roleId: data.user.roleId,
-            organizationId: data.user.organizationId,
-          } as any
+            id: user.id,
+            email: user.email,
+            name: user.fullName,
+            roleId: user.roleId,
+            organizationId: user.organizationId,
+          } as any;
+        } catch (error: any) {
+          console.error("Auth error:", error.message);
+          return null;
         }
-
-        throw new Error(data.message || "Invalid credentials.")
       },
     }),
   ],
