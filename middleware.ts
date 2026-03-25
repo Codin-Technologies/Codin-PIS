@@ -1,4 +1,7 @@
-import { auth } from "./app/auth"
+import NextAuth from "next-auth"
+import { authConfig } from "./app/auth.config"
+
+const { auth } = NextAuth(authConfig)
 
 export default auth((req) => {
   if (!req.auth && req.nextUrl.pathname !== "/login") {

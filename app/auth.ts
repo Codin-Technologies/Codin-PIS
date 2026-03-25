@@ -1,8 +1,10 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { verifyUserCredentials } from "@/lib/auth"
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { verifyUserCredentials } from "@/lib/auth";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -30,30 +32,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.roleId = (user as any).roleId
-        token.organizationId = (user as any).organizationId
-        token.branchId = (user as any).organizationId // Mapping organizationId as branchId for now
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        (session.user as any).roleId = token.roleId;
-        (session.user as any).organizationId = token.organizationId;
-        (session.user as any).branchId = token.branchId;
-        session.user.id = token.sub as string;
-      }
-      return session
-    }
-  },
-  pages: {
-    signIn: '/login',
-  },
-  session: { 
-    strategy: "jwt",
-    maxAge: 3600 // 1 hour in seconds
-  }
-})
+});
