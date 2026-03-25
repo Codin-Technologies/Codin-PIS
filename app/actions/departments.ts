@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 import type { Department } from '@/lib/api';
@@ -9,7 +10,7 @@ export async function getDepartmentsAction(branchId: string): Promise<Department
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -30,7 +31,7 @@ export async function createDepartmentAction(branchId: string, name: string): Pr
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage'); // Assuming a permission, can adjust if needed
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 

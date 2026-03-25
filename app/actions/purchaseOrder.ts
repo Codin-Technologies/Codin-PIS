@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 import type { POFilters, PaginatedResponse, PurchaseOrder } from '@/lib/api';
@@ -29,7 +30,7 @@ export async function listPurchaseOrders(
     }
 
     // 4. Call backend using server-side environment variables
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     
     const query = new URLSearchParams({ branchId });
     if (params.status && params.status !== 'All') query.append('status', params.status);

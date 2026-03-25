@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stockUsages, stockUsageItems, inventoryItems } from '@/lib/db/schema';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 interface UsageLineItem {
   inventoryItemId: string;

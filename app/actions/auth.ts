@@ -1,9 +1,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-
-const getBaseUrl = () => process.env.API_BASE_URL || 'http://localhost:3000';
 
 async function fetchWithCookies(path: string, payload: any) {
     const cookieStore = await cookies();

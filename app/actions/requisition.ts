@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 import type { CreateRequisitionPayload, Requisition } from '@/lib/api';
@@ -26,7 +27,7 @@ export async function createRequisitionAction(
     }
 
     // 4. Call backend using server-side environment variables
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');

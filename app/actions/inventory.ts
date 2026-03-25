@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 import type { InventoryItem, InventoryFilters, CreateInventoryItemPayload, InventoryAlert } from '@/lib/api';
@@ -19,7 +20,7 @@ export async function getInventoryItemsAction(branchId: string, filters: Invento
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -37,7 +38,7 @@ export async function getInventoryAlertsAction(branchId: string): Promise<Invent
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -60,7 +61,7 @@ export async function createInventoryItemAction(payload: CreateInventoryItemPayl
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -84,7 +85,7 @@ export async function updateInventoryItemAction(id: string, payload: Partial<Cre
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -108,7 +109,7 @@ export async function deleteInventoryItemAction(id: string): Promise<void> {
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -127,7 +128,7 @@ export async function adjustInventoryQuantityAction(id: string, payload: { qtyDe
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -193,7 +194,7 @@ export async function getInventoryUsageAction(branchId: string): Promise<{ data:
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -210,7 +211,7 @@ export async function getInventoryUsageByIdAction(id: string): Promise<{ data: U
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -230,7 +231,7 @@ export async function recordInventoryUsageAction(payload: RecordUsagePayload): P
     const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
