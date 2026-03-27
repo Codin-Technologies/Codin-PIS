@@ -10,8 +10,8 @@ export async function createRequisitionAction(
     payload: CreateRequisitionPayload
 ): Promise<Requisition> {
     // 1. Input Validation
-    if (!payload.branchId || !payload.subject || !payload.items || payload.items.length === 0) {
-        throw new Error('Invalid requisition payload');
+    if (!payload.branchId || !payload.departmentId || !payload.items || payload.items.length === 0) {
+        throw new Error('Invalid requisition payload: branchId, departmentId, and items are required');
     }
 
     // 2. Authentication Check
@@ -48,10 +48,9 @@ export async function createRequisitionAction(
         throw new Error(`Failed to create requisition: ${res.statusText}`);
     }
 
-    const data = await res.json();
-    
-    // Log write operation for audit purposes as requested
+    const json = (await res.json()) as { data: Requisition };
+
     console.log(`[AUDIT] User ${(user as AuthenticatedUser).id} created requisition for branch ${payload.branchId}`);
 
-    return data;
+    return json.data;
 }
