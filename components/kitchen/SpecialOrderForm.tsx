@@ -1,28 +1,40 @@
 'use client';
 
-import { X, Send, AlertCircle, Clock, FileText } from 'lucide-react';
+import { X, Send, AlertCircle, Clock, FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBranch } from '@/hooks/useBranch';
+import { useCreateSpecialOrder } from '@/hooks/useKitchen';
 
 interface SpecialOrderFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (order: any) => void;
 }
 
-export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderFormProps) {
+export function SpecialOrderForm({ isOpen, onClose }: SpecialOrderFormProps) {
+    const { branchId } = useBranch();
+    const createSpecialOrderMutation = useCreateSpecialOrder(branchId);
+
     const [formData, setFormData] = useState({
-        request: '',
-        notes: '',
-        priority: 'Normal',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        requestName: '',
+        preparationNotes: '',
+        priorityLevel: 'Normal',
+        logTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ ...formData, id: Date.now(), status: 'Pending' });
-        setFormData({ request: '', notes: '', priority: 'Normal', time: '' });
-        onClose();
+        createSpecialOrderMutation.mutate(formData, {
+            onSuccess: () => {
+                setFormData({ 
+                    requestName: '', 
+                    preparationNotes: '', 
+                    priorityLevel: 'Normal', 
+                    logTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                });
+                onClose();
+            }
+        });
     };
 
     if (!isOpen) return null;
@@ -54,8 +66,8 @@ export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderForm
                                 type="text"
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-gray-50"
                                 placeholder="e.g. Gluten-Free Pasta, VIP Preference"
-                                value={formData.request}
-                                onChange={(e) => setFormData({ ...formData, request: e.target.value })}
+                                value={formData.requestName}
+                                onChange={(e) => setFormData({ ...formData, requestName: e.target.value })}
                             />
                         </div>
 
@@ -65,8 +77,8 @@ export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderForm
                                 rows={3}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-gray-50"
                                 placeholder="Any specific instructions for the chef..."
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                value={formData.preparationNotes}
+                                onChange={(e) => setFormData({ ...formData, preparationNotes: e.target.value })}
                             />
                         </div>
 
@@ -75,8 +87,8 @@ export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderForm
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Priority Level</label>
                                 <select
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-gray-50"
-                                    value={formData.priority}
-                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                    value={formData.priorityLevel}
+                                    onChange={(e) => setFormData({ ...formData, priorityLevel: e.target.value })}
                                 >
                                     <option value="Normal">Normal</option>
                                     <option value="High">High Priority</option>
@@ -90,8 +102,8 @@ export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderForm
                                     <input
                                         type="text"
                                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-gray-50"
-                                        value={formData.time}
-                                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                                        value={formData.logTime}
+                                        onChange={(e) => setFormData({ ...formData, logTime: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -105,11 +117,16 @@ export function SpecialOrderForm({ isOpen, onClose, onSubmit }: SpecialOrderForm
                             >
                                 Cancel
                             </button>
-                            <button
+                             <button
                                 type="submit"
-                                className="flex-1 py-3 bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-orange-700 transition-all flex items-center justify-center gap-2"
+                                disabled={createSpecialOrderMutation.isPending}
+                                className="flex-1 py-3 bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-orange-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                <Send className="h-4 w-4" />
+                                {createSpecialOrderMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
                                 Post to Kitchen
                             </button>
                         </div>

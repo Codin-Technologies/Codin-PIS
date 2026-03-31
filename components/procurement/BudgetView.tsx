@@ -1,179 +1,733 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
-    BadgeDollarSign, PieChart, TrendingUp,
-    AlertCircle, Calendar, ArrowUpRight,
-    ArrowDownRight, MoreHorizontal, Filter,
-    Briefcase, Utensils, Zap, HardHat
+    BadgeDollarSign, PieChart, TrendingUp, AlertCircle,
+    Plus, Edit2, Trash2, X, CheckCircle, ChevronDown,
+    Utensils, HardHat, Zap, Briefcase, Layers, BarChart2,
+    ArrowUpRight, ArrowDownRight, Calendar, DollarSign,
+    Search, Info
 } from 'lucide-react';
 import clsx from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const MOCK_BUDGETS = [
-    {
-        id: 'B2026-KITCH',
-        name: 'Kitchen & F&B',
-        allocated: 150000,
-        spent: 98450,
-        committed: 12500,
-        lastYear: 142000,
-        status: 'On Track',
-        icon: Utensils,
-        color: 'bg-orange-500'
-    },
-    {
-        id: 'B2026-MAINT',
-        name: 'Maintenance & Repairs',
-        allocated: 45000,
-        spent: 42100,
-        committed: 1500,
-        lastYear: 38000,
-        status: 'Warning',
-        icon: HardHat,
-        color: 'bg-blue-500'
-    },
-    {
-        id: 'B2026-OPS',
-        name: 'Operations & Utilities',
-        allocated: 85000,
-        spent: 52000,
-        committed: 8000,
-        lastYear: 82000,
-        status: 'On Track',
-        icon: Zap,
-        color: 'bg-emerald-500'
-    },
-    {
-        id: 'B2026-ADMIN',
-        name: 'Administration',
-        allocated: 25000,
-        spent: 24800,
-        committed: 500,
-        lastYear: 22000,
-        status: 'Critical',
-        icon: Briefcase,
-        color: 'bg-red-500'
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type BudgetCategory = 'Kitchen' | 'Maintenance' | 'Operations' | 'Administration' | 'Other';
+type BudgetStatus = 'On Track' | 'Warning' | 'Critical';
+
+interface Budget {
+    id: string;
+    name: string;
+    category: BudgetCategory;
+    fiscalYear: string;
+    allocated: number;
+    notes?: string;
+}
+
+interface MockPurchaseOrder {
+    id: string;
+    category: BudgetCategory;
+    amount: number;
+    status: 'Open' | 'Acknowledged' | 'Overdue' | 'Received' | 'Draft';
+}
+
+// ─── Initial Mock Data ────────────────────────────────────────────────────────
+
+const MOCK_PURCHASE_ORDERS: MockPurchaseOrder[] = [
+    { id: 'PO-2026-8801', category: 'Kitchen', amount: 12500, status: 'Open' },
+    { id: 'PO-2026-8802', category: 'Kitchen', amount: 98450, status: 'Received' },
+    { id: 'PO-2026-8803', category: 'Maintenance', amount: 42100, status: 'Received' },
+    { id: 'PO-2026-8804', category: 'Maintenance', amount: 1500, status: 'Acknowledged' },
+    { id: 'PO-2026-8805', category: 'Operations', amount: 52000, status: 'Received' },
+    { id: 'PO-2026-8806', category: 'Operations', amount: 8000, status: 'Overdue' },
+    { id: 'PO-2026-8807', category: 'Administration', amount: 24800, status: 'Received' },
+    { id: 'PO-2026-8808', category: 'Administration', amount: 500, status: 'Open' },
+];
+
+const INITIAL_BUDGETS: Budget[] = [
+    { id: 'B2026-001', name: 'Kitchen & F&B', category: 'Kitchen', fiscalYear: '2026', allocated: 150000, notes: 'Covers all food and beverage procurement' },
+    { id: 'B2026-002', name: 'Maintenance & Repairs', category: 'Maintenance', fiscalYear: '2026', allocated: 45000 },
+    { id: 'B2026-003', name: 'Operations & Utilities', category: 'Operations', fiscalYear: '2026', allocated: 85000 },
+    { id: 'B2026-004', name: 'Administration', category: 'Administration', fiscalYear: '2026', allocated: 25000, notes: 'Office supplies and admin costs' },
+];
+
+const CATEGORY_ICONS: Record<BudgetCategory, React.ElementType> = {
+    Kitchen: Utensils,
+    Maintenance: HardHat,
+    Operations: Zap,
+    Administration: Briefcase,
+    Other: Layers,
+};
+
+const CATEGORY_COLORS: Record<BudgetCategory, { bg: string; text: string; bar: string }> = {
+    Kitchen:        { bg: 'bg-orange-100', text: 'text-orange-600', bar: 'bg-orange-500' },
+    Maintenance:    { bg: 'bg-blue-100',   text: 'text-blue-600',   bar: 'bg-blue-500' },
+    Operations:     { bg: 'bg-emerald-100',text: 'text-emerald-600',bar: 'bg-emerald-500' },
+    Administration: { bg: 'bg-violet-100', text: 'text-violet-600', bar: 'bg-violet-500' },
+    Other:          { bg: 'bg-gray-100',   text: 'text-gray-600',   bar: 'bg-gray-500' },
+};
+
+const CATEGORIES: BudgetCategory[] = ['Kitchen', 'Maintenance', 'Operations', 'Administration', 'Other'];
+const FISCAL_YEARS = ['2024', '2025', '2026', '2027'];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getBudgetStats(budget: Budget, pos: MockPurchaseOrder[]) {
+    const spent = pos
+        .filter(po => po.category === budget.category && po.status === 'Received')
+        .reduce((sum, po) => sum + po.amount, 0);
+    const committed = pos
+        .filter(po => po.category === budget.category && ['Open', 'Acknowledged', 'Overdue'].includes(po.status))
+        .reduce((sum, po) => sum + po.amount, 0);
+    
+    const pct = (spent + committed) / budget.allocated;
+    let status: BudgetStatus = 'On Track';
+    if (pct >= 1) status = 'Critical';
+    else if (pct >= 0.8) status = 'Warning';
+
+    return { spent, committed, status, totalUsed: spent + committed, pct };
+}
+
+function fmt(n: number) {
+    return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
+// ─── Empty Form State ─────────────────────────────────────────────────────────
+
+const EMPTY_FORM = {
+    name: '',
+    category: 'Kitchen' as BudgetCategory,
+    fiscalYear: '2026',
+    allocated: '',
+    notes: '',
+};
+
+// ─── Add/Edit Slide Panel ──────────────────────────────────────────────────────
+
+function BudgetFormPanel({
+    mode,
+    initial,
+    onSave,
+    onClose,
+    mockPOs
+}: {
+    mode: 'add' | 'edit';
+    initial: typeof EMPTY_FORM;
+    onSave: (data: typeof EMPTY_FORM) => void;
+    onClose: () => void;
+    mockPOs: MockPurchaseOrder[];
+}) {
+    const [form, setForm] = useState(initial);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    function validate() {
+        const e: Record<string, string> = {};
+        if (!form.name.trim()) e.name = 'Budget name is required';
+        if (!form.allocated || Number(form.allocated) <= 0) e.allocated = 'Allocated amount must be > 0';
+        setErrors(e);
+        return Object.keys(e).length === 0;
     }
-];
 
-const BUDGET_STATS = [
-    { label: 'Annual Budget', value: '$305,000', icon: BadgeDollarSign, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Total Spent', value: '$217,350', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Remaining', value: '$87,650', icon: PieChart, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Over-budget Items', value: '2', icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
-];
+    function handleSubmit() {
+        if (!validate()) return;
+        onSave(form);
+    }
 
-export function BudgetView() {
+    const CategoryIcon = CATEGORY_ICONS[form.category];
+    const catColor = CATEGORY_COLORS[form.category];
+
+    // Compute preview stats based on current form category
+    const tempBudget: Budget = { id: 'preview', name: form.name, category: form.category, fiscalYear: form.fiscalYear, allocated: Number(form.allocated) || 1 };
+    const { spent, committed, status: previewStatus, pct } = getBudgetStats(tempBudget, mockPOs);
+    const pctDisplay = Math.min(100, Math.round(pct * 100));
+
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Budget Management</h2>
-                    <p className="text-sm text-gray-500">FY 2026 Procurement Spending Control</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/40 backdrop-blur-sm">
+            <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="h-full w-full max-w-xl bg-[#f8f9fc] shadow-2xl overflow-y-auto flex flex-col"
+            >
+                {/* Header */}
+                <div className="sticky top-0 z-10 flex items-center justify-between bg-white px-7 py-5 border-b border-gray-100">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                            {mode === 'add' ? 'New Budget' : 'Edit Budget'}
+                        </h2>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            {mode === 'add' ? 'Define a new procurement budget' : 'Update budget details'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                        <X className="h-5 w-5 text-gray-500" />
+                    </button>
                 </div>
+
+                <div className="flex-1 p-7 space-y-6">
+                    {/* Live Preview Card */}
+                    <div className={clsx('p-4 rounded-2xl border-2 transition-all', 
+                        previewStatus === 'Critical' ? 'border-red-200 bg-red-50/50' :
+                        previewStatus === 'Warning' ? 'border-amber-200 bg-amber-50/50' :
+                        'border-emerald-200 bg-emerald-50/50'
+                    )}>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className={clsx('h-9 w-9 rounded-xl flex items-center justify-center', catColor.bg, catColor.text)}>
+                                <CategoryIcon className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900">{form.name || 'Budget Name'}</p>
+                                <p className="text-xs text-gray-400">{form.category} • FY{form.fiscalYear}</p>
+                            </div>
+                            <span className={clsx('ml-auto px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
+                                previewStatus === 'On Track' ? 'bg-emerald-100 text-emerald-700' :
+                                previewStatus === 'Warning' ? 'bg-amber-100 text-amber-700' :
+                                'bg-red-100 text-red-700'
+                            )}>
+                                {previewStatus}
+                            </span>
+                        </div>
+                        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                            <div className={clsx('h-full rounded-full transition-all duration-500', catColor.bar)} style={{ width: `${Math.min(100, pctDisplay)}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-1 text-[10px] text-gray-400 font-medium">
+                            <span>Spent: {fmt(spent)}</span>
+                            <span>{pctDisplay}% potential use</span>
+                            <span>Total: {fmt(Number(form.allocated) || 0)}</span>
+                        </div>
+                        <p className="mt-2 text-[9px] text-gray-400 font-medium leading-tight">
+                            * Spent and Committed amounts are automatically aggregated from Purchase Orders in this category.
+                        </p>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Budget Settings</h3>
+
+                        {/* Name */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Budget Name *</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Kitchen & F&B Q2"
+                                value={form.name}
+                                onChange={e => setForm({ ...form, name: e.target.value })}
+                                className={clsx(
+                                    'w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 transition-all',
+                                    errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                                )}
+                            />
+                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                        </div>
+
+                        {/* Category + Fiscal Year */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Category *</label>
+                                <div className="relative">
+                                    <select
+                                        value={form.category}
+                                        onChange={e => setForm({ ...form, category: e.target.value as BudgetCategory })}
+                                        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 bg-white pr-8"
+                                    >
+                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Fiscal Year *</label>
+                                <div className="relative">
+                                    <select
+                                        value={form.fiscalYear}
+                                        onChange={e => setForm({ ...form, fiscalYear: e.target.value })}
+                                        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 bg-white pr-8"
+                                    >
+                                        {FISCAL_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Allocated */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Allocated Amount *</label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    min={0}
+                                    value={form.allocated}
+                                    onChange={e => setForm({ ...form, allocated: e.target.value })}
+                                    className={clsx(
+                                        'w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 transition-all',
+                                        errors.allocated ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                                    )}
+                                />
+                            </div>
+                            {errors.allocated && <p className="text-red-500 text-xs mt-1">{errors.allocated}</p>}
+                        </div>
+
+                        {/* Summary Info */}
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-2">
+                            <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                            <p className="text-[10px] text-gray-500 leading-normal">
+                                Your <span className="font-bold">Spent</span> ({fmt(spent)}) and <span className="font-bold">Committed</span> ({fmt(committed)}) values will be automatically updated as Purchase Orders are created and received in the <span className="font-bold">{form.category}</span> category.
+                            </p>
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Notes</label>
+                            <textarea
+                                rows={3}
+                                placeholder="Optional notes about this budget..."
+                                value={form.notes}
+                                onChange={e => setForm({ ...form, notes: e.target.value })}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 resize-none"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-7 py-4 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="flex-1 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <CheckCircle className="h-4 w-4" />
+                        {mode === 'add' ? 'Create Budget' : 'Save Changes'}
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// ─── Delete Confirm Modal ────────────────────────────────────────────────────
+
+function DeleteModal({ budget, onConfirm, onClose }: { budget: Budget; onConfirm: () => void; onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4"
+            >
+                <div className="h-14 w-14 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
+                    <Trash2 className="h-7 w-7 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Budget</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                    Are you sure you want to delete <span className="font-bold text-gray-800">"{budget.name}"</span>? This action cannot be undone.
+                </p>
                 <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50">
-                        <Calendar className="h-4 w-4" />
-                        Fiscal Period
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50">
+                        Cancel
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800">
-                        <ArrowUpRight className="h-4 w-4" />
-                        Adjust Budget
+                    <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700">
+                        Delete Budget
                     </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// ─── Budget Card ──────────────────────────────────────────────────────────────
+
+function BudgetCard({ budget, mockPOs, onEdit, onDelete }: { budget: Budget; mockPOs: MockPurchaseOrder[]; onEdit: () => void; onDelete: () => void }) {
+    const StatusIcon = CATEGORY_ICONS[budget.category];
+    const colors = CATEGORY_COLORS[budget.category];
+    
+    // Derive spending stats dynamically
+    const { spent, committed, status, totalUsed, pct } = getBudgetStats(budget, mockPOs);
+
+    const spentPct = Math.min(100, (spent / budget.allocated) * 100);
+    const committedPct = Math.min(100 - spentPct, (committed / budget.allocated) * 100);
+    const remaining = budget.allocated - totalUsed;
+    const totalUsedPct = Math.round(pct * 100);
+
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group"
+        >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+                <div className="flex items-center gap-3">
+                    <div className={clsx('h-11 w-11 rounded-2xl flex items-center justify-center shadow-sm', colors.bg, colors.text)}>
+                        <StatusIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900 text-sm leading-tight">{budget.name}</h3>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{budget.id} • FY{budget.fiscalYear}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className={clsx('px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
+                        status === 'On Track' ? 'bg-emerald-50 text-emerald-700' :
+                        status === 'Warning'  ? 'bg-amber-50 text-amber-700' :
+                        'bg-red-50 text-red-700'
+                    )}>
+                        {status}
+                    </span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={onEdit} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                            <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={onDelete} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-4 gap-6">
-                {BUDGET_STATS.map((stat, idx) => (
-                    <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+            {/* Allocated */}
+            <div className="mb-4">
+                <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Budget Progress</span>
+                    <span className="text-xs font-black text-gray-700">{totalUsedPct}% used</span>
+                </div>
+                <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden flex">
+                    <div className={clsx('h-full transition-all duration-700', colors.bar)} style={{ width: `${spentPct}%` }} />
+                    <div className="h-full bg-gray-300 opacity-60 transition-all duration-700" style={{ width: `${committedPct}%` }} />
+                </div>
+                <div className="flex justify-between mt-1.5 text-[10px] text-gray-400 font-medium">
+                    <span className="flex items-center gap-1">
+                        <span className={clsx('inline-block h-2 w-2 rounded-full', colors.bar)} />
+                        Spent {fmt(spent)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="inline-block h-2 w-2 rounded-full bg-gray-300" />
+                        Committed {fmt(committed)}
+                    </span>
+                </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50">
+                <div className="text-center">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Allocated</p>
+                    <p className="text-sm font-black text-gray-900">{fmt(budget.allocated)}</p>
+                </div>
+                <div className="text-center border-x border-gray-50">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Remaining</p>
+                    <p className={clsx('text-sm font-black', remaining < 0 ? 'text-red-600' : 'text-emerald-600')}>
+                        {fmt(Math.abs(remaining))}
+                        {remaining < 0 && <span className="text-[9px] ml-0.5">over</span>}
+                    </p>
+                </div>
+                <div className="text-center">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Available</p>
+                    <p className={clsx('text-sm font-black', remaining > 0 ? 'text-gray-900' : 'text-red-600')}>
+                        {remaining > 0 ? fmt(remaining) : fmt(0)}
+                    </p>
+                </div>
+            </div>
+
+            {budget.notes && (
+                <p className="mt-3 pt-3 border-t border-gray-50 text-[11px] text-gray-400 italic line-clamp-1">{budget.notes}</p>
+            )}
+        </motion.div>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function BudgetView() {
+    const [budgets, setBudgets] = useState<Budget[]>(INITIAL_BUDGETS);
+    const [mockPOs] = useState<MockPurchaseOrder[]>(MOCK_PURCHASE_ORDERS);
+    const [panelMode, setPanelMode] = useState<'add' | 'edit' | null>(null);
+    const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+    const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);
+    const [search, setSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState<BudgetCategory | 'All'>('All');
+    const [filterYear, setFilterYear] = useState('All');
+
+    // ── Derived Aggregate Stats ────────────────────────────────────────────────
+    const overallStats = useMemo(() => {
+        let allocated = 0;
+        let spent = 0;
+        let committed = 0;
+
+        budgets.forEach(b => {
+             allocated += b.allocated;
+             const stats = getBudgetStats(b, mockPOs);
+             spent += stats.spent;
+             committed += stats.committed;
+        });
+
+        return { allocated, spent, committed, remaining: allocated - (spent + committed) };
+    }, [budgets, mockPOs]);
+
+    const overBudgetCount = budgets.filter(b => getBudgetStats(b, mockPOs).status === 'Critical').length;
+    const spendPct = overallStats.allocated > 0 ? Math.round((overallStats.spent / overallStats.allocated) * 100) : 0;
+
+    const filtered = useMemo(() => budgets.filter(b => {
+        const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
+            b.category.toLowerCase().includes(search.toLowerCase());
+        const matchCat = filterCategory === 'All' || b.category === filterCategory;
+        const matchYear = filterYear === 'All' || b.fiscalYear === filterYear;
+        return matchSearch && matchCat && matchYear;
+    }), [budgets, search, filterCategory, filterYear]);
+
+    // ── Handlers ───────────────────────────────────────────────────────────────
+    function openAdd() {
+        setEditingBudget(null);
+        setPanelMode('add');
+    }
+
+    function openEdit(b: Budget) {
+        setEditingBudget(b);
+        setPanelMode('edit');
+    }
+
+    function handleSave(form: typeof EMPTY_FORM) {
+        if (panelMode === 'add') {
+            const newBudget: Budget = {
+                id: `B${form.fiscalYear}-${String(budgets.length + 1).padStart(3, '0')}`,
+                name: form.name,
+                category: form.category,
+                fiscalYear: form.fiscalYear,
+                allocated: Number(form.allocated),
+                notes: form.notes || undefined,
+            };
+            setBudgets(prev => [newBudget, ...prev]);
+        } else if (editingBudget) {
+            setBudgets(prev => prev.map(b => b.id === editingBudget.id ? {
+                ...b,
+                name: form.name,
+                category: form.category,
+                fiscalYear: form.fiscalYear,
+                allocated: Number(form.allocated),
+                notes: form.notes || undefined,
+            } : b));
+        }
+        setPanelMode(null);
+        setEditingBudget(null);
+    }
+
+    function handleDelete() {
+        if (!deletingBudget) return;
+        setBudgets(prev => prev.filter(b => b.id !== deletingBudget.id));
+        setDeletingBudget(null);
+    }
+
+    const formInitial = editingBudget ? {
+        name: editingBudget.name,
+        category: editingBudget.category,
+        fiscalYear: editingBudget.fiscalYear,
+        allocated: String(editingBudget.allocated),
+        notes: editingBudget.notes || '',
+    } : EMPTY_FORM;
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+
+            {/* ── Header ────────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Budget Management</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Automated tracking from Purchase Orders</p>
+                </div>
+                <button
+                    onClick={openAdd}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm"
+                >
+                    <Plus className="h-4 w-4" />
+                    New Budget
+                </button>
+            </div>
+
+            {/* ── KPI Cards ─────────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    {
+                        label: 'Total Allocated',
+                        value: fmt(overallStats.allocated),
+                        sub: `${budgets.length} Category Budgets`,
+                        icon: BadgeDollarSign,
+                        color: 'text-indigo-600',
+                        bg: 'bg-indigo-50',
+                    },
+                    {
+                        label: 'Auto-Tracked Spent',
+                        value: fmt(overallStats.spent),
+                        sub: `${spendPct}% of total spent`,
+                        icon: TrendingUp,
+                        color: 'text-emerald-600',
+                        bg: 'bg-emerald-50',
+                    },
+                    {
+                        label: 'Total Remaining',
+                        value: fmt(Math.max(0, overallStats.remaining)),
+                        sub: `${fmt(overallStats.committed)} committed`,
+                        icon: PieChart,
+                        color: 'text-blue-600',
+                        bg: 'bg-blue-50',
+                    },
+                    {
+                        label: 'Budget Warnings',
+                        value: String(overBudgetCount),
+                        sub: overBudgetCount === 0 ? 'Optimal utilization' : `${overBudgetCount} budgets at risk`,
+                        icon: AlertCircle,
+                        color: overBudgetCount > 0 ? 'text-red-600' : 'text-gray-500',
+                        bg: overBudgetCount > 0 ? 'bg-red-50' : 'bg-gray-50',
+                    },
+                ].map((stat) => (
+                    <div key={stat.label} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase">{stat.label}</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{stat.label}</p>
+                            <p className="text-2xl font-black text-gray-900 mt-0.5 leading-tight">{stat.value}</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">{stat.sub}</p>
                         </div>
-                        <div className={clsx("h-12 w-12 rounded-xl flex items-center justify-center", stat.bg, stat.color)}>
+                        <div className={clsx('h-12 w-12 rounded-2xl flex items-center justify-center shrink-0', stat.bg, stat.color)}>
                             <stat.icon className="h-6 w-6" />
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Budget Progress Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {MOCK_BUDGETS.map((budget) => {
-                    const percent = (budget.spent / budget.allocated) * 100;
-                    const committedPercent = (budget.committed / budget.allocated) * 100;
-
-                    return (
-                        <div key={budget.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex items-center gap-4">
-                                    <div className={clsx("h-10 w-10 rounded-xl flex items-center justify-center text-white shadow-lg", budget.color)}>
-                                        <budget.icon className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-900">{budget.name}</h3>
-                                        <p className="text-xs text-gray-500">{budget.id}</p>
-                                    </div>
-                                </div>
-                                <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
-                                    budget.status === 'On Track' ? 'bg-green-50 text-green-700' :
-                                        budget.status === 'Warning' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
-                                )}>
-                                    {budget.status}
-                                </span>
-                            </div>
-
-                            <div className="space-y-2 mb-6">
-                                <div className="flex justify-between text-xs font-bold">
-                                    <span className="text-gray-400">Spending Progress</span>
-                                    <span className="text-gray-900">{Math.round(percent)}%</span>
-                                </div>
-                                <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden flex">
-                                    <div
-                                        className={clsx("h-full transition-all duration-1000", budget.color)}
-                                        style={{ width: `${percent}%` }}
-                                    />
-                                    <div
-                                        className="h-full bg-gray-300 transition-all duration-1000 opacity-50"
-                                        style={{ width: `${committedPercent}%` }}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center text-[10px] text-gray-400">
-                                    <span>Spent: ${budget.spent.toLocaleString()}</span>
-                                    <span>Committed: ${budget.committed.toLocaleString()}</span>
-                                    <span>Total: ${budget.allocated.toLocaleString()}</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">vs Last Year</p>
-                                    <div className="flex items-center gap-1">
-                                        {budget.spent > budget.lastYear ? (
-                                            <ArrowUpRight className="h-3 w-3 text-red-500" />
-                                        ) : (
-                                            <ArrowDownRight className="h-3 w-3 text-green-500" />
-                                        )}
-                                        <span className={clsx("text-xs font-bold",
-                                            budget.spent > budget.lastYear ? 'text-red-500' : 'text-green-500'
-                                        )}>
-                                            {Math.abs(Math.round(((budget.spent - budget.lastYear) / budget.lastYear) * 100))}%
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <button className="text-xs font-bold text-indigo-600 hover:underline">
-                                        View Breakdown
-                                    </button>
-                                </div>
-                            </div>
+            {/* ── Overall Progress Bar ──────────────────────────────────── */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <BarChart2 className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-bold text-gray-700">Combined Spending vs Allocation</span>
+                    </div>
+                    <span className="text-sm font-black text-gray-900">{fmt(overallStats.spent + overallStats.committed)} / {fmt(overallStats.allocated)}</span>
+                </div>
+                <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden flex gap-px">
+                    {budgets.map((b) => {
+                        const { spent } = getBudgetStats(b, mockPOs);
+                        const pct = overallStats.allocated > 0 ? (spent / overallStats.allocated) * 100 : 0;
+                        return (
+                            <div
+                                key={b.id}
+                                title={`${b.name}: ${fmt(spent)}`}
+                                className={clsx('h-full transition-all duration-700', CATEGORY_COLORS[b.category].bar)}
+                                style={{ width: `${pct}%` }}
+                            />
+                        );
+                    })}
+                </div>
+                <div className="flex flex-wrap gap-4 mt-3">
+                    {CATEGORIES.filter(c => budgets.some(b => b.category === c)).map(c => (
+                        <div key={c} className="flex items-center gap-1.5">
+                            <span className={clsx('h-2.5 w-2.5 rounded-full', CATEGORY_COLORS[c].bar)} />
+                            <span className="text-[11px] text-gray-500">{c}</span>
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
+
+            {/* ── Filters ───────────────────────────────────────────────── */}
+            <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative flex-1 min-w-48">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search budgets..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                </div>
+                <div className="relative">
+                    <select
+                        value={filterCategory}
+                        onChange={e => setFilterCategory(e.target.value as BudgetCategory | 'All')}
+                        className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-8 text-sm bg-white focus:outline-none"
+                    >
+                        <option value="All">All Categories</option>
+                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                </div>
+                <div className="relative">
+                    <select
+                        value={filterYear}
+                        onChange={e => setFilterYear(e.target.value)}
+                        className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-8 text-sm bg-white focus:outline-none"
+                    >
+                        <option value="All">All Years</option>
+                        {FISCAL_YEARS.map(y => <option key={y} value={y}>FY {y}</option>)}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                </div>
+                {(search || filterCategory !== 'All' || filterYear !== 'All') && (
+                    <button
+                        onClick={() => { setSearch(''); setFilterCategory('All'); setFilterYear('All'); }}
+                        className="text-xs font-bold text-gray-500 hover:text-gray-800 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+                    >
+                        Clear Filters
+                    </button>
+                )}
+            </div>
+
+            {/* ── Budget Cards Grid ─────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <AnimatePresence mode="popLayout">
+                    {filtered.map(budget => (
+                        <BudgetCard
+                            key={budget.id}
+                            budget={budget}
+                            mockPOs={mockPOs}
+                            onEdit={() => openEdit(budget)}
+                            onDelete={() => setDeletingBudget(budget)}
+                        />
+                    ))}
+                </AnimatePresence>
+            </div>
+
+            {filtered.length === 0 && (
+                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+                    <BadgeDollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-sm font-bold text-gray-500">No budgets found</h3>
+                    <p className="text-xs text-gray-400 mt-1">Try adjusting filters or create a new budget.</p>
+                    <button onClick={openAdd} className="mt-4 px-5 py-2 bg-[#2a2b2d] text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors">
+                        Add First Budget
+                    </button>
+                </div>
+            )}
+
+            {/* ── Panels & Modals ───────────────────────────────────────── */}
+            <AnimatePresence>
+                {panelMode && (
+                    <BudgetFormPanel
+                        key="form-panel"
+                        mode={panelMode}
+                        initial={formInitial}
+                        onSave={handleSave}
+                        onClose={() => { setPanelMode(null); setEditingBudget(null); }}
+                        mockPOs={mockPOs}
+                    />
+                )}
+                {deletingBudget && (
+                    <DeleteModal
+                        key="delete-modal"
+                        budget={deletingBudget}
+                        onConfirm={handleDelete}
+                        onClose={() => setDeletingBudget(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

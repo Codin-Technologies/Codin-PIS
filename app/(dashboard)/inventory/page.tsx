@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2, CheckSquare } from 'lucide-react';
+import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2, CheckSquare, Utensils } from 'lucide-react';
 import clsx from 'clsx';
 
 import { AddItemModal } from '@/components/inventory/AddItemModal';
@@ -21,8 +21,10 @@ import {
 } from '@/hooks/useInventory';
 import { useDepartments, useCreateDepartment } from '@/hooks/useDepartments';
 import { useBranch } from '@/hooks/useBranch';
+import { useProductionPlans } from '@/hooks/useKitchen';
 import { ErrorState } from '@/components/ui/error-state';
-import type { CreateInventoryItemPayload, InventoryItem, InventoryAlert } from '@/lib/api';
+import { KitchenRequisitionCard } from '@/components/inventory/KitchenRequisitionCard';
+import type { CreateInventoryItemPayload, InventoryItem, InventoryAlert, ProductionPlan } from '@/lib/api';
 
 function InventorySkeletonCard() {
     return (
@@ -68,6 +70,7 @@ function InventoryContent() {
     });
     const { data: alertsData, isLoading: alertsLoading } = useInventoryAlerts(branchId);
     const { data: deptData, isLoading: deptLoading } = useDepartments(branchId);
+    const { data: productionData, isLoading: productionLoading } = useProductionPlans(branchId);
 
     // Mutations
     const createItemMutation = useCreateInventoryItem(branchId);
@@ -80,7 +83,28 @@ function InventoryContent() {
     const items: InventoryItem[]  = data?.data ?? [];
     const alerts: InventoryAlert[] = (alertsData as InventoryAlert[]) ?? [];
     const departments = deptData ?? [];
+    const pendingRequisitions = productionData?.data.filter((p: ProductionPlan) => p.inventoryStatus !== 'Deducted') ?? [];
     const totalValuation = items.reduce((sum, i) => sum + (i.qty * (i.unitCost ?? 0)), 0);
+
+    // 24-hour history tracking via localStorage
+    const HISTORY_KEY = 'kitchenRequisitionHistory';
+    const [historyApprovals, setHistoryApprovals] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') as { id: string; approvedAt: number }[];
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours
+        const fresh = raw.filter(r => r.approvedAt > cutoff);
+        // Clean up expired entries
+        if (fresh.length !== raw.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(fresh));
+        const map: Record<string, number> = {};
+        fresh.forEach(r => { map[r.id] = r.approvedAt; });
+        setHistoryApprovals(map);
+    }, [productionData]); // Re-run when production data refreshes (after a deduction)
+
+    const historyRequisitions = (productionData?.data ?? []).filter(
+        (p: ProductionPlan) => p.inventoryStatus === 'Deducted' && !!historyApprovals[p.id]
+    );
+    const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
     // Handlers
     function handleAddItem(payload: CreateInventoryItemPayload) {
@@ -360,8 +384,63 @@ function InventoryContent() {
                 )}
             </div>
 
-            {/* Right Section: Alerts & Summary */}
-            <div className="w-80 hidden lg:flex flex-col gap-6 h-full">
+            {/* Right Section: Alerts & Requisitions */}
+            <div className="w-80 hidden lg:flex flex-col gap-6 h-full overflow-y-auto pr-1 scrollbar-thin">
+
+                {/* Kitchen Requisitions */}
+                <div className="flex flex-col rounded-2xl bg-white p-6 shadow-sm border border-gray-100 shrink-0">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">Kitchen Requisitions</h2>
+                            <p className="text-xs text-gray-500">Waitlist for stock deduction</p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                            <Utensils className="h-4 w-4" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {productionLoading && <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />}
+                        {!productionLoading && pendingRequisitions.map((req: ProductionPlan) => (
+                            <KitchenRequisitionCard key={req.id} plan={req} mode="pending" />
+                        ))}
+                        {!productionLoading && pendingRequisitions.length === 0 && historyRequisitions.length === 0 && (
+                            <div className="text-center py-4 border-2 border-dashed border-gray-50 rounded-xl">
+                                <p className="text-xs text-gray-400">No pending requisitions</p>
+                            </div>
+                        )}
+                        {!productionLoading && pendingRequisitions.length === 0 && historyRequisitions.length > 0 && (
+                            <div className="text-center py-3 border-2 border-dashed border-green-100 rounded-xl">
+                                <p className="text-xs text-green-600 font-semibold">All requisitions processed ✓</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* History Section */}
+                    {historyRequisitions.length > 0 && (
+                        <div className="mt-4">
+                            <button
+                                onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                                className="w-full flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors py-1"
+                            >
+                                <span>Recent History ({historyRequisitions.length})</span>
+                                <span className="text-[10px] normal-case font-normal text-gray-400">Auto-removes after 24h</span>
+                            </button>
+                            {isHistoryExpanded && (
+                                <div className="space-y-2 mt-2">
+                                    {historyRequisitions.map((req: ProductionPlan) => (
+                                        <KitchenRequisitionCard
+                                            key={req.id}
+                                            plan={req}
+                                            mode="history"
+                                            approvedAt={historyApprovals[req.id]}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 {/* Alerts Panel */}
                 <div className="flex flex-col rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex-1 overflow-hidden">

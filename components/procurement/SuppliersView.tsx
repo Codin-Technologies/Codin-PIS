@@ -8,8 +8,9 @@ import {
     TrendingUp
 } from 'lucide-react';
 import clsx from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { NewSupplierModal } from './NewSupplierModal';
+import { SendRFQModal } from './SendRFQModal';
 import { useSuppliers, useCreateSupplier } from '@/hooks/useSuppliers';
 import { useBranch } from '@/hooks/useBranch';
 import { ErrorState } from '@/components/ui/error-state';
@@ -40,6 +41,8 @@ export function SuppliersView() {
     const { branchId } = useBranch();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRFQModalOpen, setIsRFQModalOpen] = useState(false);
+    const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
 
     const { data, isLoading, isError, error } = useSuppliers(branchId, {
         search: searchTerm || undefined,
@@ -55,11 +58,32 @@ export function SuppliersView() {
         });
     }
 
+    const toggleSupplier = (id: string) => {
+        setSelectedSupplierIds(prev => 
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
+    };
+
+    const selectAll = () => {
+        if (selectedSupplierIds.length === suppliers.length) {
+            setSelectedSupplierIds([]);
+        } else {
+            setSelectedSupplierIds(suppliers.map(s => s.id));
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <NewSupplierModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+            />
+
+            <SendRFQModal
+                isOpen={isRFQModalOpen}
+                onClose={() => setIsRFQModalOpen(false)}
+                selectedSuppliers={suppliers.filter(s => selectedSupplierIds.includes(s.id))}
+                onSuccess={() => setSelectedSupplierIds([])}
             />
 
             {/* Header */}
@@ -125,13 +149,31 @@ export function SuppliersView() {
                         <motion.div
                             key={supplier.id}
                             whileHover={{ y: -4 }}
-                            className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                            onClick={() => toggleSupplier(supplier.id)}
+                            className={clsx(
+                                "bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all cursor-pointer relative group",
+                                selectedSupplierIds.includes(supplier.id) ? "border-black ring-1 ring-black" : "border-gray-100"
+                            )}
                         >
+                            {/* Checkbox */}
+                            <div className={clsx(
+                                "absolute top-4 right-4 h-5 w-5 rounded border transition-colors flex items-center justify-center",
+                                selectedSupplierIds.includes(supplier.id) 
+                                    ? "bg-black border-black text-white" 
+                                    : "border-gray-200 bg-white group-hover:border-gray-400"
+                            )}>
+                                {selectedSupplierIds.includes(supplier.id) && (
+                                    <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                )}
+                            </div>
+
                             <div className="flex justify-between items-start mb-4">
                                 <div className="h-12 w-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
                                     <span className="text-lg font-bold text-gray-400">{supplier.name.charAt(0)}</span>
                                 </div>
-                                <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
+                                <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mr-8",
                                     supplier.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                                 )}>
                                     {supplier.status}
@@ -180,6 +222,49 @@ export function SuppliersView() {
                     <p>No suppliers found. Add your first supplier to get started.</p>
                 </div>
             )}
+
+            {/* Floating Selection Bar */}
+            <AnimatePresence>
+                {selectedSupplierIds.length > 0 && (
+                    <motion.div
+                        initial={{ y: 100, x: '-50%', opacity: 0 }}
+                        animate={{ y: 0, x: '-50%', opacity: 1 }}
+                        exit={{ y: 100, x: '-50%', opacity: 0 }}
+                        className="fixed bottom-8 left-1/2 z-40 bg-[#2a2b2d] text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-8 min-w-[500px]"
+                    >
+                        <div className="flex items-center gap-3 pr-8 border-r border-gray-700">
+                            <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-black">
+                                {selectedSupplierIds.length}
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold">Suppliers Selected</p>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setSelectedSupplierIds([]); }}
+                                    className="text-[10px] text-gray-400 font-bold uppercase tracking-wider hover:text-white"
+                                >
+                                    Clear Selection
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 flex-1">
+                            <button
+                                onClick={selectAll}
+                                className="px-4 py-2 rounded-xl bg-white/10 text-xs font-bold hover:bg-white/20 transition-colors"
+                            >
+                                {selectedSupplierIds.length === suppliers.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                            <button
+                                onClick={() => setIsRFQModalOpen(true)}
+                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors shadow-lg"
+                            >
+                                <ExternalLink className="h-4 w-4" />
+                                Send Quotation Request
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

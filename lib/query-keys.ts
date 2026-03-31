@@ -38,6 +38,9 @@ export const queryKeys = {
     recipes: (branchId: string, params?: object) =>
         ['recipes', branchId, params] as const,
 
+    kitchenProduction: (branchId: string) => ['kitchen', 'production', branchId] as const,
+    kitchenSpecialOrders: (branchId: string) => ['kitchen', 'special-orders', branchId] as const,
+
     // ── Admin & Auth ──
     organizationTypes: () => ['organizationTypes'] as const,
     organizations: () => ['organizations'] as const,

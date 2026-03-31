@@ -10,92 +10,64 @@ import clsx from 'clsx';
 import { CookingPlanCard } from '@/components/kitchen/CookingPlanCard';
 import { SpecialOrderForm } from '@/components/kitchen/SpecialOrderForm';
 import { NewProductionModal } from '@/components/kitchen/NewProductionModal';
-
-// --- Mock Data ---
-
-const INITIAL_PLANNED_COOKINGS = [
-    {
-        id: 'PC-001',
-        dish: 'Braised Beef Short Ribs',
-        servings: 40,
-        status: 'In Prep' as const,
-        startTime: '10:00 AM',
-        ingredients: [
-            { id: 'i1', name: 'Beef Short Ribs', qty: 15, unit: 'kg', inventoryId: 'MEA-002' },
-            { id: 'i2', name: 'Red Wine', qty: 4, unit: 'btl', inventoryId: 'BEV-005' },
-            { id: 'i3', name: 'Carrots', qty: 5, unit: 'kg', inventoryId: 'VEG-003' }
-        ]
-    },
-    {
-        id: 'PC-002',
-        dish: 'Creamy Mushroom Risotto',
-        servings: 25,
-        status: 'Planned' as const,
-        startTime: '11:30 AM',
-        ingredients: [
-            { id: 'i4', name: 'Arborio Rice', qty: 5, unit: 'kg', inventoryId: 'GRN-003' },
-            { id: 'i5', name: 'Mixed Mushrooms', qty: 3, unit: 'kg', inventoryId: 'VEG-008' },
-            { id: 'i6', name: 'Parmesan', qty: 1, unit: 'kg', inventoryId: 'DAI-001' }
-        ]
-    },
-    {
-        id: 'PC-003',
-        dish: 'Pan-Seared Sea Bass',
-        servings: 15,
-        status: 'Completed' as const,
-        startTime: '09:00 AM',
-        ingredients: [
-            { id: 'i7', name: 'Sea Bass Fillets', qty: 15, unit: 'pcs', inventoryId: 'SEA-001' },
-            { id: 'i8', name: 'Lemon', qty: 10, unit: 'pcs', inventoryId: 'VEG-012' }
-        ]
-    }
-];
-
-const INITIAL_SPECIAL_ORDERS = [
-    { id: 1, request: 'Gluten-Free Pasta - Table 4', notes: 'Severe celiac, separate pot.', time: '12:05 PM', status: 'Pending', priority: 'Critical' },
-    { id: 2, request: 'No Onions Burger - Table 12', notes: 'Preference.', time: '12:15 PM', status: 'Cooked', priority: 'Normal' },
-];
+import { useBranch } from '@/hooks/useBranch';
+import { useProductionPlans, useSpecialOrders, useUpdateSpecialOrderStatus } from '@/hooks/useKitchen';
+import { ErrorState } from '@/components/ui/error-state';
+import { type SpecialOrder, type ProductionPlan } from '@/lib/api';
 
 export default function KitchenPage() {
+    const { branchId } = useBranch();
     const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'SPECIAL'>('PRODUCTION');
-    const [plannedCookings, setPlannedCookings] = useState(INITIAL_PLANNED_COOKINGS);
-    const [specialOrders, setSpecialOrders] = useState(INITIAL_SPECIAL_ORDERS);
     const [isSpecialOrderModalOpen, setIsSpecialOrderModalOpen] = useState(false);
     const [isProductionModalOpen, setIsProductionModalOpen] = useState(false);
 
-    const handleDeduct = (id: string) => {
-        alert(`Inventory Deducted for ${id}`);
-        setPlannedCookings(prev => prev.map(pc =>
-            pc.id === id ? { ...pc, status: 'Completed' as const } : pc
-        ));
+    // Data Fetching
+    const { 
+        data: productionData, 
+        isLoading: isProductionLoading, 
+        isError: isProductionError, 
+        error: productionError 
+    } = useProductionPlans(branchId);
+    
+    const { 
+        data: specialOrdersData, 
+        isLoading: isSpecialOrdersLoading, 
+        isError: isSpecialOrdersError, 
+        error: specialOrdersError 
+    } = useSpecialOrders(branchId);
+
+    // Mutations
+    const updateSpecialOrderStatusMutation = useUpdateSpecialOrderStatus(branchId);
+
+    const plannedCookings = productionData?.data ?? [];
+    const specialOrders = specialOrdersData?.data ?? [];
+
+    const handleSpecialOrderStatusUpdate = (id: string, status: SpecialOrder['status']) => {
+        updateSpecialOrderStatusMutation.mutate({ id, status });
     };
 
-    const handleStatusUpdate = (id: string, newStatus: any) => {
-        setPlannedCookings(prev => prev.map(pc =>
-            pc.id === id ? { ...pc, status: newStatus } : pc
-        ));
-    };
-
-    const handleAddSpecialOrder = (newOrder: any) => {
-        setSpecialOrders([newOrder, ...specialOrders]);
-    };
-
-    const handleAddProduction = (newPlan: any) => {
-        setPlannedCookings([newPlan, ...plannedCookings]);
-    };
+    if (isProductionError || isSpecialOrdersError) {
+        return (
+            <div className="p-8">
+                <ErrorState 
+                    title="Kitchen Access Error"
+                    error={(productionError || specialOrdersError) as Error}
+                    onRetry={() => window.location.reload()}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
             <SpecialOrderForm
                 isOpen={isSpecialOrderModalOpen}
                 onClose={() => setIsSpecialOrderModalOpen(false)}
-                onSubmit={handleAddSpecialOrder}
             />
 
             <NewProductionModal
                 isOpen={isProductionModalOpen}
                 onClose={() => setIsProductionModalOpen(false)}
-                onAdd={handleAddProduction}
             />
 
             {/* Left: Production Dashboard */}
@@ -133,9 +105,9 @@ export default function KitchenPage() {
                                 )}
                             >
                                 Special Orders
-                                {specialOrders.filter(o => o.status === 'Pending').length > 0 && (
+                                {specialOrders.filter((o: SpecialOrder) => o.status === 'Pending').length > 0 && (
                                     <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] rounded-full">
-                                        {specialOrders.filter(o => o.status === 'Pending').length}
+                                        {specialOrders.filter((o: SpecialOrder) => o.status === 'Pending').length}
                                     </span>
                                 )}
                             </button>
@@ -143,16 +115,16 @@ export default function KitchenPage() {
                     </div>
                 </div>
 
-                {/* Main View Area */}
                 <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin pb-6">
                     {activeTab === 'PRODUCTION' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {plannedCookings.map((cooking) => (
+                            {(isProductionLoading || isSpecialOrdersLoading) && Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="h-48 rounded-3xl bg-gray-100 animate-pulse" />
+                            ))}
+                            {!isProductionLoading && plannedCookings.map((cooking: ProductionPlan) => (
                                 <CookingPlanCard
                                     key={cooking.id}
                                     {...cooking}
-                                    onStatusChange={(status) => handleStatusUpdate(cooking.id, status)}
-                                    onIngredientsDeduct={() => handleDeduct(cooking.id)}
                                 />
                             ))}
                             <button
@@ -175,25 +147,35 @@ export default function KitchenPage() {
                                     New Special Order
                                 </button>
                             </div>
-                            {specialOrders.map((order) => (
+                            {specialOrders.map((order: SpecialOrder) => (
                                 <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
                                     <div className="flex items-center gap-5">
                                         <div className={clsx("h-12 w-12 rounded-xl flex items-center justify-center shadow-inner",
-                                            order.priority === 'Critical' ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400"
+                                            order.priorityLevel === 'Critical' ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400"
                                         )}>
-                                            <Zap className={clsx("h-6 w-6", order.priority === 'Critical' ? "fill-red-500" : "")} />
+                                            <Zap className={clsx("h-6 w-6", order.priorityLevel === 'Critical' ? "fill-red-500" : "")} />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900">{order.request}</h4>
-                                            <p className="text-sm text-gray-500">{order.notes}</p>
+                                            <h4 className="font-bold text-gray-900">{order.requestName}</h4>
+                                            <p className="text-sm text-gray-500">{order.preparationNotes}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6">
                                         <div className="text-right">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{order.time}</p>
-                                            <span className={clsx("text-xs font-bold",
-                                                order.status === 'Pending' ? "text-orange-500" : "text-green-600"
-                                            )}>{order.status}</span>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{order.logTime}</p>
+                                            <select 
+                                                value={order.status}
+                                                onChange={(e) => handleSpecialOrderStatusUpdate(order.id, e.target.value as any)}
+                                                className={clsx("text-xs font-bold bg-transparent border-none focus:ring-0 p-0 cursor-pointer",
+                                                    order.status === 'Pending' ? "text-orange-500" : "text-green-600"
+                                                )}
+                                            >
+                                                <option value="Pending">Pending</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Cooked">Cooked</option>
+                                                <option value="Delivered">Delivered</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
                                         </div>
                                         <button className="p-2 hover:bg-gray-100 rounded-full text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <MoreHorizontal className="h-5 w-5" />

@@ -541,6 +541,123 @@ export async function fetchRecipes(
     return apiFetch<PaginatedResponse<Recipe>>(`/api/recipes?${query}`);
 }
 
+// ─── Kitchen Production ────────────────────────────────────────────────────────
+export interface ProductionPlan {
+    id: string;
+    branchId: string;
+    dishName: string;
+    targetServings: number;
+    estimatedStartTime: string;
+    status: 'Planned' | 'In Prep' | 'Completed' | 'Cancelled';
+    inventoryStatus: 'Pending' | 'Deducted';
+    ingredients: ProductionPlanIngredient[];
+    createdAt: string;
+}
+
+export interface ProductionPlanIngredient {
+    inventoryItemId: string;
+    name?: string;
+    qty: number;
+    unit?: string;
+}
+
+export interface CreateProductionPlanPayload {
+    dishName: string;
+    targetServings: number;
+    estimatedStartTime: string;
+    ingredients: ProductionPlanIngredient[];
+}
+
+export async function fetchProductionPlans(
+    branchId: string
+): Promise<PaginatedResponse<ProductionPlan>> {
+    const query = new URLSearchParams({ branchId });
+    return apiFetch<PaginatedResponse<ProductionPlan>>(`/api/kitchen/production?${query}`);
+}
+
+export async function createProductionPlan(
+    payload: CreateProductionPlanPayload
+): Promise<ProductionPlan> {
+    return apiFetch<ProductionPlan>('/api/kitchen/production', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updateProductionPlanStatus(
+    id: string,
+    status: ProductionPlan['status']
+): Promise<ProductionPlan> {
+    return apiFetch<ProductionPlan>(`/api/kitchen/production/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+    });
+}
+
+export interface DeductionPayload {
+    ingredients: {
+        inventoryItemId: string;
+        qty: number;
+    }[];
+}
+
+export async function deductProductionInventory(
+    id: string,
+    payload?: DeductionPayload
+): Promise<void> {
+    return apiFetch<void>(`/api/kitchen/production/${id}/deduct`, {
+        method: 'POST',
+        headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+        body: payload ? JSON.stringify(payload) : undefined,
+    });
+}
+
+// ─── Special Orders ────────────────────────────────────────────────────────────
+
+export interface SpecialOrder {
+    id: string;
+    branchId: string;
+    requestName: string;
+    preparationNotes: string;
+    priorityLevel: 'Normal' | 'High' | 'Critical';
+    status: 'Pending' | 'In Progress' | 'Cooked' | 'Delivered' | 'Cancelled';
+    logTime: string;
+    createdAt: string;
+}
+
+export interface CreateSpecialOrderPayload {
+    requestName: string;
+    preparationNotes: string;
+    priorityLevel: string;
+    logTime: string;
+}
+
+export async function fetchSpecialOrders(
+    branchId: string
+): Promise<PaginatedResponse<SpecialOrder>> {
+    const query = new URLSearchParams({ branchId });
+    return apiFetch<PaginatedResponse<SpecialOrder>>(`/api/kitchen/special-orders?${query}`);
+}
+
+export async function createSpecialOrder(
+    payload: CreateSpecialOrderPayload
+): Promise<SpecialOrder> {
+    return apiFetch<SpecialOrder>('/api/kitchen/special-orders', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updateSpecialOrderStatus(
+    id: string,
+    status: SpecialOrder['status']
+): Promise<SpecialOrder> {
+    return apiFetch<SpecialOrder>(`/api/kitchen/special-orders/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+    });
+}
+
 // ─── Organizations ─────────────────────────────────────────────────────────────
 
 export interface OrganizationType {

@@ -435,6 +435,22 @@
               "type": "string"
             },
             "description": "Filter items by department UUID"
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter items by organization UUID (returns all items from all departments in the organization)"
+          },
+          {
+            "in": "query",
+            "name": "branchId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Alias for organizationId"
           }
         ],
         "responses": {
@@ -895,8 +911,6 @@
         }
       }
     },
-<<<<<<< HEAD
-=======
     "/api/kitchen/production/{id}/deduct": {
       "post": {
         "summary": "Deduct stock for a production plan",
@@ -1180,7 +1194,6 @@
         }
       }
     },
->>>>>>> 212977d (feat: Add kitchen API for special orders and production plan management including stock deduction.)
     "/api/organization-types": {
       "get": {
         "summary": "List all organization types",

@@ -17,6 +17,7 @@ export async function getProductionPlans() {
     // Flatten logic for the frontend: map ingredients to include item info at top level
     const formattedPlans = plans.map((plan) => ({
       ...plan,
+      inventoryStatus: plan.deductedAt ? 'Deducted' : 'Pending',
       ingredients: plan.ingredients.map((ing) => ({
         id: ing.id,
         productionPlanId: ing.productionPlanId,

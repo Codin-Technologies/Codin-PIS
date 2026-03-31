@@ -1,37 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Trash2, Save, Utensils, Package, Search } from 'lucide-react';
+import { X, Plus, Trash2, Save, Utensils, Package, Search, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { useBranch } from '@/hooks/useBranch';
+import { useInventory } from '@/hooks/useInventory';
+import { useCreateProductionPlan } from '@/hooks/useKitchen';
+import { type InventoryItem } from '@/lib/api';
 
 interface Ingredient {
     id: string;
     name: string;
     qty: number;
     unit: string;
-    inventoryId: string;
+    inventoryItemId: string;
 }
 
 interface NewProductionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (plan: any) => void;
 }
 
-// Mock inventory for ingredient selection
-const MOCK_INVENTORY_ITEMS = [
-    { id: 'MEA-002', name: 'Beef Short Ribs', unit: 'kg' },
-    { id: 'BEV-005', name: 'Red Wine', unit: 'btl' },
-    { id: 'VEG-003', name: 'Carrots', unit: 'kg' },
-    { id: 'GRN-003', name: 'Arborio Rice', unit: 'kg' },
-    { id: 'VEG-008', name: 'Mixed Mushrooms', unit: 'kg' },
-    { id: 'DAI-001', name: 'Parmesan', unit: 'kg' },
-    { id: 'SEA-001', name: 'Sea Bass Fillets', unit: 'pcs' },
-    { id: 'VEG-012', name: 'Lemon', unit: 'pcs' },
-];
-
-export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModalProps) {
+export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps) {
+    const { branchId } = useBranch();
     const [dish, setDish] = useState('');
     const [servings, setServings] = useState(10);
     const [startTime, setStartTime] = useState('10:00 AM');
@@ -39,15 +31,27 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
     const [isSearching, setIsSearching] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredInventory = MOCK_INVENTORY_ITEMS.filter(item =>
+    // Mutations & Data
+    const { data: inventoryData } = useInventory(branchId);
+    const createProductionMutation = useCreateProductionPlan(branchId);
+
+    const inventoryItems = inventoryData?.data ?? [];
+
+    const filteredInventory = inventoryItems.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !selectedIngredients.some(si => si.inventoryId === item.id)
+        !selectedIngredients.some(si => si.inventoryItemId === item.id)
     );
 
-    const addIngredient = (item: typeof MOCK_INVENTORY_ITEMS[0]) => {
+    const addIngredient = (item: InventoryItem) => {
         setSelectedIngredients([
             ...selectedIngredients,
-            { id: Math.random().toString(36).substr(2, 9), name: item.name, qty: 1, unit: item.unit, inventoryId: item.id }
+            { 
+                id: Math.random().toString(36).substr(2, 9), 
+                name: item.name, 
+                qty: 1, 
+                unit: item.unit, 
+                inventoryItemId: item.id 
+            }
         ]);
         setSearchQuery('');
         setIsSearching(false);
@@ -68,21 +72,24 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
             return;
         }
 
-        onAdd({
-            id: `PC-${Date.now()}`,
-            dish,
-            servings,
-            status: 'Planned',
-            startTime,
-            ingredients: selectedIngredients
+        createProductionMutation.mutate({
+            dishName: dish,
+            targetServings: servings,
+            estimatedStartTime: startTime,
+            ingredients: selectedIngredients.map(i => ({
+                inventoryItemId: i.inventoryItemId,
+                qty: i.qty
+            }))
+        }, {
+            onSuccess: () => {
+                // Reset
+                setDish('');
+                setServings(10);
+                setStartTime('10:00 AM');
+                setSelectedIngredients([]);
+                onClose();
+            }
         });
-
-        // Reset
-        setDish('');
-        setServings(10);
-        setStartTime('10:00 AM');
-        setSelectedIngredients([]);
-        onClose();
     };
 
     if (!isOpen) return null;
@@ -171,13 +178,13 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
                                         <input
                                             autoFocus
                                             type="text"
-                                            placeholder="Search inventory..."
+                                            placeholder="Search inventory items..."
                                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />
                                         {searchQuery && (
-                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-10 max-h-48 overflow-y-auto">
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
                                                 {filteredInventory.map(item => (
                                                     <button
                                                         key={item.id}
@@ -185,8 +192,11 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
                                                         onClick={() => addIngredient(item)}
                                                         className="w-full text-left px-4 py-2 text-sm hover:bg-pink-50 flex items-center justify-between"
                                                     >
-                                                        <span>{item.name}</span>
-                                                        <span className="text-[10px] text-gray-400">{item.unit}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium text-gray-900">{item.name}</span>
+                                                            <span className="text-[10px] text-gray-400">{item.sku} • {item.unit}</span>
+                                                        </div>
+                                                        <Plus className="h-4 w-4 text-pink-400" />
                                                     </button>
                                                 ))}
                                                 {filteredInventory.length === 0 && (
@@ -202,7 +212,7 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
                                         <div key={ing.id} className="flex items-center gap-4 bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
                                             <div className="flex-1">
                                                 <p className="text-sm font-bold text-gray-900">{ing.name}</p>
-                                                <p className="text-[10px] text-gray-400 uppercase">Inventory ID: {ing.inventoryId}</p>
+                                                <p className="text-[10px] text-gray-400 uppercase">Inventory ID: {ing.inventoryItemId}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <input
@@ -253,9 +263,14 @@ export function NewProductionModal({ isOpen, onClose, onAdd }: NewProductionModa
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2"
+                                    disabled={createProductionMutation.isPending}
+                                    className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50"
                                 >
-                                    <Save className="h-4 w-4" />
+                                    {createProductionMutation.isPending ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Save className="h-4 w-4" />
+                                    )}
                                     Add to Plan
                                 </button>
                             </div>
