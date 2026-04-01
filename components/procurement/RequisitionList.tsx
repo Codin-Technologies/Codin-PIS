@@ -11,14 +11,15 @@ import { useRequisitions, useUpdateRequisitionStatus } from '@/hooks/useRequisit
 import { useBranch } from '@/hooks/useBranch';
 import { ErrorState } from '@/components/ui/error-state';
 import type { Requisition } from '@/lib/api';
+import { requisitionStatusLabel } from '@/lib/procurement/requisition-status';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: typeof Clock }> = {
-    'Pending':   { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
-    'Approved':  { color: 'text-blue-600',   bg: 'bg-blue-50',   icon: CheckCircle },
-    'In Review': { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock },
-    'Ordered':   { color: 'text-purple-600', bg: 'bg-purple-50', icon: FileText },
-    'Delivered': { color: 'text-green-600',  bg: 'bg-green-50',  icon: CheckCircle },
-    'Rejected':  { color: 'text-red-600',    bg: 'bg-red-50',    icon: XCircle },
+    pending:   { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
+    approved:  { color: 'text-blue-600',   bg: 'bg-blue-50',   icon: CheckCircle },
+    in_review: { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock },
+    ordered:   { color: 'text-purple-600', bg: 'bg-purple-50', icon: FileText },
+    delivered: { color: 'text-green-600',  bg: 'bg-green-50',  icon: CheckCircle },
+    rejected:  { color: 'text-red-600',    bg: 'bg-red-50',    icon: XCircle },
 };
 
 // --- Loading skeleton row ---
@@ -74,8 +75,8 @@ export function RequisitionList() {
                     requisition={selectedReq}
                     isOpen={!!selectedReq}
                     onClose={() => setSelectedReq(null)}
-                    onApprove={() => handleStatusChange(selectedReq.id, 'Approved')}
-                    onReject={() => handleStatusChange(selectedReq.id, 'Rejected')}
+                    onApprove={() => handleStatusChange(selectedReq.id, 'approved')}
+                    onReject={() => handleStatusChange(selectedReq.id, 'rejected')}
                 />
             )}
 
@@ -160,7 +161,7 @@ export function RequisitionList() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-gray-900">{req.subject}</p>
-                                                    <p className="text-xs text-gray-500">{req.id} • {req.date} • {req.requestedBy}</p>
+                                                    <p className="text-xs text-gray-500">{req.requisitionNumber ?? req.id} • {req.date} • {req.requestedBy}</p>
                                                 </div>
                                                 {req.priority === 'Emergency' && (
                                                     <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
@@ -181,7 +182,7 @@ export function RequisitionList() {
                                                 cfg.bg, cfg.color
                                             )}>
                                                 <StatusIcon className="h-3.5 w-3.5" />
-                                                {req.status}
+                                                {requisitionStatusLabel(req.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-gray-400">

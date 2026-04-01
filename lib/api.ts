@@ -54,19 +54,13 @@ export interface PaginationParams {
 
 // ─── Requisitions ─────────────────────────────────────────────────────────────
 
-export interface Requisition {
-    id: string;
-    branchId: string;
-    requestedBy: string;
-    dept: string;
-    subject: string;
-    value: number;
-    date: string;
-    status: 'Pending' | 'Approved' | 'Ordered' | 'Delivered' | 'Rejected' | 'In Review';
-    priority: 'Low' | 'Normal' | 'High' | 'Emergency';
-    items?: RequisitionItem[];
-    notes?: string;
-}
+export type RequisitionStatus =
+    | 'pending'
+    | 'in_review'
+    | 'approved'
+    | 'rejected'
+    | 'ordered'
+    | 'delivered';
 
 export interface RequisitionItem {
     id: string;
@@ -74,23 +68,57 @@ export interface RequisitionItem {
     qty: number;
     unit: string;
     estimatedPrice: number;
+    inventoryItemId?: string;
+}
+
+export interface Requisition {
+    id: string;
+    requisitionNumber?: string;
+    branchId: string;
+    organizationId?: string;
+    requestedBy: string;
+    requestedById?: string;
+    departmentId?: string;
+    dept: string;
+    subject: string;
+    value: number;
+    date: string;
+    status: RequisitionStatus;
+    priority: string;
+    deliveryDate?: string | null;
+    reason?: string | null;
+    budgetId?: string | null;
+    fiscalYear?: string | null;
+    estimatedTotal?: string;
+    items?: RequisitionItem[];
+    notes?: string;
 }
 
 export interface RequisitionFilters extends PaginationParams {
     status?: string;
     search?: string;
     dept?: string;
+    departmentId?: string;
     dateFrom?: string;
     dateTo?: string;
 }
 
+export interface CreateRequisitionLinePayload {
+    inventoryItemId: string;
+    qty: number;
+    estimatedUnitPrice?: number;
+}
+
 export interface CreateRequisitionPayload {
     branchId: string;
-    subject: string;
-    dept: string;
-    priority: string;
-    items: Omit<RequisitionItem, 'id'>[];
-    notes?: string;
+    departmentId: string;
+    organizationId?: string;
+    budgetId?: string | null;
+    fiscalYear?: string | null;
+    priority?: string;
+    deliveryDate?: string | null;
+    reason?: string | null;
+    items: CreateRequisitionLinePayload[];
 }
 
 export async function fetchRequisitions(
@@ -102,6 +130,7 @@ export async function fetchRequisitions(
         ...(params.status && params.status !== 'All' ? { status: params.status } : {}),
         ...(params.search ? { search: params.search } : {}),
         ...(params.dept ? { dept: params.dept } : {}),
+        ...(params.departmentId ? { departmentId: params.departmentId } : {}),
         ...(params.page !== undefined ? { page: String(params.page) } : {}),
         ...(params.pageSize !== undefined ? { pageSize: String(params.pageSize) } : {}),
     });
@@ -109,26 +138,114 @@ export async function fetchRequisitions(
 }
 
 export async function fetchRequisitionById(id: string): Promise<Requisition> {
-    return apiFetch<Requisition>(`/api/requisitions/${id}`);
+    const res = await apiFetch<{ data: Requisition }>(`/api/requisitions/${id}`);
+    return res.data;
 }
 
 export async function createRequisition(
     payload: CreateRequisitionPayload
 ): Promise<Requisition> {
-    return apiFetch<Requisition>('/api/requisitions', {
+    const res = await apiFetch<{ data: Requisition }>('/api/requisitions', {
         method: 'POST',
         body: JSON.stringify(payload),
     });
+    return res.data;
 }
 
 export async function updateRequisitionStatus(
     id: string,
-    status: Requisition['status']
+    status: RequisitionStatus | string
 ): Promise<Requisition> {
-    return apiFetch<Requisition>(`/api/requisitions/${id}/status`, {
+    const res = await apiFetch<{ data: Requisition }>(`/api/requisitions/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     });
+    return res.data;
+}
+
+// ─── Budgets (procurement) ──────────────────────────────────────────────────
+
+export type BudgetHealth = 'on_track' | 'warning' | 'critical';
+
+export interface BudgetRow {
+    id: string;
+    name: string;
+    departmentId: string;
+    departmentName: string | null;
+    organizationId: string;
+    fiscalYear: string;
+    allocatedAmount: string;
+    notes: string | null;
+    createdAt: string;
+    spent: number;
+    committed: number;
+    remaining: number;
+    health: BudgetHealth;
+}
+
+export interface BudgetFilters {
+    departmentId?: string;
+    fiscalYear?: string;
+}
+
+export async function fetchBudgets(
+    branchId: string,
+    params: BudgetFilters = {}
+): Promise<{ data: BudgetRow[] }> {
+    const query = new URLSearchParams({
+        branchId,
+        ...(params.departmentId ? { departmentId: params.departmentId } : {}),
+        ...(params.fiscalYear ? { fiscalYear: params.fiscalYear } : {}),
+    });
+    return apiFetch<{ data: BudgetRow[] }>(`/api/budgets?${query}`);
+}
+
+export async function fetchBudgetById(id: string): Promise<BudgetRow> {
+    const res = await apiFetch<{ data: BudgetRow }>(`/api/budgets/${id}`);
+    return res.data;
+}
+
+export interface CreateBudgetPayload {
+    name: string;
+    departmentId: string;
+    branchId: string;
+    organizationId?: string;
+    fiscalYear: string;
+    amount: number;
+    notes?: string | null;
+}
+
+export interface UpdateBudgetPayload {
+    name?: string;
+    departmentId?: string;
+    fiscalYear?: string;
+    amount?: number;
+    notes?: string | null;
+    organizationId?: string;
+    branchId?: string;
+}
+
+export async function createBudget(payload: CreateBudgetPayload): Promise<unknown> {
+    const { branchId, organizationId, ...rest } = payload;
+    return apiFetch('/api/budgets', {
+        method: 'POST',
+        body: JSON.stringify({
+            ...rest,
+            organizationId: organizationId ?? branchId,
+            branchId,
+        }),
+    });
+}
+
+export async function updateBudget(id: string, payload: UpdateBudgetPayload): Promise<unknown> {
+    return apiFetch(`/api/budgets/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function deleteBudget(id: string): Promise<void> {
+    await apiFetch(`/api/budgets/${id}`, { method: 'DELETE' });
 }
 
 // ─── Purchase Orders ───────────────────────────────────────────────────────────

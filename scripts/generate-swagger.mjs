@@ -22,7 +22,7 @@ const options = {
       title: 'API Documentation',
       version: '1.0.0',
       description:
-        'Comprehensive API documentation for Codin-PIS system. Use the authorization button to enter your access token.',
+        'Comprehensive API documentation for Codin-PIS. Authentication uses NextAuth session cookies (JWT). For Try it out: stay logged in in the same browser, or Authorize sessionCookie with authjs.session-token from DevTools.',
     },
     servers: [
       {
@@ -40,10 +40,17 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
+          description: 'Optional; APIs primarily use session cookies.',
+        },
+        sessionCookie: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'authjs.session-token',
+          description: 'NextAuth v5 session cookie (same host as the app).',
         },
       },
     },
-    security: [{ bearerAuth: [] }],
+    security: [{ bearerAuth: [] }, { sessionCookie: [] }],
   },
   apis: [
     join(projectRoot, 'app/api/**/*.ts'),

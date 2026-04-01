@@ -8,7 +8,10 @@ export const getApiDocs = async () => {
       info: {
         title: 'API Documentation',
         version: '1.0.0',
-        description: 'Comprehensive API documentation for Codin-PIS system. Use the authorization button to enter your access token.',
+        description:
+          'Comprehensive API documentation for Codin-PIS. Authentication uses NextAuth session cookies (JWT). ' +
+          'For Try it out: open this page while logged into the app in the same browser so requests include your session cookie, ' +
+          'or use Authorize → sessionCookie and paste the authjs.session-token value from DevTools → Application → Cookies.',
       },
       servers: [
         {
@@ -26,14 +29,17 @@ export const getApiDocs = async () => {
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
+            description: 'Optional; APIs primarily use session cookies.',
+          },
+          sessionCookie: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'authjs.session-token',
+            description: 'NextAuth v5 session cookie (same host as the app).',
           },
         },
       },
-      security: [
-        {
-          bearerAuth: [],
-        },
-      ],
+      security: [{ bearerAuth: [] }, { sessionCookie: [] }],
     },
     apis: [
       path.join(process.cwd(), 'app/api/**/*.ts'),

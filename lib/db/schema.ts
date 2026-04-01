@@ -183,6 +183,59 @@ export const stockUsageItems = pgTable('stock_usage_items', {
   ...timestamps,
 });
 
+// ─── 14. Budgets (procurement) ────────────────────────────────────────────────
+export const budgets = pgTable('budgets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  departmentId: uuid('department_id')
+    .notNull()
+    .references(() => departments.id, { onDelete: 'restrict' }),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  fiscalYear: text('fiscal_year').notNull(),
+  allocatedAmount: numeric('allocated_amount', { precision: 12, scale: 2 }).notNull(),
+  notes: text('notes'),
+  ...timestamps,
+});
+
+// ─── 15. Requisitions ─────────────────────────────────────────────────────────
+export const requisitions = pgTable('requisitions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  requisitionNumber: text('requisition_number').notNull().unique(),
+  requestedById: uuid('requested_by_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
+  departmentId: uuid('department_id')
+    .notNull()
+    .references(() => departments.id, { onDelete: 'restrict' }),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  budgetId: uuid('budget_id').references(() => budgets.id, { onDelete: 'set null' }),
+  fiscalYear: text('fiscal_year'),
+  priority: text('priority').notNull().default('Normal'),
+  deliveryDate: text('delivery_date'),
+  reason: text('reason'),
+  status: text('status').notNull().default('pending'),
+  estimatedTotal: numeric('estimated_total', { precision: 12, scale: 2 }).default('0'),
+  ...timestamps,
+});
+
+// ─── 16. Requisition line items ───────────────────────────────────────────────
+export const requisitionItems = pgTable('requisition_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  requisitionId: uuid('requisition_id')
+    .notNull()
+    .references(() => requisitions.id, { onDelete: 'cascade' }),
+  inventoryItemId: uuid('inventory_item_id')
+    .notNull()
+    .references(() => inventoryItems.id, { onDelete: 'restrict' }),
+  qty: integer('qty').notNull(),
+  estimatedUnitPrice: numeric('estimated_unit_price', { precision: 10, scale: 2 }),
+  ...timestamps,
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
   permissions: many(permissions),
@@ -212,7 +265,7 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
   }),
 }));
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id],
@@ -221,6 +274,7 @@ export const usersRelations = relations(users, ({ one }) => ({
     fields: [users.organizationId],
     references: [organizations.id],
   }),
+  requisitionsRequested: many(requisitions),
 }));
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
@@ -230,6 +284,8 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
   }),
   users: many(users),
   departments: many(departments),
+  budgets: many(budgets),
+  requisitions: many(requisitions),
 }));
 
 export const departmentsRelations = relations(departments, ({ one, many }) => ({
@@ -238,6 +294,8 @@ export const departmentsRelations = relations(departments, ({ one, many }) => ({
     references: [organizations.id],
   }),
   inventoryItems: many(inventoryItems),
+  budgets: many(budgets),
+  requisitions: many(requisitions),
 }));
 
 export const inventoryItemsRelations = relations(inventoryItems, ({ one, many }) => ({
@@ -247,6 +305,7 @@ export const inventoryItemsRelations = relations(inventoryItems, ({ one, many })
   }),
   stockUsageItems: many(stockUsageItems),
   productionPlanIngredients: many(productionPlanIngredients),
+  requisitionItems: many(requisitionItems),
 }));
 
 export const productionPlansRelations = relations(productionPlans, ({ many }) => ({
@@ -283,6 +342,49 @@ export const stockUsageItemsRelations = relations(stockUsageItems, ({ one }) => 
   }),
   inventoryItem: one(inventoryItems, {
     fields: [stockUsageItems.inventoryItemId],
+    references: [inventoryItems.id],
+  }),
+}));
+
+export const budgetsRelations = relations(budgets, ({ one, many }) => ({
+  department: one(departments, {
+    fields: [budgets.departmentId],
+    references: [departments.id],
+  }),
+  organization: one(organizations, {
+    fields: [budgets.organizationId],
+    references: [organizations.id],
+  }),
+  requisitions: many(requisitions),
+}));
+
+export const requisitionsRelations = relations(requisitions, ({ one, many }) => ({
+  requestedBy: one(users, {
+    fields: [requisitions.requestedById],
+    references: [users.id],
+  }),
+  department: one(departments, {
+    fields: [requisitions.departmentId],
+    references: [departments.id],
+  }),
+  organization: one(organizations, {
+    fields: [requisitions.organizationId],
+    references: [organizations.id],
+  }),
+  budget: one(budgets, {
+    fields: [requisitions.budgetId],
+    references: [budgets.id],
+  }),
+  items: many(requisitionItems),
+}));
+
+export const requisitionItemsRelations = relations(requisitionItems, ({ one }) => ({
+  requisition: one(requisitions, {
+    fields: [requisitionItems.requisitionId],
+    references: [requisitions.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [requisitionItems.inventoryItemId],
     references: [inventoryItems.id],
   }),
 }));

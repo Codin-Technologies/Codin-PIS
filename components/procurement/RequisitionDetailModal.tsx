@@ -8,6 +8,7 @@ import {
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { requisitionStatusLabel } from '@/lib/procurement/requisition-status';
 
 export function RequisitionDetailModal({
     requisition,
@@ -29,7 +30,7 @@ export function RequisitionDetailModal({
     // Mock Timeline Data based on status
     const steps = [
         { label: 'Submitted', date: requisition.date, status: 'completed', user: requisition.requestedBy },
-        { label: 'Dept. Approval', date: 'Today', status: requisition.status === 'Pending' ? 'current' : (requisition.status === 'Rejected' ? 'rejected' : 'completed'), user: 'Kelvin (You)' },
+        { label: 'Dept. Approval', date: 'Today', status: requisition.status === 'pending' ? 'current' : (requisition.status === 'rejected' ? 'rejected' : 'completed'), user: 'Kelvin (You)' },
         { label: 'Finance Review', date: '-', status: 'upcoming', user: 'Finance Team' },
         { label: 'PO Created', date: '-', status: 'upcoming', user: 'System' },
     ];
@@ -49,12 +50,12 @@ export function RequisitionDetailModal({
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-bold text-gray-900">{requisition.subject}</h2>
                                 <span className={clsx("px-3 py-1 rounded-full text-xs font-bold border",
-                                    requisition.status === 'Pending' ? "bg-orange-50 text-orange-700 border-orange-200" :
-                                        requisition.status === 'Approved' ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                            requisition.status === 'Rejected' ? "bg-red-50 text-red-700 border-red-200" :
+                                    requisition.status === 'pending' ? "bg-orange-50 text-orange-700 border-orange-200" :
+                                        requisition.status === 'approved' ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                            requisition.status === 'rejected' ? "bg-red-50 text-red-700 border-red-200" :
                                                 "bg-green-50 text-green-700 border-green-200"
                                 )}>
-                                    {requisition.status}
+                                    {requisitionStatusLabel(requisition.status)}
                                 </span>
                             </div>
                             <p className="text-sm text-gray-500 mt-1">{requisition.id} • Created on {requisition.date}</p>
@@ -165,7 +166,7 @@ export function RequisitionDetailModal({
                             </div>
 
                             {/* Actions (Only if Pending) */}
-                            {requisition.status === 'Pending' && (
+                            {(requisition.status === 'pending' || requisition.status === 'in_review') && (
                                 <div className="bg-white p-6 rounded-2xl border-t-4 border-t-purple-500 shadow-sm border-x border-b border-gray-100">
                                     <div className="flex items-center gap-2 mb-4">
                                         <ShieldCheck className="h-5 w-5 text-purple-600" />

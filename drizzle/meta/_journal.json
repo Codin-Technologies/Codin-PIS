@@ -22,6 +22,20 @@
       "when": 1774292680964,
       "tag": "0002_legal_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775037179819,
+      "tag": "0003_procurement",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775038000000,
+      "tag": "0004_procurement_permissions",
+      "breakpoints": true
     }
   ]
 }

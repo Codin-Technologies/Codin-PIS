@@ -30,7 +30,7 @@ export function SendRFQModal({ isOpen, onClose, selectedSuppliers, onSuccess }: 
     const [sendingProgress, setSendingProgress] = useState<Record<string, 'pending' | 'sending' | 'sent'>>({});
     const [generatedLinks, setGeneratedLinks] = useState<Record<string, string>>({});
 
-    const { data: reqData } = useRequisitions(branchId, { status: 'Approved' });
+    const { data: reqData } = useRequisitions(branchId, { status: 'approved' });
     const approvedRequisitions = reqData?.data ?? [];
 
     // Reset state when closing/opening
