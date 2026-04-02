@@ -2022,6 +2022,20 @@
         }
       }
     },
+    "/api/rfqs": {
+      "get": {
+        "summary": "List RFQs for an organization",
+        "tags": [
+          "Procurement"
+        ]
+      },
+      "post": {
+        "summary": "Create an RFQ from an approved requisition",
+        "tags": [
+          "Procurement"
+        ]
+      }
+    },
     "/api/roles/{id}": {
       "get": {
         "summary": "Get role by ID",
@@ -2151,6 +2165,20 @@
             "description": "Role created successfully"
           }
         }
+      }
+    },
+    "/api/suppliers": {
+      "get": {
+        "summary": "List suppliers for an organization",
+        "tags": [
+          "Procurement"
+        ]
+      },
+      "post": {
+        "summary": "Create a supplier",
+        "tags": [
+          "Procurement"
+        ]
       }
     },
     "/api/users/{id}": {
