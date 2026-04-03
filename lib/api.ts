@@ -420,20 +420,28 @@ export async function createInventoryItem(
 
 // ─── Suppliers ─────────────────────────────────────────────────────────────────
 
+export type SupplierStatus = 'Active' | 'Inactive' | 'Under Review';
+
 export interface Supplier {
     id: string;
     branchId: string;
+    organizationId?: string;
     name: string;
     category: string;
+    contactPerson?: string | null;
+    email?: string;
+    phone?: string;
+    website?: string;
+    vatNumber?: string;
+    paymentTerms?: string;
+    streetAddress?: string;
     rating: number;
     location: string;
-    status: 'Active' | 'Inactive' | 'Under Review';
+    status: SupplierStatus;
     reliability: number;
     spend: number;
     contacts: string;
     tags: string[];
-    email?: string;
-    phone?: string;
 }
 
 export interface SupplierFilters extends PaginationParams {
@@ -444,13 +452,29 @@ export interface SupplierFilters extends PaginationParams {
 
 export interface CreateSupplierPayload {
     branchId: string;
+    organizationId?: string;
     name: string;
     category: string;
-    location: string;
-    contacts: string;
+    contactPerson?: string;
     email?: string;
     phone?: string;
-    tags?: string[];
+    website?: string;
+    vatNumber?: string;
+    paymentTerms?: string;
+    streetAddress?: string;
+}
+
+export interface UpdateSupplierPayload {
+    name?: string;
+    category?: string;
+    contactPerson?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    vatNumber?: string | null;
+    paymentTerms?: string | null;
+    streetAddress?: string | null;
+    status?: SupplierStatus | string;
 }
 
 export async function fetchSuppliers(
@@ -461,26 +485,65 @@ export async function fetchSuppliers(
     return apiFetch<PaginatedResponse<Supplier>>(`/api/suppliers?${query}`);
 }
 
-export async function createSupplier(
-    payload: CreateSupplierPayload
-): Promise<Supplier> {
-    return apiFetch<Supplier>('/api/suppliers', {
+export async function fetchSupplierById(id: string): Promise<Supplier> {
+    const res = await apiFetch<{ data: Supplier }>(`/api/suppliers/${id}`);
+    return res.data;
+}
+
+export async function createSupplier(payload: CreateSupplierPayload): Promise<Supplier> {
+    const res = await apiFetch<{ data: Supplier }>('/api/suppliers', {
         method: 'POST',
         body: JSON.stringify(payload),
     });
+    return res.data;
+}
+
+export async function updateSupplier(id: string, payload: UpdateSupplierPayload): Promise<Supplier> {
+    const res = await apiFetch<{ data: Supplier }>(`/api/suppliers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    });
+    return res.data;
+}
+
+export async function deleteSupplier(id: string): Promise<void> {
+    await apiFetch<{ message: string }>(`/api/suppliers/${id}`, { method: 'DELETE' });
 }
 
 // ─── RFQs ─────────────────────────────────────────────────────────────────────
 
-export interface RFQ {
+export type RfqStatus = 'draft' | 'sent' | 'evaluating' | 'awarded' | 'cancelled';
+
+export interface RfqSupplierRef {
+    id: string;
+    name: string;
+    category: string;
+    email: string | null;
+    phone: string | null;
+    website?: string | null;
+}
+
+export interface RFQListItem {
     id: string;
     branchId: string;
+    organizationId: string;
+    rfqNumber: string;
     requisitionId: string;
     title: string;
-    status: 'Draft' | 'Sent' | 'Responses Received' | 'Awarded' | 'Cancelled';
-    deadline: string;
+    category: string | null;
+    paymentTerms: string | null;
+    requiredDelivery: string | null;
+    deadline: string | null;
+    status: RfqStatus | string;
     createdAt: string;
+    createdById: string;
+    createdByName: string | null;
     responseCount: number;
+}
+
+export interface RFQ extends RFQListItem {
+    suppliers: RfqSupplierRef[];
+    items: RequisitionItem[];
 }
 
 export interface RFQFilters extends PaginationParams {
@@ -488,12 +551,45 @@ export interface RFQFilters extends PaginationParams {
     search?: string;
 }
 
+export interface CreateRFQPayload {
+    branchId: string;
+    organizationId?: string;
+    requisitionId: string;
+    title: string;
+    category?: string;
+    paymentTerms?: string;
+    requiredDelivery?: string;
+    deadline?: string;
+    supplierIds?: string[];
+}
+
 export async function fetchRFQs(
     branchId: string,
     params: RFQFilters = {}
-): Promise<PaginatedResponse<RFQ>> {
+): Promise<PaginatedResponse<RFQListItem>> {
     const query = new URLSearchParams({ branchId, ...flattenParams(params) });
-    return apiFetch<PaginatedResponse<RFQ>>(`/api/rfqs?${query}`);
+    return apiFetch<PaginatedResponse<RFQListItem>>(`/api/rfqs?${query}`);
+}
+
+export async function fetchRFQById(id: string): Promise<RFQ> {
+    const res = await apiFetch<{ data: RFQ }>(`/api/rfqs/${id}`);
+    return res.data;
+}
+
+export async function createRFQ(payload: CreateRFQPayload): Promise<RFQ> {
+    const res = await apiFetch<{ data: RFQ }>('/api/rfqs', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+    return res.data;
+}
+
+export async function updateRFQStatus(id: string, status: RfqStatus | string): Promise<{ id: string; status: string }> {
+    const res = await apiFetch<{ data: { id: string; status: string } }>(`/api/rfqs/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+    });
+    return res.data;
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

@@ -236,6 +236,64 @@ export const requisitionItems = pgTable('requisition_items', {
   ...timestamps,
 });
 
+// ─── 17. Suppliers (procurement) ──────────────────────────────────────────────
+export const suppliers = pgTable('suppliers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  category: text('category').notNull(),
+  contactPerson: text('contact_person'),
+  email: text('email'),
+  phone: text('phone'),
+  website: text('website'),
+  vatNumber: text('vat_number'),
+  paymentTerms: text('payment_terms'),
+  streetAddress: text('street_address'),
+  status: text('status').notNull().default('Active'),
+  rating: numeric('rating', { precision: 3, scale: 1 }).default('0'),
+  reliability: integer('reliability').default(0),
+  ...timestamps,
+});
+
+// ─── 18. RFQs (sourcing) ──────────────────────────────────────────────────────
+export const rfqs = pgTable('rfqs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  rfqNumber: text('rfq_number').notNull().unique(),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  createdById: uuid('created_by_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
+  requisitionId: uuid('requisition_id')
+    .notNull()
+    .references(() => requisitions.id, { onDelete: 'restrict' }),
+  title: text('title').notNull(),
+  category: text('category'),
+  paymentTerms: text('payment_terms'),
+  requiredDelivery: text('required_delivery'),
+  deadline: text('deadline'),
+  status: text('status').notNull().default('draft'),
+  ...timestamps,
+});
+
+// ─── 19. RFQ ↔ Supplier junction ──────────────────────────────────────────────
+export const rfqSuppliers = pgTable(
+  'rfq_suppliers',
+  {
+    rfqId: uuid('rfq_id')
+      .notNull()
+      .references(() => rfqs.id, { onDelete: 'cascade' }),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.rfqId, t.supplierId] })],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
   permissions: many(permissions),
@@ -275,6 +333,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [organizations.id],
   }),
   requisitionsRequested: many(requisitions),
+  rfqs: many(rfqs),
 }));
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
@@ -286,6 +345,8 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
   departments: many(departments),
   budgets: many(budgets),
   requisitions: many(requisitions),
+  suppliers: many(suppliers),
+  rfqs: many(rfqs),
 }));
 
 export const departmentsRelations = relations(departments, ({ one, many }) => ({
@@ -376,6 +437,7 @@ export const requisitionsRelations = relations(requisitions, ({ one, many }) => 
     references: [budgets.id],
   }),
   items: many(requisitionItems),
+  rfqs: many(rfqs),
 }));
 
 export const requisitionItemsRelations = relations(requisitionItems, ({ one }) => ({
@@ -386,5 +448,40 @@ export const requisitionItemsRelations = relations(requisitionItems, ({ one }) =
   inventoryItem: one(inventoryItems, {
     fields: [requisitionItems.inventoryItemId],
     references: [inventoryItems.id],
+  }),
+}));
+
+export const suppliersRelations = relations(suppliers, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [suppliers.organizationId],
+    references: [organizations.id],
+  }),
+  rfqSuppliers: many(rfqSuppliers),
+}));
+
+export const rfqsRelations = relations(rfqs, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [rfqs.organizationId],
+    references: [organizations.id],
+  }),
+  createdBy: one(users, {
+    fields: [rfqs.createdById],
+    references: [users.id],
+  }),
+  requisition: one(requisitions, {
+    fields: [rfqs.requisitionId],
+    references: [requisitions.id],
+  }),
+  rfqSuppliers: many(rfqSuppliers),
+}));
+
+export const rfqSuppliersRelations = relations(rfqSuppliers, ({ one }) => ({
+  rfq: one(rfqs, {
+    fields: [rfqSuppliers.rfqId],
+    references: [rfqs.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [rfqSuppliers.supplierId],
+    references: [suppliers.id],
   }),
 }));
