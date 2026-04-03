@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Shield, Building2, Settings, KeyRound } from 'lucide-react';
+import { Users, Shield, Building2, Settings, KeyRound, Layers } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { UserManagement } from '@/components/settings/UserManagement';
 import { RoleManagement } from '@/components/settings/RoleManagement';
 import { OrgManagement } from '@/components/settings/OrgManagement';
+import { DepartmentManagement } from '@/components/settings/DepartmentManagement';
 import clsx from 'clsx';
 
 import { ChangePasswordForm } from '@/components/settings/ChangePasswordForm';
@@ -22,6 +23,7 @@ function SecuritySettings() {
 
 const TABS = [
     { id: 'users', label: 'Users', icon: Users, component: UserManagement },
+    { id: 'departments', label: 'Departments', icon: Layers, component: DepartmentManagement },
     { id: 'roles', label: 'Roles', icon: Shield, component: RoleManagement },
     { id: 'orgs', label: 'Organizations', icon: Building2, component: OrgManagement },
     { id: 'security', label: 'Security', icon: KeyRound, component: SecuritySettings },

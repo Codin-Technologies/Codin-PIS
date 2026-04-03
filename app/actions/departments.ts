@@ -10,11 +10,14 @@ export async function getDepartmentsAction(branchId: string): Promise<Department
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
+    const allowed = await hasPermission(user as AuthenticatedUser, 'departments.read');
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
+
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
-    const res = await fetch(`${baseUrl}/api/departments?branchId=${branchId}`, {
+    const res = await fetch(`${baseUrl}/api/departments?organizationId=${branchId}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
     });
@@ -28,7 +31,7 @@ export async function createDepartmentAction(branchId: string, name: string): Pr
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage'); // Assuming a permission, can adjust if needed
+    const allowed = await hasPermission(user as AuthenticatedUser, 'departments.create');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
@@ -41,7 +44,7 @@ export async function createDepartmentAction(branchId: string, name: string): Pr
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ branchId, name })
+        body: JSON.stringify({ organizationId: branchId, name })
     });
 
     if (!res.ok) throw new Error(`Failed to create department: ${res.statusText}`);

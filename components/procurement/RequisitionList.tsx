@@ -72,11 +72,9 @@ export function RequisitionList() {
 
             {selectedReq && (
                 <RequisitionDetailModal
-                    requisition={selectedReq}
+                    requisitionId={selectedReq.id}
                     isOpen={!!selectedReq}
                     onClose={() => setSelectedReq(null)}
-                    onApprove={() => handleStatusChange(selectedReq.id, 'approved')}
-                    onReject={() => handleStatusChange(selectedReq.id, 'rejected')}
                 />
             )}
 

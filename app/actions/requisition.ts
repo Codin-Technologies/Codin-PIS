@@ -4,31 +4,32 @@ import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
 import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
-import type { CreateRequisitionPayload, Requisition } from '@/lib/api';
+import type { 
+    CreateRequisitionPayload, 
+    Requisition, 
+    RequisitionFilters, 
+    PaginatedResponse,
+    RequisitionStatus
+} from '@/lib/api';
 
+/**
+ * createRequisitionAction
+ * POST /api/requisitions
+ */
 export async function createRequisitionAction(
     payload: CreateRequisitionPayload
 ): Promise<Requisition> {
-    // 1. Input Validation
     if (!payload.branchId || !payload.departmentId || !payload.items || payload.items.length === 0) {
         throw new Error('Invalid requisition payload: branchId, departmentId, and items are required');
     }
 
-    // 2. Authentication Check
     const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) {
-        throw new Error('Unauthorized');
-    }
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    // 3. Role-Based Access Check
     const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.create');
-    if (!allowed) {
-        throw new Error('Forbidden: Insufficient permissions to create requisitions');
-    }
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions to create requisitions');
 
-    // 4. Call backend using server-side environment variables
     const baseUrl = getBaseUrl();
-    
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
@@ -49,8 +50,99 @@ export async function createRequisitionAction(
     }
 
     const json = (await res.json()) as { data: Requisition };
+    console.log(`[AUDIT] User ${(user as AuthenticatedUser).id} created requisition`);
+    return json.data;
+}
 
-    console.log(`[AUDIT] User ${(user as AuthenticatedUser).id} created requisition for branch ${payload.branchId}`);
+/**
+ * getRequisitionsAction
+ * GET /api/requisitions
+ */
+export async function getRequisitionsAction(
+    branchId: string,
+    params: RequisitionFilters = {}
+): Promise<PaginatedResponse<Requisition>> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
+    const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.read');
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions to read requisitions');
+
+    const query = new URLSearchParams({
+        branchId,
+        ...(params.status && params.status !== 'All' ? { status: params.status.toLowerCase() } : {}),
+        ...(params.search ? { search: params.search } : {}),
+        ...(params.departmentId ? { departmentId: params.departmentId } : {}),
+        ...(params.page !== undefined ? { page: String(params.page) } : {}),
+        ...(params.pageSize !== undefined ? { pageSize: String(params.pageSize) } : {}),
+    });
+
+    const baseUrl = getBaseUrl();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/requisitions?${query}`, {
+        method: 'GET',
+        headers: { 'Cookie': cookieHeader }
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch requisitions: ${res.statusText}`);
+    return await res.json();
+}
+
+/**
+ * getRequisitionAction
+ * GET /api/requisitions/{id}
+ */
+export async function getRequisitionAction(id: string): Promise<Requisition> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+
+    const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.read');
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
+
+    const baseUrl = getBaseUrl();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/requisitions/${id}`, {
+        method: 'GET',
+        headers: { 'Cookie': cookieHeader }
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch requisition: ${res.statusText}`);
+    const json = (await res.json()) as { data: Requisition };
+    return json.data;
+}
+
+/**
+ * updateRequisitionStatusAction
+ * PATCH /api/requisitions/{id}/status
+ */
+export async function updateRequisitionStatusAction(
+    id: string,
+    status: RequisitionStatus
+): Promise<Requisition> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+
+    const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.manage');
+    if (!allowed) throw new Error('Forbidden: Insufficient permissions to update status');
+
+    const baseUrl = getBaseUrl();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`${baseUrl}/api/requisitions/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+            'Cookie': cookieHeader,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+    });
+
+    if (!res.ok) throw new Error(`Failed to update status: ${res.statusText}`);
+    const json = (await res.json()) as { data: Requisition };
     return json.data;
 }

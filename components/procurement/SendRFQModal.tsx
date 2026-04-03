@@ -50,7 +50,7 @@ export function SendRFQModal({ isOpen, onClose, selectedSuppliers, onSuccess }: 
         if (!selectedReqId || !title || !deadline) return;
 
         setStep('SENDING');
-        
+
         // Initialize progress
         const initialProgress: Record<string, 'pending' | 'sending' | 'sent'> = {};
         selectedSuppliers.forEach(s => initialProgress[s.id] = 'pending');
@@ -60,10 +60,10 @@ export function SendRFQModal({ isOpen, onClose, selectedSuppliers, onSuccess }: 
         for (const supplier of selectedSuppliers) {
             setSendingProgress(prev => ({ ...prev, [supplier.id]: 'sending' }));
             await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
-            
+
             const rfqId = `RFQ-${Math.floor(1000 + Math.random() * 9000)}`;
             const link = `https://pis.app/rfq/fill/${rfqId}/${supplier.id}`;
-            
+
             setGeneratedLinks(prev => ({ ...prev, [supplier.id]: link }));
             setSendingProgress(prev => ({ ...prev, [supplier.id]: 'sent' }));
         }
@@ -255,7 +255,7 @@ export function SendRFQModal({ isOpen, onClose, selectedSuppliers, onSuccess }: 
                                                     <p className="text-xs font-bold text-gray-900">{s.name}</p>
                                                     <p className="text-[10px] text-gray-400 font-mono mt-1 max-w-[300px] truncate">{generatedLinks[s.id]}</p>
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={() => copyToClipboard(generatedLinks[s.id])}
                                                     className="p-2.5 bg-gray-50 hover:bg-black hover:text-white rounded-xl transition-all"
                                                 >

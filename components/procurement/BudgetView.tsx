@@ -1,21 +1,24 @@
-'use client';
-
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
     BadgeDollarSign, PieChart, TrendingUp, AlertCircle,
     Plus, Edit2, Trash2, X, CheckCircle, ChevronDown,
     Utensils, HardHat, Zap, Briefcase, Layers, BarChart2,
-    ArrowUpRight, ArrowDownRight, Calendar, DollarSign,
-    Search, Info
+    DollarSign, Search, Info, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBranch } from '@/hooks/useBranch';
+import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/useBudgets';
+import { useDepartments } from '@/hooks/useDepartments';
+import type { BudgetRow as Budget, BudgetHealth as BudgetStatus } from '@/lib/api';
+import { ErrorState } from '@/components/ui/error-state';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type BudgetCategory = 'Kitchen' | 'Maintenance' | 'Operations' | 'Administration' | 'Other';
 type BudgetStatus = 'On Track' | 'Warning' | 'Critical';
 
+/* 
 interface Budget {
     id: string;
     name: string;
@@ -23,7 +26,8 @@ interface Budget {
     fiscalYear: string;
     allocated: number;
     notes?: string;
-}
+} 
+*/
 
 interface MockPurchaseOrder {
     id: string;
@@ -32,25 +36,9 @@ interface MockPurchaseOrder {
     status: 'Open' | 'Acknowledged' | 'Overdue' | 'Received' | 'Draft';
 }
 
-// ─── Initial Mock Data ────────────────────────────────────────────────────────
-
-const MOCK_PURCHASE_ORDERS: MockPurchaseOrder[] = [
-    { id: 'PO-2026-8801', category: 'Kitchen', amount: 12500, status: 'Open' },
-    { id: 'PO-2026-8802', category: 'Kitchen', amount: 98450, status: 'Received' },
-    { id: 'PO-2026-8803', category: 'Maintenance', amount: 42100, status: 'Received' },
-    { id: 'PO-2026-8804', category: 'Maintenance', amount: 1500, status: 'Acknowledged' },
-    { id: 'PO-2026-8805', category: 'Operations', amount: 52000, status: 'Received' },
-    { id: 'PO-2026-8806', category: 'Operations', amount: 8000, status: 'Overdue' },
-    { id: 'PO-2026-8807', category: 'Administration', amount: 24800, status: 'Received' },
-    { id: 'PO-2026-8808', category: 'Administration', amount: 500, status: 'Open' },
-];
-
-const INITIAL_BUDGETS: Budget[] = [
-    { id: 'B2026-001', name: 'Kitchen & F&B', category: 'Kitchen', fiscalYear: '2026', allocated: 150000, notes: 'Covers all food and beverage procurement' },
-    { id: 'B2026-002', name: 'Maintenance & Repairs', category: 'Maintenance', fiscalYear: '2026', allocated: 45000 },
-    { id: 'B2026-003', name: 'Operations & Utilities', category: 'Operations', fiscalYear: '2026', allocated: 85000 },
-    { id: 'B2026-004', name: 'Administration', category: 'Administration', fiscalYear: '2026', allocated: 25000, notes: 'Office supplies and admin costs' },
-];
+// ─── Initial Mock Data — REMOVED ──────────────────────────────────────────────
+const MOCK_PURCHASE_ORDERS: any[] = [];
+const INITIAL_BUDGETS: any[] = [];
 
 const CATEGORY_ICONS: Record<BudgetCategory, React.ElementType> = {
     Kitchen: Utensils,
@@ -60,7 +48,7 @@ const CATEGORY_ICONS: Record<BudgetCategory, React.ElementType> = {
     Other: Layers,
 };
 
-const CATEGORY_COLORS: Record<BudgetCategory, { bg: string; text: string; bar: string }> = {
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
     Kitchen:        { bg: 'bg-orange-100', text: 'text-orange-600', bar: 'bg-orange-500' },
     Maintenance:    { bg: 'bg-blue-100',   text: 'text-blue-600',   bar: 'bg-blue-500' },
     Operations:     { bg: 'bg-emerald-100',text: 'text-emerald-600',bar: 'bg-emerald-500' },
@@ -73,20 +61,14 @@ const FISCAL_YEARS = ['2024', '2025', '2026', '2027'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getBudgetStats(budget: Budget, pos: MockPurchaseOrder[]) {
-    const spent = pos
-        .filter(po => po.category === budget.category && po.status === 'Received')
-        .reduce((sum, po) => sum + po.amount, 0);
-    const committed = pos
-        .filter(po => po.category === budget.category && ['Open', 'Acknowledged', 'Overdue'].includes(po.status))
-        .reduce((sum, po) => sum + po.amount, 0);
-    
-    const pct = (spent + committed) / budget.allocated;
-    let status: BudgetStatus = 'On Track';
-    if (pct >= 1) status = 'Critical';
-    else if (pct >= 0.8) status = 'Warning';
-
-    return { spent, committed, status, totalUsed: spent + committed, pct };
+function getCategoryMapping(deptName: string | null): BudgetCategory {
+    if (!deptName) return 'Other';
+    const lower = deptName.toLowerCase();
+    if (lower.includes('kitchen')) return 'Kitchen';
+    if (lower.includes('maintenance')) return 'Maintenance';
+    if (lower.includes('operations')) return 'Operations';
+    if (lower.includes('admin')) return 'Administration';
+    return 'Other';
 }
 
 function fmt(n: number) {
@@ -97,9 +79,9 @@ function fmt(n: number) {
 
 const EMPTY_FORM = {
     name: '',
-    category: 'Kitchen' as BudgetCategory,
+    departmentId: '',
     fiscalYear: '2026',
-    allocated: '',
+    amount: '',
     notes: '',
 };
 
@@ -110,13 +92,15 @@ function BudgetFormPanel({
     initial,
     onSave,
     onClose,
-    mockPOs
+    isSaving,
+    departments = []
 }: {
     mode: 'add' | 'edit';
     initial: typeof EMPTY_FORM;
     onSave: (data: typeof EMPTY_FORM) => void;
     onClose: () => void;
-    mockPOs: MockPurchaseOrder[];
+    isSaving: boolean;
+    departments: any[];
 }) {
     const [form, setForm] = useState(initial);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -124,7 +108,8 @@ function BudgetFormPanel({
     function validate() {
         const e: Record<string, string> = {};
         if (!form.name.trim()) e.name = 'Budget name is required';
-        if (!form.allocated || Number(form.allocated) <= 0) e.allocated = 'Allocated amount must be > 0';
+        if (!form.departmentId) e.departmentId = 'Department is required';
+        if (!form.amount || Number(form.amount) <= 0) e.amount = 'Amount must be > 0';
         setErrors(e);
         return Object.keys(e).length === 0;
     }
@@ -134,13 +119,12 @@ function BudgetFormPanel({
         onSave(form);
     }
 
-    const CategoryIcon = CATEGORY_ICONS[form.category];
-    const catColor = CATEGORY_COLORS[form.category];
+    const selectedDept = departments.find(d => d.id === form.departmentId);
+    const category = getCategoryMapping(selectedDept?.name);
+    const CategoryIcon = CATEGORY_ICONS[category];
+    const catColor = CATEGORY_COLORS[category];
 
-    // Compute preview stats based on current form category
-    const tempBudget: Budget = { id: 'preview', name: form.name, category: form.category, fiscalYear: form.fiscalYear, allocated: Number(form.allocated) || 1 };
-    const { spent, committed, status: previewStatus, pct } = getBudgetStats(tempBudget, mockPOs);
-    const pctDisplay = Math.min(100, Math.round(pct * 100));
+    const amountNum = Number(form.amount) || 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/40 backdrop-blur-sm">
@@ -168,37 +152,25 @@ function BudgetFormPanel({
 
                 <div className="flex-1 p-7 space-y-6">
                     {/* Live Preview Card */}
-                    <div className={clsx('p-4 rounded-2xl border-2 transition-all', 
-                        previewStatus === 'Critical' ? 'border-red-200 bg-red-50/50' :
-                        previewStatus === 'Warning' ? 'border-amber-200 bg-amber-50/50' :
-                        'border-emerald-200 bg-emerald-50/50'
-                    )}>
+                    <div className="p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 transition-all">
                         <div className="flex items-center gap-3 mb-3">
                             <div className={clsx('h-9 w-9 rounded-xl flex items-center justify-center', catColor.bg, catColor.text)}>
                                 <CategoryIcon className="h-5 w-5" />
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-gray-900">{form.name || 'Budget Name'}</p>
-                                <p className="text-xs text-gray-400">{form.category} • FY{form.fiscalYear}</p>
+                                <p className="text-xs text-gray-400">{selectedDept?.name || 'Department'} • FY{form.fiscalYear}</p>
                             </div>
-                            <span className={clsx('ml-auto px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
-                                previewStatus === 'On Track' ? 'bg-emerald-100 text-emerald-700' :
-                                previewStatus === 'Warning' ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
-                            )}>
-                                {previewStatus}
-                            </span>
                         </div>
                         <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                            <div className={clsx('h-full rounded-full transition-all duration-500', catColor.bar)} style={{ width: `${Math.min(100, pctDisplay)}%` }} />
+                            <div className={clsx('h-full rounded-full transition-all duration-500', catColor.bar)} style={{ width: `0%` }} />
                         </div>
                         <div className="flex justify-between mt-1 text-[10px] text-gray-400 font-medium">
-                            <span>Spent: {fmt(spent)}</span>
-                            <span>{pctDisplay}% potential use</span>
-                            <span>Total: {fmt(Number(form.allocated) || 0)}</span>
+                            <span>Pending Initialization</span>
+                            <span>Total: {fmt(amountNum)}</span>
                         </div>
                         <p className="mt-2 text-[9px] text-gray-400 font-medium leading-tight">
-                            * Spent and Committed amounts are automatically aggregated from Purchase Orders in this category.
+                            * Budget tracking will begin once this budget is saved.
                         </p>
                     </div>
 
@@ -225,17 +197,22 @@ function BudgetFormPanel({
                         {/* Category + Fiscal Year */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Category *</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Department *</label>
                                 <div className="relative">
                                     <select
-                                        value={form.category}
-                                        onChange={e => setForm({ ...form, category: e.target.value as BudgetCategory })}
-                                        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 bg-white pr-8"
+                                        value={form.departmentId}
+                                        onChange={e => setForm({ ...form, departmentId: e.target.value })}
+                                        className={clsx(
+                                            'w-full appearance-none border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 bg-white pr-8',
+                                            errors.departmentId ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                                        )}
                                     >
-                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        <option value="">Select Department</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
                                     <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-gray-400" />
                                 </div>
+                                {errors.departmentId && <p className="text-red-500 text-xs mt-1">{errors.departmentId}</p>}
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Fiscal Year *</label>
@@ -252,31 +229,31 @@ function BudgetFormPanel({
                             </div>
                         </div>
 
-                        {/* Allocated */}
+                        {/* Amount */}
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Allocated Amount *</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Budget Amount *</label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <input
                                     type="number"
                                     placeholder="0"
                                     min={0}
-                                    value={form.allocated}
-                                    onChange={e => setForm({ ...form, allocated: e.target.value })}
+                                    value={form.amount}
+                                    onChange={e => setForm({ ...form, amount: e.target.value })}
                                     className={clsx(
                                         'w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20 transition-all',
-                                        errors.allocated ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                                        errors.amount ? 'border-red-400 bg-red-50' : 'border-gray-200'
                                     )}
                                 />
                             </div>
-                            {errors.allocated && <p className="text-red-500 text-xs mt-1">{errors.allocated}</p>}
+                            {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
                         </div>
 
                         {/* Summary Info */}
                         <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-2">
                             <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                             <p className="text-[10px] text-gray-500 leading-normal">
-                                Your <span className="font-bold">Spent</span> ({fmt(spent)}) and <span className="font-bold">Committed</span> ({fmt(committed)}) values will be automatically updated as Purchase Orders are created and received in the <span className="font-bold">{form.category}</span> category.
+                                Spent and Committed values will be automatically updated as Purchase Orders are created and received in the <span className="font-bold">{selectedDept?.name || 'selected'}</span> department.
                             </p>
                         </div>
 
@@ -304,9 +281,10 @@ function BudgetFormPanel({
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="flex-1 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                        disabled={isSaving}
+                        className="flex-1 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                        <CheckCircle className="h-4 w-4" />
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                         {mode === 'add' ? 'Create Budget' : 'Save Changes'}
                     </button>
                 </div>
@@ -317,7 +295,7 @@ function BudgetFormPanel({
 
 // ─── Delete Confirm Modal ────────────────────────────────────────────────────
 
-function DeleteModal({ budget, onConfirm, onClose }: { budget: Budget; onConfirm: () => void; onClose: () => void }) {
+function DeleteModal({ budget, onConfirm, onClose, isDeleting }: { budget: Budget; onConfirm: () => void; onClose: () => void; isDeleting: boolean }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <motion.div
@@ -337,7 +315,12 @@ function DeleteModal({ budget, onConfirm, onClose }: { budget: Budget; onConfirm
                     <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50">
                         Cancel
                     </button>
-                    <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700">
+                    <button 
+                        onClick={onConfirm} 
+                        disabled={isDeleting}
+                        className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
                         Delete Budget
                     </button>
                 </div>
@@ -348,16 +331,19 @@ function DeleteModal({ budget, onConfirm, onClose }: { budget: Budget; onConfirm
 
 // ─── Budget Card ──────────────────────────────────────────────────────────────
 
-function BudgetCard({ budget, mockPOs, onEdit, onDelete }: { budget: Budget; mockPOs: MockPurchaseOrder[]; onEdit: () => void; onDelete: () => void }) {
-    const StatusIcon = CATEGORY_ICONS[budget.category];
-    const colors = CATEGORY_COLORS[budget.category];
+function BudgetCard({ budget, onEdit, onDelete }: { budget: Budget; onEdit: () => void; onDelete: () => void }) {
+    const category = getCategoryMapping(budget.departmentName);
+    const StatusIcon = CATEGORY_ICONS[category];
+    const colors = CATEGORY_COLORS[category];
     
-    // Derive spending stats dynamically
-    const { spent, committed, status, totalUsed, pct } = getBudgetStats(budget, mockPOs);
+    // Derive spending stats directly from API
+    const { spent, committed, health: status, remaining } = budget;
+    const allocatedNum = Number(budget.allocatedAmount) || 0;
+    const totalUsed = spent + committed;
+    const pct = allocatedNum > 0 ? totalUsed / allocatedNum : 0;
 
-    const spentPct = Math.min(100, (spent / budget.allocated) * 100);
-    const committedPct = Math.min(100 - spentPct, (committed / budget.allocated) * 100);
-    const remaining = budget.allocated - totalUsed;
+    const spentPct = allocatedNum > 0 ? Math.min(100, (spent / allocatedNum) * 100) : 0;
+    const committedPct = allocatedNum > 0 ? Math.min(100 - spentPct, (committed / allocatedNum) * 100) : 0;
     const totalUsedPct = Math.round(pct * 100);
 
     return (
@@ -376,16 +362,16 @@ function BudgetCard({ budget, mockPOs, onEdit, onDelete }: { budget: Budget; moc
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-900 text-sm leading-tight">{budget.name}</h3>
-                        <p className="text-[11px] text-gray-400 mt-0.5">{budget.id} • FY{budget.fiscalYear}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{budget.departmentName || 'No Dept'} • FY{budget.fiscalYear}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className={clsx('px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
-                        status === 'On Track' ? 'bg-emerald-50 text-emerald-700' :
-                        status === 'Warning'  ? 'bg-amber-50 text-amber-700' :
+                        status === 'on_track' ? 'bg-emerald-50 text-emerald-700' :
+                        status === 'warning'  ? 'bg-amber-50 text-amber-700' :
                         'bg-red-50 text-red-700'
                     )}>
-                        {status}
+                        {status.replace('_', ' ')}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={onEdit} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
@@ -424,7 +410,7 @@ function BudgetCard({ budget, mockPOs, onEdit, onDelete }: { budget: Budget; moc
             <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50">
                 <div className="text-center">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Allocated</p>
-                    <p className="text-sm font-black text-gray-900">{fmt(budget.allocated)}</p>
+                    <p className="text-sm font-black text-gray-900">{fmt(allocatedNum)}</p>
                 </div>
                 <div className="text-center border-x border-gray-50">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Remaining</p>
@@ -451,14 +437,26 @@ function BudgetCard({ budget, mockPOs, onEdit, onDelete }: { budget: Budget; moc
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function BudgetView() {
-    const [budgets, setBudgets] = useState<Budget[]>(INITIAL_BUDGETS);
-    const [mockPOs] = useState<MockPurchaseOrder[]>(MOCK_PURCHASE_ORDERS);
+    const { branchId } = useBranch();
     const [panelMode, setPanelMode] = useState<'add' | 'edit' | null>(null);
     const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
     const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);
     const [search, setSearch] = useState('');
-    const [filterCategory, setFilterCategory] = useState<BudgetCategory | 'All'>('All');
+    const [filterDept, setFilterDept] = useState('All');
     const [filterYear, setFilterYear] = useState('All');
+
+    // ── Queries and Mutations ──────────────────────────────────────────────────
+    const { data: budgetsRes, isLoading, error } = useBudgets(branchId, {
+        fiscalYear: filterYear !== 'All' ? filterYear : undefined,
+        departmentId: filterDept !== 'All' ? filterDept : undefined,
+    });
+    const { data: departments } = useDepartments(branchId);
+    
+    const createBudgetMutation = useCreateBudget(branchId);
+    const updateBudgetMutation = useUpdateBudget(branchId);
+    const deleteBudgetMutation = useDeleteBudget(branchId);
+
+    const budgets = budgetsRes || [];
 
     // ── Derived Aggregate Stats ────────────────────────────────────────────────
     const overallStats = useMemo(() => {
@@ -467,25 +465,22 @@ export function BudgetView() {
         let committed = 0;
 
         budgets.forEach(b => {
-             allocated += b.allocated;
-             const stats = getBudgetStats(b, mockPOs);
-             spent += stats.spent;
-             committed += stats.committed;
+             allocated += Number(b.allocatedAmount) || 0;
+             spent += b.spent;
+             committed += b.committed;
         });
 
         return { allocated, spent, committed, remaining: allocated - (spent + committed) };
-    }, [budgets, mockPOs]);
+    }, [budgets]);
 
-    const overBudgetCount = budgets.filter(b => getBudgetStats(b, mockPOs).status === 'Critical').length;
+    const overBudgetCount = budgets.filter(b => b.health === 'critical').length;
     const spendPct = overallStats.allocated > 0 ? Math.round((overallStats.spent / overallStats.allocated) * 100) : 0;
 
     const filtered = useMemo(() => budgets.filter(b => {
         const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
-            b.category.toLowerCase().includes(search.toLowerCase());
-        const matchCat = filterCategory === 'All' || b.category === filterCategory;
-        const matchYear = filterYear === 'All' || b.fiscalYear === filterYear;
-        return matchSearch && matchCat && matchYear;
-    }), [budgets, search, filterCategory, filterYear]);
+            (b.departmentName || '').toLowerCase().includes(search.toLowerCase());
+        return matchSearch;
+    }), [budgets, search]);
 
     // ── Handlers ───────────────────────────────────────────────────────────────
     function openAdd() {
@@ -498,44 +493,55 @@ export function BudgetView() {
         setPanelMode('edit');
     }
 
-    function handleSave(form: typeof EMPTY_FORM) {
-        if (panelMode === 'add') {
-            const newBudget: Budget = {
-                id: `B${form.fiscalYear}-${String(budgets.length + 1).padStart(3, '0')}`,
-                name: form.name,
-                category: form.category,
-                fiscalYear: form.fiscalYear,
-                allocated: Number(form.allocated),
-                notes: form.notes || undefined,
-            };
-            setBudgets(prev => [newBudget, ...prev]);
-        } else if (editingBudget) {
-            setBudgets(prev => prev.map(b => b.id === editingBudget.id ? {
-                ...b,
-                name: form.name,
-                category: form.category,
-                fiscalYear: form.fiscalYear,
-                allocated: Number(form.allocated),
-                notes: form.notes || undefined,
-            } : b));
+    async function handleSave(form: typeof EMPTY_FORM) {
+        try {
+            if (panelMode === 'add') {
+                await createBudgetMutation.mutateAsync({
+                    name: form.name,
+                    departmentId: form.departmentId,
+                    fiscalYear: form.fiscalYear,
+                    amount: Number(form.amount),
+                    notes: form.notes || null,
+                    branchId,
+                });
+            } else if (editingBudget) {
+                await updateBudgetMutation.mutateAsync({
+                    id: editingBudget.id,
+                    payload: {
+                        name: form.name,
+                        departmentId: form.departmentId,
+                        fiscalYear: form.fiscalYear,
+                        amount: Number(form.amount),
+                        notes: form.notes || null,
+                    }
+                });
+            }
+            setPanelMode(null);
+            setEditingBudget(null);
+        } catch (e) {
+            console.error(e);
         }
-        setPanelMode(null);
-        setEditingBudget(null);
     }
 
-    function handleDelete() {
+    async function handleDelete() {
         if (!deletingBudget) return;
-        setBudgets(prev => prev.filter(b => b.id !== deletingBudget.id));
-        setDeletingBudget(null);
+        try {
+            await deleteBudgetMutation.mutateAsync(deletingBudget.id);
+            setDeletingBudget(null);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     const formInitial = editingBudget ? {
         name: editingBudget.name,
-        category: editingBudget.category,
+        departmentId: editingBudget.departmentId,
         fiscalYear: editingBudget.fiscalYear,
-        allocated: String(editingBudget.allocated),
+        amount: String(editingBudget.allocatedAmount),
         notes: editingBudget.notes || '',
     } : EMPTY_FORM;
+
+    if (error) return <ErrorState message={(error as Error).message} />;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -615,20 +621,20 @@ export function BudgetView() {
                 </div>
                 <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden flex gap-px">
                     {budgets.map((b) => {
-                        const { spent } = getBudgetStats(b, mockPOs);
-                        const pct = overallStats.allocated > 0 ? (spent / overallStats.allocated) * 100 : 0;
+                        const pct = overallStats.allocated > 0 ? (b.spent / overallStats.allocated) * 100 : 0;
+                        const category = getCategoryMapping(b.departmentName);
                         return (
                             <div
                                 key={b.id}
-                                title={`${b.name}: ${fmt(spent)}`}
-                                className={clsx('h-full transition-all duration-700', CATEGORY_COLORS[b.category].bar)}
+                                title={`${b.name}: ${fmt(b.spent)}`}
+                                className={clsx('h-full transition-all duration-700', CATEGORY_COLORS[category].bar)}
                                 style={{ width: `${pct}%` }}
                             />
                         );
                     })}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-3">
-                    {CATEGORIES.filter(c => budgets.some(b => b.category === c)).map(c => (
+                    {['Kitchen', 'Maintenance', 'Operations', 'Administration', 'Other'].map(c => (
                         <div key={c} className="flex items-center gap-1.5">
                             <span className={clsx('h-2.5 w-2.5 rounded-full', CATEGORY_COLORS[c].bar)} />
                             <span className="text-[11px] text-gray-500">{c}</span>
@@ -651,12 +657,12 @@ export function BudgetView() {
                 </div>
                 <div className="relative">
                     <select
-                        value={filterCategory}
-                        onChange={e => setFilterCategory(e.target.value as BudgetCategory | 'All')}
+                        value={filterDept}
+                        onChange={e => setFilterDept(e.target.value)}
                         className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-8 text-sm bg-white focus:outline-none"
                     >
-                        <option value="All">All Categories</option>
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        <option value="All">All Departments</option>
+                        {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 </div>
@@ -671,9 +677,9 @@ export function BudgetView() {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 </div>
-                {(search || filterCategory !== 'All' || filterYear !== 'All') && (
+                {(search || filterDept !== 'All' || filterYear !== 'All') && (
                     <button
-                        onClick={() => { setSearch(''); setFilterCategory('All'); setFilterYear('All'); }}
+                        onClick={() => { setSearch(''); setFilterDept('All'); setFilterYear('All'); }}
                         className="text-xs font-bold text-gray-500 hover:text-gray-800 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
                     >
                         Clear Filters
@@ -684,11 +690,14 @@ export function BudgetView() {
             {/* ── Budget Cards Grid ─────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <AnimatePresence mode="popLayout">
-                    {filtered.map(budget => (
+                    {isLoading ? (
+                        <div className="col-span-full py-20 flex justify-center">
+                            <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+                        </div>
+                    ) : filtered.map(budget => (
                         <BudgetCard
                             key={budget.id}
                             budget={budget}
-                            mockPOs={mockPOs}
                             onEdit={() => openEdit(budget)}
                             onDelete={() => setDeletingBudget(budget)}
                         />
@@ -716,7 +725,8 @@ export function BudgetView() {
                         initial={formInitial}
                         onSave={handleSave}
                         onClose={() => { setPanelMode(null); setEditingBudget(null); }}
-                        mockPOs={mockPOs}
+                        isSaving={createBudgetMutation.isPending || updateBudgetMutation.isPending}
+                        departments={departments}
                     />
                 )}
                 {deletingBudget && (
@@ -725,6 +735,7 @@ export function BudgetView() {
                         budget={deletingBudget}
                         onConfirm={handleDelete}
                         onClose={() => setDeletingBudget(null)}
+                        isDeleting={deleteBudgetMutation.isPending}
                     />
                 )}
             </AnimatePresence>

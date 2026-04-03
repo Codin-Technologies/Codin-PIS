@@ -2,42 +2,71 @@
 
 import { useState } from 'react';
 import {
-    X, Plus, Trash2, Upload, AlertTriangle, FileText,
-    ChevronRight, CheckCircle, Info, Calculator
+    X, Plus, Trash2, AlertTriangle, FileText,
+    ChevronRight, Loader2, Calculator
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogModal } from './CatalogModal';
-
-// Mock Data for "System Intelligence"
-const MOCK_ITEMS = [
-    { id: 1, sku: 'BEEF-001', name: 'Premium Beef Cuts', unit: 'kg', price: 18.50, stock: 12, forecast: 45, daysCover: 2 },
-    { id: 2, sku: 'TOM-099', name: 'Tomato Paste (Canned)', unit: 'can', price: 4.20, stock: 5, forecast: 20, daysCover: 1 },
-    { id: 3, sku: 'WINE-RED', name: 'House Red Wine', unit: 'btl', price: 12.00, stock: 24, forecast: 10, daysCover: 14 },
-];
+import { useCreateRequisition } from '@/hooks/useRequisitions';
+import { useBranch } from '@/hooks/useBranch';
+import { useDepartments } from '@/hooks/useDepartments';
+import { useBudgets } from '@/hooks/useBudgets';
+import { Button } from '@/components/ui/button';
 
 export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const [step, setStep] = useState(1);
+    const { branchId, organizationId } = useBranch();
+    const { data: departments } = useDepartments(branchId);
+    const { data: budgetData } = useBudgets(branchId);
+    const createMutation = useCreateRequisition(branchId);
+
     const [lineItems, setLineItems] = useState<any[]>([]);
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
         priority: 'Normal',
-        dept: 'Kitchen',
+        departmentId: '',
+        budgetId: '',
         deliveryDate: '',
         reason: '',
-        costCenter: 'CC-001 - Kitchen Ops'
+        fiscalYear: new Date().getFullYear().toString()
     });
 
-    const addItem = (item: any) => {
-        setLineItems([...lineItems, { ...item, qty: 0, requiredBy: '' }]);
-    };
-
     const totalCost = lineItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
-    const budgetLimit = 5000;
-    const remainingBudget = budgetLimit - totalCost;
+    
+    // Find selected budget info
+    const selectedBudget = (budgetData?.data || []).find(b => b.id === formData.budgetId);
+    const remainingBudget = selectedBudget ? Number(selectedBudget.remaining) - totalCost : 0;
     const isOverBudget = remainingBudget < 0;
+
+    async function handleSubmit() {
+        if (!formData.departmentId) return alert('Please select a department');
+        if (lineItems.length === 0) return alert('Please add at least one item');
+
+        const payload = {
+            branchId,
+            organizationId: organizationId || branchId,
+            departmentId: formData.departmentId,
+            budgetId: formData.budgetId || null,
+            fiscalYear: formData.fiscalYear,
+            priority: formData.priority,
+            deliveryDate: formData.deliveryDate || null,
+            reason: formData.reason,
+            items: lineItems.map(item => ({
+                inventoryItemId: item.id.toString(), // Assuming item.id is the inventoryItemId
+                qty: item.qty,
+                estimatedUnitPrice: item.price
+            }))
+        };
+
+        try {
+            await createMutation.mutateAsync(payload);
+            onClose();
+        } catch (err: any) {
+            alert(err.message || 'Failed to submit requisition');
+        }
+    }
 
     if (!isOpen) return null;
 
@@ -54,10 +83,11 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                     <div className="sticky top-0 z-10 flex items-center justify-between bg-white px-8 py-5 border-b border-gray-200">
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">New Requisition</h2>
-                            <p className="text-xs text-gray-500">REQ-{Math.floor(Math.random() * 10000)} • {new Date().toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-500">Draft • {new Date().toLocaleDateString()}</p>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className={clsx("px-3 py-1 rounded-full text-xs font-bold", formData.priority === 'Emergency' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
+                            <span className={clsx("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", 
+                                formData.priority === 'Emergency' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
                                 {formData.priority}
                             </span>
                             <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
@@ -67,37 +97,47 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                     </div>
 
                     <div className="p-8 space-y-8">
-
                         {/* 1. Requirement Details */}
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                <div className="h-6 w-6 rounded bg-black text-white flex items-center justify-center text-xs mr-2">1</div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                                <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">1</div>
                                 Requirement Details
                             </h3>
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Requested By</label>
-                                    <input type="text" value="Kelvin (Outlet Mgr)" disabled className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Department</label>
-                                    <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-black focus:border-transparent">
-                                        <option>Kitchen</option>
-                                        <option>Bar</option>
-                                        <option>Housekeeping</option>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Department</label>
+                                    <select 
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                                        value={formData.departmentId}
+                                        onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
+                                    >
+                                        <option value="">Select Department...</option>
+                                        {(departments || []).map(d => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Priority</label>
-                                    <div className="flex space-x-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Required Delivery Date</label>
+                                    <input 
+                                        type="date" 
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:ring-2 focus:ring-black transition-all" 
+                                        value={formData.deliveryDate}
+                                        onChange={e => setFormData({ ...formData, deliveryDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Priority Level</label>
+                                    <div className="flex gap-2">
                                         {['Normal', 'Planned', 'Emergency'].map(p => (
                                             <button
                                                 key={p}
+                                                type="button"
                                                 onClick={() => setFormData({ ...formData, priority: p })}
-                                                className={clsx("flex-1 py-2 text-xs font-bold rounded-lg border transition-all",
+                                                className={clsx("flex-1 py-3 text-xs font-bold rounded-xl border transition-all",
                                                     formData.priority === p
-                                                        ? (p === 'Emergency' ? 'bg-red-500 text-white border-red-600' : 'bg-black text-white border-black')
-                                                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                                        ? (p === 'Emergency' ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-gray-900 text-white border-gray-900 shadow-md')
+                                                        : 'bg-white text-gray-500 border-gray-100 hover:border-gray-300'
                                                 )}
                                             >
                                                 {p}
@@ -105,31 +145,33 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                         ))}
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Required Delivery</label>
-                                    <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700" />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason for Request</label>
-                                    <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 h-20" placeholder="e.g., Weekly restock for weekend service..."></textarea>
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Reason for Request</label>
+                                    <textarea 
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 h-24 focus:ring-2 focus:ring-black transition-all" 
+                                        placeholder="Explain why these items are needed..."
+                                        value={formData.reason}
+                                        onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                                    />
                                 </div>
                             </div>
                         </section>
 
                         {/* 2. Item Lines */}
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <div className="h-6 w-6 rounded bg-black text-white flex items-center justify-center text-xs mr-2">2</div>
-                                    Item Lines
-                                </div>
-                                <button
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                                    <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">2</div>
+                                    Requested Items
+                                </h3>
+                                <Button
                                     onClick={() => setIsCatalogOpen(true)}
-                                    className="text-sm font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-lg"
+                                    className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md flex items-center gap-2"
                                 >
-                                    + Add From Catalog
-                                </button>
-                            </h3>
+                                    <Plus className="h-4 w-4" />
+                                    Add Items
+                                </Button>
+                            </div>
 
                             <CatalogModal
                                 isOpen={isCatalogOpen}
@@ -137,68 +179,43 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                 onAddItems={(newItems) => setLineItems([...lineItems, ...newItems])}
                             />
 
-                            {/* Quick Add Placeholder */}
-                            <div className="mb-4 flex gap-2">
-                                <select className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" onChange={(e) => {
-                                    const item = MOCK_ITEMS.find(i => i.id.toString() === e.target.value);
-                                    if (item) addItem(item);
-                                }}>
-                                    <option value="">Quick Add Item...</option>
-                                    {MOCK_ITEMS.map(i => <option key={i.id} value={i.id}>{i.name} ({i.sku})</option>)}
-                                </select>
-                            </div>
-
-                            <div className="overflow-hidden rounded-xl border border-gray-200">
+                            <div className="overflow-hidden rounded-2xl border border-gray-100">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                                    <thead className="bg-gray-50 text-[10px] text-gray-400 font-black uppercase tracking-widest border-b border-gray-100">
                                         <tr>
-                                            <th className="px-4 py-3">Item Details</th>
-                                            <th className="px-4 py-3">Stock Intel</th>
-                                            <th className="px-4 py-3 w-24">Qty</th>
-                                            <th className="px-4 py-3 w-32">Unit Price</th>
-                                            <th className="px-4 py-3 w-32">Total</th>
-                                            <th className="px-4 py-3 w-10"></th>
+                                            <th className="px-6 py-4">Item Details</th>
+                                            <th className="px-6 py-4 w-28 text-center">Qty</th>
+                                            <th className="px-6 py-4 w-32 text-right">Est. Price</th>
+                                            <th className="px-6 py-4 w-32 text-right">Total</th>
+                                            <th className="px-6 py-4 w-12"></th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-gray-50">
                                         {lineItems.map((line, idx) => (
-                                            <tr key={idx} className="group hover:bg-gray-50">
-                                                <td className="px-4 py-3">
+                                            <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4">
                                                     <p className="font-bold text-gray-900">{line.name}</p>
-                                                    <p className="text-xs text-gray-500">{line.sku} • {line.unit}</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{line.sku} • {line.unit}</p>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center space-x-4 text-xs">
-                                                        <div>
-                                                            <span className="block text-gray-400">On Hand</span>
-                                                            <span className={clsx("font-bold", line.stock < 5 ? 'text-red-600' : 'text-gray-900')}>{line.stock}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="block text-gray-400">Forecast</span>
-                                                            <span className="font-bold text-gray-900">{line.forecast}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="block text-gray-400">Cover</span>
-                                                            <span className={clsx("font-bold", line.daysCover < 3 ? 'text-red-600' : 'text-green-600')}>{line.daysCover} days</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-6 py-4">
                                                     <input
                                                         type="number"
-                                                        className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-center font-bold"
+                                                        className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-center font-bold focus:ring-2 focus:ring-black transition-all"
                                                         value={line.qty}
                                                         onChange={(e) => {
                                                             const newItems = [...lineItems];
-                                                            newItems[idx].qty = parseInt(e.target.value) || 0;
+                                                            newItems[idx].qty = Math.max(0, parseInt(e.target.value) || 0);
                                                             setLineItems(newItems);
                                                         }}
                                                     />
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">${line.price.toFixed(2)}</td>
-                                                <td className="px-4 py-3 font-bold text-gray-900">${(line.price * line.qty).toFixed(2)}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <button onClick={() => setLineItems(lineItems.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500">
+                                                <td className="px-6 py-4 text-right text-gray-600 font-medium">${line.price.toFixed(2)}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-gray-900">${(line.price * line.qty).toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button 
+                                                        onClick={() => setLineItems(lineItems.filter((_, i) => i !== idx))}
+                                                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                    >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </td>
@@ -206,7 +223,12 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                         ))}
                                         {lineItems.length === 0 && (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-8 text-center text-gray-400 italic">No items added yet. Search above to add.</td>
+                                                <td colSpan={5} className="px-6 py-12 text-center">
+                                                    <div className="flex flex-col items-center gap-2 text-gray-300">
+                                                        <Plus className="h-8 w-8 opacity-20" />
+                                                        <p className="text-sm font-medium">No items added yet</p>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -214,82 +236,87 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                             </div>
                         </section>
 
-                        {/* 3. Cost & Budget */}
+                        {/* 3. Budget Control */}
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                <div className="h-6 w-6 rounded bg-black text-white flex items-center justify-center text-xs mr-2">3</div>
-                                Cost & Budget Control
+                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                                <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">3</div>
+                                Budget Allocation
                             </h3>
-                            <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <div className="flex-1">
-                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Cost Center</p>
-                                    <p className="font-bold text-gray-900">CC-001 • Kitchen Ops</p>
+                            
+                            <div className="mb-6">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Cost Center / Budget Line</label>
+                                <select 
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:ring-2 focus:ring-black transition-all"
+                                    value={formData.budgetId}
+                                    onChange={e => setFormData({ ...formData, budgetId: e.target.value })}
+                                >
+                                    <option value="">Select Budget Line...</option>
+                                    {(budgetData?.data || []).map(b => (
+                                        <option key={b.id} value={b.id}>{b.name} ({b.fiscalYear})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Estimated Total Cost</p>
+                                    <p className="text-2xl font-black text-gray-900">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                                 </div>
-                                <div className="w-px h-10 bg-gray-200"></div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Estimated Cost</p>
-                                    <p className="text-xl font-bold text-gray-900">${totalCost.toFixed(2)}</p>
-                                </div>
-                                <div className="w-px h-10 bg-gray-200"></div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Remaining Budget</p>
-                                    <p className={clsx("text-xl font-bold", isOverBudget ? 'text-red-600' : 'text-green-600')}>
-                                        ${remainingBudget.toFixed(2)}
-                                    </p>
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Status After Request</p>
+                                    {formData.budgetId ? (
+                                        <p className={clsx("text-2xl font-black", isOverBudget ? 'text-red-600' : 'text-green-600')}>
+                                            ${remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 pt-2 font-medium italic">Select a budget to see impact</p>
+                                    )}
                                 </div>
                             </div>
+
                             {isOverBudget && (
-                                <div className="mt-3 flex items-start gap-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100 text-sm">
-                                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                                <div className="mt-4 flex items-start gap-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 animate-in fade-in slide-in-from-top-1">
+                                    <AlertTriangle className="h-6 w-6 shrink-0" />
                                     <div>
-                                        <span className="font-bold">Budget Exceeded!</span>
-                                        <p>This requisition exceeds the monthly budget. It will require overriding approval from Finance.</p>
+                                        <span className="font-black text-xs uppercase tracking-tight">Budget Threshold Breached</span>
+                                        <p className="text-sm mt-0.5 opacity-90">This request exceeds the available budget. It will require finance override approval.</p>
                                     </div>
                                 </div>
                             )}
                         </section>
 
-                        {/* 4. Risk & Compliance */}
-                        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                <div className="h-6 w-6 rounded bg-black text-white flex items-center justify-center text-xs mr-2">4</div>
-                                Risk & Compliance
-                            </h3>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 rounded-lg border border-green-100 bg-green-50">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircle className="h-5 w-5 text-green-600" />
-                                        <span className="text-sm font-medium text-gray-900">Supplier Contracts Valid</span>
-                                    </div>
-                                    <span className="text-xs text-green-700 bg-white px-2 py-1 rounded border border-green-200">Pass</span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 rounded-lg border border-yellow-100 bg-yellow-50">
-                                    <div className="flex items-center gap-3">
-                                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                                        <span className="text-sm font-medium text-gray-900">Food Safety: Temperature Check Required</span>
-                                    </div>
-                                    <span className="text-xs text-yellow-700 bg-white px-2 py-1 rounded border border-yellow-200">Warning</span>
-                                </div>
-                            </div>
-                        </section>
-
                         {/* Actions */}
-                        <div className="pb-10 pt-4 flex items-center justify-end gap-4">
-                            <div className="text-right mr-4">
-                                <p className="text-xs text-gray-500">Approvers: Outlet Mgr → Ops Mgr → Finance</p>
+                        <div className="pb-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 pt-10">
+                            <div className="flex items-center gap-3 text-gray-400">
+                                <Calculator className="h-5 w-5" />
+                                <p className="text-[10px] font-bold uppercase tracking-widest leading-none">
+                                    Standard Approval Flow: <span className="text-gray-900">Requestor → HOD → Finance</span>
+                                </p>
                             </div>
-                            <button onClick={onClose} className="px-6 py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50">
-                                Save Draft
-                            </button>
-                            <button onClick={() => {
-                                alert('Requisition Submitted for Approval!');
-                                onClose();
-                            }} className="px-8 py-3 rounded-xl bg-[#2a2b2d] font-bold text-white shadow-lg hover:bg-gray-800 flex items-center gap-2">
-                                Submit Request
-                                <ChevronRight className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <Button 
+                                    variant="ghost"
+                                    onClick={onClose} 
+                                    className="px-6 py-6 rounded-xl font-bold text-gray-500 hover:bg-gray-100 flex-1 md:flex-none"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    onClick={handleSubmit}
+                                    disabled={createMutation.isPending || lineItems.length === 0}
+                                    className="px-10 py-6 rounded-xl bg-gray-900 text-white font-black text-sm shadow-xl hover:bg-gray-800 flex items-center justify-center gap-3 flex-1 md:flex-none transition-all group"
+                                >
+                                    {createMutation.isPending ? (
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                    ) : (
+                                        <>
+                                            Submit Requisition
+                                            <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
-
                     </div>
                 </motion.div>
             </div>
