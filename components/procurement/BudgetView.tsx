@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useBranch } from '@/hooks/useBranch';
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/useBudgets';
 import { useDepartments } from '@/hooks/useDepartments';
-import type { BudgetRow as Budget, BudgetHealth as BudgetStatus } from '@/lib/api';
+import type { BudgetRow as Budget } from '@/lib/api';
 import { ErrorState } from '@/components/ui/error-state';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ function BudgetFormPanel({
     onSave: (data: typeof EMPTY_FORM) => void;
     onClose: () => void;
     isSaving: boolean;
-    departments: any[];
+    departments?: any[];
 }) {
     const [form, setForm] = useState(initial);
     const [errors, setErrors] = useState<Record<string, string>>({});

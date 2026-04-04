@@ -15,7 +15,7 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { Button } from '@/components/ui/button';
 
 export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { branchId, organizationId } = useBranch();
+    const { branchId } = useBranch();
     const { data: departments } = useDepartments(branchId);
     const { data: budgetData } = useBudgets(branchId);
     const createMutation = useCreateRequisition(branchId);
@@ -36,7 +36,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
     const totalCost = lineItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
     
     // Find selected budget info
-    const selectedBudget = (budgetData?.data || []).find(b => b.id === formData.budgetId);
+    const selectedBudget = (budgetData || []).find(b => b.id === formData.budgetId);
     const remainingBudget = selectedBudget ? Number(selectedBudget.remaining) - totalCost : 0;
     const isOverBudget = remainingBudget < 0;
 
@@ -46,7 +46,6 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
 
         const payload = {
             branchId,
-            organizationId: organizationId || branchId,
             departmentId: formData.departmentId,
             budgetId: formData.budgetId || null,
             fiscalYear: formData.fiscalYear,
@@ -251,7 +250,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                     onChange={e => setFormData({ ...formData, budgetId: e.target.value })}
                                 >
                                     <option value="">Select Budget Line...</option>
-                                    {(budgetData?.data || []).map(b => (
+                                    {(budgetData || []).map(b => (
                                         <option key={b.id} value={b.id}>{b.name} ({b.fiscalYear})</option>
                                     ))}
                                 </select>
