@@ -36,6 +36,20 @@
       "when": 1775038000000,
       "tag": "0004_procurement_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775313397014,
+      "tag": "0005_suppliers_rfqs",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775314000000,
+      "tag": "0006_suppliers_rfqs_permissions",
+      "breakpoints": true
     }
   ]
 }
