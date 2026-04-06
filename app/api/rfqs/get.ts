@@ -67,6 +67,7 @@ export async function getRfqs(req: NextRequest, authUser: AuthenticatedUser) {
       createdById: r.createdById,
       createdByName: r.createdBy?.fullName ?? null,
       responseCount: r.rfqSuppliers?.length ?? 0,
+      supplierIds: r.rfqSuppliers?.map(rs => rs.supplierId) ?? [],
     }));
 
     return NextResponse.json(

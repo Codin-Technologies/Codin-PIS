@@ -5,10 +5,16 @@ import {
     Plus, Search, Filter, ArrowRight, CheckCircle,
     XCircle, Clock, TrendingUp, Users, DollarSign,
     FileText, ChevronRight, Award, AlertTriangle,
-    BarChart3, ShieldCheck
+    BarChart3, ShieldCheck, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { useRFQs, useCreateRFQ } from '@/hooks/useRFQs';
+import { useRequisitions } from '@/hooks/useRequisitions';
+import { useBranch } from '@/hooks/useBranch';
+import { useCurrency } from '@/hooks/useCurrency';
+import type { CreateRFQPayload } from '@/lib/api';
 
 // --- Types ---
 type ViewState = 'DASHBOARD' | 'CREATE' | 'COMPARE';
@@ -34,8 +40,73 @@ const MOCK_QUOTES = [
 ];
 
 export function RFQView() {
+    const { branchId } = useBranch();
+    const { format: f } = useCurrency();
     const [view, setView] = useState<ViewState>('DASHBOARD');
     const [selectedRfq, setSelectedRfq] = useState<string | null>(null);
+
+    // Form State for Create RFQ
+    const [form, setForm] = useState({
+        title: '',
+        requisitionId: '',
+        category: 'Food & Beverage',
+        paymentTerms: 'Net 30',
+        requiredDelivery: '',
+        deadline: '',
+    });
+    const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
+    const [searchSupplier, setSearchSupplier] = useState('');
+
+    // Queries
+    const { data: rfqData, isLoading: isLoadingRFQs } = useRFQs(branchId);
+    const { data: supplierData, isLoading: isLoadingSuppliers } = useSuppliers(branchId, {
+        search: searchSupplier || undefined
+    });
+    const { data: requisitionData } = useRequisitions(branchId, { status: 'approved' });
+
+    // Mutation
+    const createRFQMutation = useCreateRFQ(branchId);
+
+    const suppliers = supplierData?.data ?? [];
+    const rfqs = rfqData?.data ?? [];
+    const approvedRequisitions = requisitionData?.data ?? [];
+
+    const toggleSupplier = (id: string) => {
+        setSelectedSupplierIds(prev =>
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
+    };
+
+    const handlePublish = () => {
+        if (!form.title || !form.requisitionId || selectedSupplierIds.length === 0) return;
+
+        const payload: CreateRFQPayload = {
+            branchId,
+            requisitionId: form.requisitionId,
+            title: form.title,
+            category: form.category,
+            paymentTerms: form.paymentTerms,
+            requiredDelivery: form.requiredDelivery || undefined,
+            deadline: form.deadline || undefined,
+            supplierIds: selectedSupplierIds,
+        };
+
+        createRFQMutation.mutate(payload, {
+            onSuccess: () => {
+                setView('DASHBOARD');
+                // Reset form
+                setForm({
+                    title: '',
+                    requisitionId: '',
+                    category: 'Food & Beverage',
+                    paymentTerms: 'Net 30',
+                    requiredDelivery: '',
+                    deadline: '',
+                });
+                setSelectedSupplierIds([]);
+            },
+        });
+    };
 
     // --- Sub-Components ---
 
@@ -87,33 +158,48 @@ export function RFQView() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {MOCK_RFQS.map(rfq => (
+                        {isLoadingRFQs && (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                                    Loading sourcing events...
+                                </td>
+                            </tr>
+                        )}
+                        {!isLoadingRFQs && rfqs.length === 0 && (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                    No RFQs found. Create your first sourcing event.
+                                </td>
+                            </tr>
+                        )}
+                        {!isLoadingRFQs && rfqs.map(rfq => (
                             <tr key={rfq.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-4">
                                     <p className="font-bold text-gray-900">{rfq.title}</p>
-                                    <p className="text-xs text-gray-500">{rfq.id} • {rfq.items} Items</p>
+                                    <p className="text-xs text-gray-500">{rfq.id}</p>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={clsx("px-2 py-1 rounded-md text-xs font-bold",
-                                        rfq.status === 'Active' ? 'bg-blue-100 text-blue-700' :
-                                            rfq.status === 'Evaluating' ? 'bg-purple-100 text-purple-700' :
+                                    <span className={clsx("px-2 py-1 rounded-md text-xs font-bold capitalize",
+                                        rfq.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                                            rfq.status === 'evaluating' ? 'bg-purple-100 text-purple-700' :
                                                 'bg-gray-100 text-gray-700'
                                     )}>{rfq.status}</span>
                                 </td>
-                                <td className="px-6 py-4 text-gray-600 font-medium">{rfq.closingIn}</td>
-                                <td className="px-6 py-4 text-gray-600">{rfq.participation}</td>
-                                <td className="px-6 py-4 font-bold text-green-600">{rfq.savings}</td>
+                                <td className="px-6 py-4 text-gray-600 font-medium">{rfq.deadline || '—'}</td>
+                                <td className="px-6 py-4 text-gray-600">—</td>
+                                <td className="px-6 py-4 font-bold text-green-600">—</td>
                                 <td className="px-6 py-4">
                                     <button
                                         onClick={() => {
-                                            if (rfq.status === 'Evaluating') {
+                                            if (rfq.status === 'evaluating') {
                                                 setSelectedRfq(rfq.id);
                                                 setView('COMPARE');
                                             }
                                         }}
                                         className="text-blue-600 hover:text-blue-800 font-bold text-xs"
                                     >
-                                        {rfq.status === 'Evaluating' ? 'Compare Quotes' : 'Manage'}
+                                        {rfq.status === 'evaluating' ? 'Compare Quotes' : 'Manage'}
                                     </button>
                                 </td>
                             </tr>
@@ -146,23 +232,43 @@ export function RFQView() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Title</label>
-                                <input type="text" className="w-full border p-2 rounded-lg text-sm" placeholder="e.g. Q3 Packaging Sourcing" />
+                                <input 
+                                    type="text" 
+                                    className="w-full border p-2 rounded-lg text-sm" 
+                                    placeholder="e.g. Q3 Packaging Sourcing" 
+                                    value={form.title}
+                                    onChange={e => setForm({...form, title: e.target.value})}
+                                />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Required Delivery</label>
-                                <input type="date" className="w-full border p-2 rounded-lg text-sm" />
+                                <input 
+                                    type="date" 
+                                    className="w-full border p-2 rounded-lg text-sm" 
+                                    value={form.requiredDelivery}
+                                    onChange={e => setForm({...form, requiredDelivery: e.target.value})}
+                                />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Category</label>
-                                <select className="w-full border p-2 rounded-lg text-sm bg-white">
+                                <select 
+                                    className="w-full border p-2 rounded-lg text-sm bg-white"
+                                    value={form.category}
+                                    onChange={e => setForm({...form, category: e.target.value})}
+                                >
                                     <option>Food & Beverage</option>
                                     <option>Packaging</option>
                                     <option>Equipment</option>
+                                    <option>Dry Goods</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Payment Terms</label>
-                                <select className="w-full border p-2 rounded-lg text-sm bg-white">
+                                <select 
+                                    className="w-full border p-2 rounded-lg text-sm bg-white"
+                                    value={form.paymentTerms}
+                                    onChange={e => setForm({...form, paymentTerms: e.target.value})}
+                                >
                                     <option>Net 30</option>
                                     <option>Net 60</option>
                                     <option>COD</option>
@@ -171,37 +277,86 @@ export function RFQView() {
                         </div>
                     </section>
 
-                    {/* 2. Items */}
                     <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase">2. Line Items</h3>
-                        <div className="bg-gray-50 rounded-xl p-4 border border-dashed border-gray-300 text-center">
-                            <p className="text-sm text-gray-500 mb-2">Drag requisitions here or add manually</p>
-                            <button className="text-blue-600 font-bold text-sm">+ Add Item</button>
+                        <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase">2. Source Requisition & Deadline</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Approved Requisition</label>
+                                <select 
+                                    className="w-full border p-2 rounded-lg text-sm bg-white"
+                                    value={form.requisitionId}
+                                    onChange={e => setForm({...form, requisitionId: e.target.value})}
+                                >
+                                    <option value="">Select Requisition</option>
+                                    {approvedRequisitions.map(req => (
+                                        <option key={req.id} value={req.id}>
+                                            {req.requisitionNumber} - {req.reason || 'No subject'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">RFQ Deadline</label>
+                                <input 
+                                    type="date" 
+                                    className="w-full border p-2 rounded-lg text-sm" 
+                                    value={form.deadline}
+                                    onChange={e => setForm({...form, deadline: e.target.value})}
+                                />
+                            </div>
                         </div>
                     </section>
                 </div>
 
-                {/* Sidebar: Suppliers */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                     <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase">3. Invite Suppliers</h3>
-                    <div className="space-y-3 mb-4">
-                        {MOCK_SUPPLIERS.map(s => (
-                            <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer group">
-                                <div>
-                                    <p className="font-bold text-sm text-gray-900">{s.name}</p>
+                    
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <input 
+                            type="text" 
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-xs" 
+                            placeholder="Search suppliers..." 
+                            value={searchSupplier}
+                            onChange={e => setSearchSupplier(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto pr-1">
+                        {isLoadingSuppliers && <Loader2 className="h-5 w-5 animate-spin mx-auto text-gray-400" />}
+                        {!isLoadingSuppliers && suppliers.length === 0 && <p className="text-center text-xs text-gray-400 py-4">No suppliers found.</p>}
+                        {!isLoadingSuppliers && suppliers.map(s => (
+                            <div 
+                                key={s.id} 
+                                onClick={() => toggleSupplier(s.id)}
+                                className={clsx(
+                                    "flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer group",
+                                    selectedSupplierIds.includes(s.id) ? "border-black bg-gray-50" : "border-gray-50 hover:bg-gray-50"
+                                )}
+                            >
+                                <div className="flex-1">
+                                    <p className="font-bold text-xs text-gray-900">{s.name}</p>
                                     <div className="flex gap-2 text-[10px]">
-                                        <span className="text-green-600 font-medium">{s.status}</span>
-                                        <span className="text-gray-400">Score: {s.score}</span>
+                                        <span className="text-gray-400">{s.category}</span>
+                                        <span className="text-gray-400">Score: {s.reliability}%</span>
                                     </div>
                                 </div>
-                                <div className="h-5 w-5 rounded border border-gray-300 group-hover:border-blue-500"></div>
+                                <div className={clsx(
+                                    "h-5 w-5 rounded border transition-colors flex items-center justify-center",
+                                    selectedSupplierIds.includes(s.id) ? "bg-black border-black text-white" : "border-gray-200"
+                                )}>
+                                    {selectedSupplierIds.includes(s.id) && <CheckCircle className="h-3 w-3" />}
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <button onClick={() => {
-                        alert("RFQ Published to 3 Suppliers!");
-                        setView('DASHBOARD');
-                    }} className="w-full py-3 bg-[#2a2b2d] text-white rounded-xl font-bold shadow-lg hover:bg-gray-800">
+                    
+                    <button 
+                        onClick={handlePublish} 
+                        disabled={createRFQMutation.isPending || !form.title || !form.requisitionId || selectedSupplierIds.length === 0}
+                        className="w-full py-3 bg-[#2a2b2d] text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {createRFQMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Publish RFQ
                     </button>
                 </div>
@@ -255,7 +410,7 @@ export function RFQView() {
                             {/* Metrics */}
                             <div className="flex flex-col gap-6">
                                 <div className="h-8 flex items-center justify-center font-bold text-xl text-gray-900">
-                                    ${quote.price.toLocaleString()}
+                                    {f(quote.price)}
                                 </div>
                                 <div className="h-8 flex items-center justify-center font-medium text-gray-700">
                                     {quote.leadTime}

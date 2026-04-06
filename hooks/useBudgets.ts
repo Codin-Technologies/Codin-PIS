@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     listBudgetsAction, 
+    getBudgetAction,
     createBudgetAction, 
     updateBudgetAction, 
     deleteBudgetAction 
@@ -16,6 +17,17 @@ export function useBudgets(branchId: string, filters: BudgetFilters = {}) {
         queryKey: ['budgets', branchId, filters],
         queryFn: () => listBudgetsAction(branchId, filters),
         enabled: !!branchId,
+    });
+}
+
+/**
+ * useBudget — single budget detail query.
+ */
+export function useBudget(id: string) {
+    return useQuery({
+        queryKey: ['budget', id],
+        queryFn: () => getBudgetAction(id),
+        enabled: !!id,
     });
 }
 

@@ -8,13 +8,18 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { Loader2 } from 'lucide-react';
+import type { CreateSupplierPayload } from '@/lib/api';
 
 interface NewSupplierModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSubmit: (data: CreateSupplierPayload) => void;
+    isPending: boolean;
+    branchId: string;
 }
 
-export function NewSupplierModal({ isOpen, onClose }: NewSupplierModalProps) {
+export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchId }: NewSupplierModalProps) {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         name: '',
@@ -35,8 +40,18 @@ export function NewSupplierModal({ isOpen, onClose }: NewSupplierModalProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        alert('Supplier Registered Successfully!');
-        onClose();
+        onSubmit({
+            branchId,
+            name: formData.name,
+            category: formData.category,
+            contactPerson: formData.contactPerson,
+            email: formData.email,
+            phone: formData.phone,
+            website: formData.website,
+            vatNumber: formData.taxId,
+            paymentTerms: formData.paymentTerms,
+            streetAddress: formData.address,
+        });
     };
 
     if (!isOpen) return null;
@@ -227,9 +242,10 @@ export function NewSupplierModal({ isOpen, onClose }: NewSupplierModalProps) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2"
+                                    disabled={isPending}
+                                    className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50"
                                 >
-                                    <Save className="h-4 w-4" />
+                                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     Register Supplier
                                 </button>
                             </div>

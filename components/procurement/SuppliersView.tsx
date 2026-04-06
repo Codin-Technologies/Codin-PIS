@@ -5,14 +5,17 @@ import {
     Users, Star, MapPin, AlertCircle,
     ShieldCheck,
     Plus, ExternalLink,
-    TrendingUp
+    TrendingUp, Link, ArrowRight
 } from 'lucide-react';
+import LinkNext from 'next/link';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NewSupplierModal } from './NewSupplierModal';
 import { SendRFQModal } from './SendRFQModal';
+import { SupplierDetailModal } from './SupplierDetailModal';
 import { useSuppliers, useCreateSupplier } from '@/hooks/useSuppliers';
 import { useBranch } from '@/hooks/useBranch';
+import { useCurrency } from '@/hooks/useCurrency';
 import { ErrorState } from '@/components/ui/error-state';
 import type { CreateSupplierPayload } from '@/lib/api';
 
@@ -39,10 +42,12 @@ function SupplierSkeleton() {
 
 export function SuppliersView() {
     const { branchId } = useBranch();
+    const { format: f } = useCurrency();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isRFQModalOpen, setIsRFQModalOpen] = useState(false);
     const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
+    const [selectedSupplierForDetail, setSelectedSupplierForDetail] = useState<string | null>(null);
 
     const { data, isLoading, isError, error } = useSuppliers(branchId, {
         search: searchTerm || undefined,
@@ -77,6 +82,9 @@ export function SuppliersView() {
             <NewSupplierModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onSubmit={handleCreateSupplier}
+                isPending={createSupplierMutation.isPending}
+                branchId={branchId}
             />
 
             <SendRFQModal
@@ -109,6 +117,33 @@ export function SuppliersView() {
                         <Plus className="h-4 w-4" />
                         Add Supplier
                     </button>
+                </div>
+            </div>
+
+            {/* Portal Testing Links */}
+            <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between gap-4 overflow-x-auto">
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Link className="h-4 w-4" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-gray-900">RFQ Portal Testing</p>
+                        <p className="text-[10px] text-gray-500">View mocked supplier tokens</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <LinkNext href="/supplier/rfq/mock-token-123" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                        Success FLow <ArrowRight className="h-3 w-3" />
+                    </LinkNext>
+                    <LinkNext href="/supplier/rfq/invalid-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-red-400 hover:text-red-600 transition-colors flex items-center gap-1.5">
+                        Invalid Link <ArrowRight className="h-3 w-3" />
+                    </LinkNext>
+                    <LinkNext href="/supplier/rfq/expired-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-orange-400 hover:text-orange-600 transition-colors flex items-center gap-1.5">
+                        Expired Link <ArrowRight className="h-3 w-3" />
+                    </LinkNext>
+                    <LinkNext href="/supplier/rfq/closed-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1.5">
+                        Closed RFQ <ArrowRight className="h-3 w-3" />
+                    </LinkNext>
                 </div>
             </div>
 
@@ -149,19 +184,25 @@ export function SuppliersView() {
                         <motion.div
                             key={supplier.id}
                             whileHover={{ y: -4 }}
-                            onClick={() => toggleSupplier(supplier.id)}
+                            onClick={() => setSelectedSupplierForDetail(supplier.id)}
                             className={clsx(
                                 "bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all cursor-pointer relative group",
                                 selectedSupplierIds.includes(supplier.id) ? "border-black ring-1 ring-black" : "border-gray-100"
                             )}
                         >
                             {/* Checkbox */}
-                            <div className={clsx(
-                                "absolute top-4 right-4 h-5 w-5 rounded border transition-colors flex items-center justify-center",
-                                selectedSupplierIds.includes(supplier.id) 
-                                    ? "bg-black border-black text-white" 
-                                    : "border-gray-200 bg-white group-hover:border-gray-400"
-                            )}>
+                            <div 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSupplier(supplier.id);
+                                }}
+                                className={clsx(
+                                    "absolute top-4 right-4 h-5 w-5 rounded border transition-colors flex items-center justify-center z-10",
+                                    selectedSupplierIds.includes(supplier.id) 
+                                        ? "bg-black border-black text-white" 
+                                        : "border-gray-200 bg-white group-hover:border-gray-400"
+                                )}
+                            >
                                 {selectedSupplierIds.includes(supplier.id) && (
                                     <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -199,7 +240,7 @@ export function SuppliersView() {
                                 <div>
                                     <p className="text-[10px] text-gray-400 uppercase font-bold">Total Spend</p>
                                     <p className="text-sm font-bold text-gray-900">
-                                        ${supplier.spend.toLocaleString()}
+                                        {f(supplier.spend)}
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-1">
@@ -265,6 +306,12 @@ export function SuppliersView() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <SupplierDetailModal
+                isOpen={!!selectedSupplierForDetail}
+                onClose={() => setSelectedSupplierForDetail(null)}
+                supplier={suppliers.find(s => s.id === selectedSupplierForDetail) || null}
+            />
         </div>
     );
 }

@@ -126,7 +126,7 @@ export async function updateRequisitionStatusAction(
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.manage');
+    const allowed = await hasPermission(user as AuthenticatedUser, 'requisitions.update');
     if (!allowed) throw new Error('Forbidden: Insufficient permissions to update status');
 
     const baseUrl = getBaseUrl();

@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
-    fetchSuppliers,
-    createSupplier,
-    type SupplierFilters,
-    type CreateSupplierPayload,
+    getSuppliersAction,
+    createSupplierAction,
+} from '@/app/actions/supplier';
+import type {
+    SupplierFilters,
+    CreateSupplierPayload,
 } from '@/lib/api';
 
 const SUPPLIER_STALE_TIME = 10 * 60 * 1000; // 10 minutes — suppliers change infrequently
@@ -17,7 +19,7 @@ const SUPPLIER_STALE_TIME = 10 * 60 * 1000; // 10 minutes — suppliers change i
 export function useSuppliers(branchId: string, params: SupplierFilters = {}) {
     return useQuery({
         queryKey: queryKeys.suppliers(branchId, params),
-        queryFn: () => fetchSuppliers(branchId, params),
+        queryFn: () => getSuppliersAction(branchId, params),
         enabled: !!branchId,
         staleTime: SUPPLIER_STALE_TIME,
     });
@@ -26,7 +28,7 @@ export function useSuppliers(branchId: string, params: SupplierFilters = {}) {
 export function useCreateSupplier(branchId: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (payload: CreateSupplierPayload) => createSupplier(payload),
+        mutationFn: (payload: CreateSupplierPayload) => createSupplierAction(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['suppliers', branchId] });
         },

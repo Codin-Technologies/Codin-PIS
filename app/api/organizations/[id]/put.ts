@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 export async function putOrganization(req: NextRequest, id: string) {
   try {
     const body = await req.json();
-    const { name, organizationTypeId, location, contact } = body;
+    const { name, organizationTypeId, location, contact, currency, currencyDisplay } = body;
 
     const result = await db.update(organizations)
       .set({
@@ -14,6 +14,8 @@ export async function putOrganization(req: NextRequest, id: string) {
         ...(organizationTypeId && { organizationTypeId }),
         ...(location !== undefined && { location }),
         ...(contact !== undefined && { contact }),
+        ...(currency !== undefined && { currency }),
+        ...(currencyDisplay !== undefined && { currencyDisplay }),
       })
       .where(eq(organizations.id, id))
       .returning();

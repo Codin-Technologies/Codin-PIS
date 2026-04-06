@@ -12,10 +12,12 @@ import { useCreateRequisition } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useBudgets } from '@/hooks/useBudgets';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 
 export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const { branchId } = useBranch();
+    const { format: f, symbol } = useCurrency();
     const { data: departments } = useDepartments(branchId);
     const { data: budgetData } = useBudgets(branchId);
     const createMutation = useCreateRequisition(branchId);
@@ -208,8 +210,23 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                                         }}
                                                     />
                                                 </td>
-                                                <td className="px-6 py-4 text-right text-gray-600 font-medium">${line.price.toFixed(2)}</td>
-                                                <td className="px-6 py-4 text-right font-bold text-gray-900">${(line.price * line.qty).toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="relative">
+                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{symbol}</span>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg pl-6 pr-2 py-2 text-right font-medium focus:ring-2 focus:ring-black transition-all"
+                                                            value={line.price}
+                                                            onChange={(e) => {
+                                                                const newItems = [...lineItems];
+                                                                newItems[idx].price = Math.max(0, parseFloat(e.target.value) || 0);
+                                                                setLineItems(newItems);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right font-bold text-gray-900">{f(line.price * line.qty)}</td>
                                                 <td className="px-6 py-4 text-center">
                                                     <button 
                                                         onClick={() => setLineItems(lineItems.filter((_, i) => i !== idx))}
@@ -259,13 +276,13 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 rounded-2xl border border-gray-100">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Estimated Total Cost</p>
-                                    <p className="text-2xl font-black text-gray-900">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                    <p className="text-2xl font-black text-gray-900">{f(totalCost)}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Status After Request</p>
                                     {formData.budgetId ? (
                                         <p className={clsx("text-2xl font-black", isOverBudget ? 'text-red-600' : 'text-green-600')}>
-                                            ${remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            {f(remainingBudget)}
                                         </p>
                                     ) : (
                                         <p className="text-xs text-gray-400 pt-2 font-medium italic">Select a budget to see impact</p>

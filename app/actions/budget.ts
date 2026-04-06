@@ -53,6 +53,19 @@ export async function listBudgetsAction(
   return json.data;
 }
 
+/**
+ * getBudgetAction
+ * GET /api/budgets/{id}
+ */
+export async function getBudgetAction(id: string): Promise<BudgetRow> {
+  const res = await budgetFetch(`/api/budgets/${id}`, { method: 'GET' }, 'budgets.read');
+  if (!res.ok) {
+    throw new Error(`Failed to fetch budget ${id}: ${res.statusText}`);
+  }
+  const json = (await res.json()) as { data: BudgetRow };
+  return json.data;
+}
+
 export async function createBudgetAction(payload: CreateBudgetPayload): Promise<unknown> {
   const { branchId, organizationId, ...rest } = payload;
   const res = await budgetFetch(

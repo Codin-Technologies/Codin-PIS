@@ -8,6 +8,7 @@ import {
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBranch } from '@/hooks/useBranch';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/useBudgets';
 import { useDepartments } from '@/hooks/useDepartments';
 import type { BudgetRow as Budget } from '@/lib/api';
@@ -71,10 +72,6 @@ function getCategoryMapping(deptName: string | null): BudgetCategory {
     return 'Other';
 }
 
-function fmt(n: number) {
-    return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-}
-
 // ─── Empty Form State ─────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
@@ -102,6 +99,7 @@ function BudgetFormPanel({
     isSaving: boolean;
     departments?: any[];
 }) {
+    const { format: fmt, symbol } = useCurrency();
     const [form, setForm] = useState(initial);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -233,7 +231,9 @@ function BudgetFormPanel({
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Budget Amount *</label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <div className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 font-bold flex items-center justify-center text-[10px]">
+                                    {symbol}
+                                </div>
                                 <input
                                     type="number"
                                     placeholder="0"
@@ -332,6 +332,7 @@ function DeleteModal({ budget, onConfirm, onClose, isDeleting }: { budget: Budge
 // ─── Budget Card ──────────────────────────────────────────────────────────────
 
 function BudgetCard({ budget, onEdit, onDelete }: { budget: Budget; onEdit: () => void; onDelete: () => void }) {
+    const { format: fmt } = useCurrency();
     const category = getCategoryMapping(budget.departmentName);
     const StatusIcon = CATEGORY_ICONS[category];
     const colors = CATEGORY_COLORS[category];
@@ -438,6 +439,7 @@ function BudgetCard({ budget, onEdit, onDelete }: { budget: Budget; onEdit: () =
 
 export function BudgetView() {
     const { branchId } = useBranch();
+    const { format: fmt } = useCurrency();
     const [panelMode, setPanelMode] = useState<'add' | 'edit' | null>(null);
     const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
     const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);

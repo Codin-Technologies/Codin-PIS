@@ -10,7 +10,10 @@ import { useState } from 'react';
 import { requisitionStatusLabel } from '@/lib/procurement/requisition-status';
 import { useRequisition, useUpdateRequisitionStatus } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
+import { useBudgets } from '@/hooks/useBudgets';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
+import { CreateRFQFromReqModal } from './CreateRFQFromReqModal';
 
 export function RequisitionDetailModal({
     requisitionId,
@@ -22,9 +25,20 @@ export function RequisitionDetailModal({
     onClose: () => void;
 }) {
     const { branchId } = useBranch();
+    const { format: f } = useCurrency();
     const { data: requisition, isLoading, isError } = useRequisition(requisitionId || '');
+    const { data: budgetData } = useBudgets(branchId);
     const updateStatusMutation = useUpdateRequisitionStatus(branchId);
     const [comment, setComment] = useState('');
+    const [isCreateRfqOpen, setIsCreateRfqOpen] = useState(false);
+
+    const selectedBudget = (budgetData || []).find(b => b.id === requisition?.budgetId);
+    const totalCost = requisition?.value || 0;
+    const remainingBudget = selectedBudget ? Number(selectedBudget.remaining) : 0;
+    const isOverBudget = remainingBudget < 0;
+    const allocatedNum = selectedBudget ? Number(selectedBudget.allocatedAmount) : 0;
+    const spentPlusCommitted = selectedBudget ? (selectedBudget.spent + selectedBudget.committed) : 0;
+    const utilizationPct = allocatedNum > 0 ? Math.min(100, (spentPlusCommitted / allocatedNum) * 100) : 0;
 
     if (!isOpen || !requisitionId) return null;
 
@@ -138,7 +152,7 @@ export function RequisitionDetailModal({
                                                             <span className="text-gray-400 ml-1 font-medium">{item.unit}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-right font-bold text-gray-900">
-                                                            ${(item.estimatedPrice * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            {f(item.estimatedPrice * item.qty)}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -147,12 +161,72 @@ export function RequisitionDetailModal({
                                                 <tr>
                                                     <td colSpan={2} className="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider text-xs">Total Estimated Value</td>
                                                     <td className="px-6 py-4 text-right font-black text-lg text-gray-900">
-                                                        ${requisition.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        {f(requisition.value)}
                                                     </td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
+
+                                    {/* Budget allocation */}
+                                    {selectedBudget && (
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                                <Store className="h-16 w-16" />
+                                            </div>
+                                            <div className="flex items-center justify-between mb-4 relative z-10">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 text-sm">Budget Allocation</h3>
+                                                    <p className="text-xs text-gray-500">{selectedBudget.name}</p>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-2 py-1 rounded-lg uppercase tracking-widest bg-gray-50">FY{selectedBudget.fiscalYear}</span>
+                                            </div>
+
+                                            <div className="space-y-4 relative z-10">
+                                                <div>
+                                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                        <motion.div 
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${utilizationPct}%` }}
+                                                            className={clsx("h-full transition-all duration-1000", 
+                                                                isOverBudget ? 'bg-red-500' : utilizationPct > 80 ? 'bg-orange-500' : 'bg-emerald-500'
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-between mt-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                                                        <div className="flex gap-2">
+                                                            <span>Utilized: <span className="text-gray-900">{Math.round(utilizationPct)}%</span></span>
+                                                            <span className="text-gray-200">|</span>
+                                                            <span>Committed: <span className="text-gray-900">{f(spentPlusCommitted)}</span></span>
+                                                        </div>
+                                                        <span>Total: <span className="text-gray-900">{f(allocatedNum)}</span></span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100/50">
+                                                    <div>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1">Requisition Impact</p>
+                                                        <p className="text-lg font-black text-gray-900">{f(totalCost)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1">Status After Approval</p>
+                                                        <p className={clsx("text-lg font-black", isOverBudget ? 'text-red-600' : 'text-emerald-600')}>
+                                                            {f(remainingBudget)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {isOverBudget && (
+                                                    <div className="flex items-start gap-2.5 p-3 bg-red-50 rounded-xl border border-red-100/50 shadow-sm shadow-red-100/20">
+                                                        <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                                                        <p className="text-[10px] text-red-700 leading-normal font-medium">
+                                                            <span className="font-bold">Budget Warning:</span> This requisition exceeds the available balance for <span className="underline">{selectedBudget.name}</span>. Actioning this will reflect a deficit of <span className="font-bold">{f(Math.abs(remainingBudget))}</span>.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Reason */}
                                     <div className="bg-orange-50/30 rounded-2xl p-6 border border-orange-100/50">
@@ -209,6 +283,7 @@ export function RequisitionDetailModal({
                                         </div>
                                     </div>
 
+
                                     {/* Actions (Only if Pending) */}
                                     {(requisition.status === 'pending' || requisition.status === 'in_review') && (
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl ring-1 ring-black/5">
@@ -252,11 +327,43 @@ export function RequisitionDetailModal({
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Actions (Only if Approved) */}
+                                    {requisition.status === 'approved' && (
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl ring-1 ring-black/5">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="p-1.5 bg-blue-50 rounded-lg">
+                                                    <FileText className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <h3 className="font-bold text-gray-900">Next Steps</h3>
+                                            </div>
+                                            <p className="text-[11px] text-gray-400 mb-6 leading-relaxed">
+                                                This requisition has been approved. You can now use the details to broadcast a Request for Quotation to your suppliers.
+                                            </p>
+                                            <Button 
+                                                onClick={() => setIsCreateRfqOpen(true)}
+                                                className="w-full bg-[#2a2b2d] hover:bg-black text-white rounded-xl py-6 font-bold flex items-center justify-center gap-2 shadow-sm transition-all hover:-translate-y-0.5"
+                                            >
+                                                Create RFQ
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : null}
                     </div>
                 </motion.div>
+                {requisition && (
+                    <CreateRFQFromReqModal
+                        isOpen={isCreateRfqOpen}
+                        onClose={() => setIsCreateRfqOpen(false)}
+                        requisition={requisition}
+                        onSuccess={() => {
+                            setIsCreateRfqOpen(false);
+                            onClose();
+                        }}
+                    />
+                )}
             </div>
         </AnimatePresence>
     );

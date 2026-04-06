@@ -36,6 +36,8 @@ export function CreateOrgForm({ onClose, onSuccess, organization }: CreateOrgFor
             organizationTypeId: formData.get('type') as string,
             location: formData.get('location') as string,
             contact: formData.get('phone') as string,
+            currency: formData.get('currency') as string,
+            currencyDisplay: formData.get('currencyDisplay') as 'symbol' | 'code',
         };
 
         const mutationPayload = isEditing 
@@ -158,6 +160,47 @@ export function CreateOrgForm({ onClose, onSuccess, organization }: CreateOrgFor
                                 className="h-12 pl-10 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 rounded-xl"
                             />
                             <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        </div>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel htmlFor="currency" className="text-xs uppercase tracking-widest font-bold text-gray-400">Standard Currency</FieldLabel>
+                        <div className="relative">
+                            <select
+                                id="currency"
+                                name="currency"
+                                className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-sans"
+                                defaultValue={organization?.currency || "USD"}
+                                required
+                            >
+                                <option value="Tsh">Tsh - Tanzanian Shilling</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="KES">KES - Kenyan Shilling</option>
+                                <option value="GBP">GBP - British Pound</option>
+                                <option value="ZAR">ZAR - South African Rand</option>
+                            </select>
+                            <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel className="text-xs uppercase tracking-widest font-bold text-gray-400">Display Preference</FieldLabel>
+                        <div className="flex gap-4 pt-1">
+                            {['symbol', 'code'].map((pref) => (
+                                <label key={pref} className="flex-1 cursor-pointer group">
+                                    <input
+                                        type="radio"
+                                        name="currencyDisplay"
+                                        value={pref}
+                                        className="sr-only peer"
+                                        defaultChecked={organization?.currencyDisplay === pref || (!organization && pref === 'symbol')}
+                                    />
+                                    <div className="h-10 flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-bold text-gray-400 peer-checked:bg-orange-50 peer-checked:border-orange-500 peer-checked:text-orange-500 transition-all">
+                                        {pref === 'symbol' ? 'Show Symbol ($)' : 'Show Code (USD)'}
+                                    </div>
+                                </label>
+                            ))}
                         </div>
                     </Field>
                 </FieldGroup>

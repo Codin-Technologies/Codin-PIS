@@ -65,6 +65,8 @@ export const organizations = pgTable('organizations', {
     .references(() => organizationTypes.id, { onDelete: 'restrict' }),
   location: text('location'),
   contact: text('contact'),
+  currency: text('currency').default('USD').notNull(),
+  currencyDisplay: text('currency_display').default('symbol').notNull(),
   ...timestamps,
 });
 

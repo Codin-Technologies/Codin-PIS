@@ -539,6 +539,7 @@ export interface RFQListItem {
     createdById: string;
     createdByName: string | null;
     responseCount: number;
+    supplierIds: string[];
 }
 
 export interface RFQ extends RFQListItem {
@@ -886,6 +887,8 @@ export interface Organization {
     organizationType?: OrganizationType;
     location?: string;
     contact?: string;
+    currency: string;
+    currencyDisplay: 'symbol' | 'code';
     users?: { id: string }[];
     createdAt: string;
 }

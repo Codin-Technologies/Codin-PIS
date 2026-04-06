@@ -277,6 +277,17 @@ export function OrgManagement() {
                                             </div>
 
                                             <div>
+                                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Finance & Currency</h4>
+                                                <div className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-4 flex items-center gap-3">
+                                                    <Globe className="w-5 h-5 text-orange-500" />
+                                                    <div>
+                                                        <p className="text-sm font-bold text-orange-900">{viewingOrg.currency} ({viewingOrg.currencyDisplay})</p>
+                                                        <p className="text-xs text-orange-700">Platform-wide standard currency.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Security Domain</h4>
                                                 <div className="bg-blue-50/50 border border-blue-100/50 rounded-2xl p-4 flex items-center gap-3">
                                                     <Globe className="w-5 h-5 text-blue-500" />
