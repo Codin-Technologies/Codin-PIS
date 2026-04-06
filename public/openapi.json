@@ -2022,6 +2022,243 @@
         }
       }
     },
+    "/api/rfq-portal/{token}": {
+      "get": {
+        "summary": "Public supplier RFQ portal payload",
+        "description": "No authentication. Token is the UUID from the invite link path.",
+        "tags": [
+          "RFQ Portal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "status open | expired | closed, or rfq object when open"
+          },
+          "404": {
+            "description": "Invalid token"
+          }
+        }
+      }
+    },
+    "/api/rfq-portal/{token}/submit": {
+      "post": {
+        "summary": "Submit supplier quotation (public)",
+        "tags": [
+          "RFQ Portal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "validityDate",
+                  "paymentTerms",
+                  "incoterms",
+                  "items"
+                ],
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "validityDate": {
+                    "type": "string"
+                  },
+                  "paymentTerms": {
+                    "type": "string"
+                  },
+                  "incoterms": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "requisitionItemId",
+                        "unitPrice",
+                        "leadTime"
+                      ],
+                      "properties": {
+                        "requisitionItemId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "unitPrice": {
+                          "type": "number"
+                        },
+                        "leadTime": {
+                          "type": "string"
+                        },
+                        "remarks": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Validation or expired token"
+          },
+          "404": {
+            "description": "Invalid token"
+          },
+          "409": {
+            "description": "Already submitted"
+          }
+        }
+      }
+    },
+    "/api/rfq-portal/{token}/upload": {
+      "post": {
+        "summary": "Upload quotation attachment (public)",
+        "description": "multipart/form-data field `file`. Call after POST .../submit.",
+        "tags": [
+          "RFQ Portal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Uploaded"
+          },
+          "400": {
+            "description": "Missing file or submit first"
+          },
+          "503": {
+            "description": "Storage not configured"
+          }
+        }
+      }
+    },
+    "/api/rfqs/{id}/broadcast": {
+      "post": {
+        "summary": "Broadcast RFQ to linked suppliers",
+        "description": "Requires rfqs.update. Creates or regenerates per-supplier portal tokens, sends invite emails (Resend),\nsets RFQ status to `sent`, and returns `whatsappLink` strings for the UI (no WhatsApp API call).\n",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-supplier results (portalLink, whatsappLink, emailSent)"
+          },
+          "400": {
+            "description": "No suppliers on RFQ"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "RFQ not found"
+          }
+        }
+      }
+    },
+    "/api/rfqs/{id}/quotations": {
+      "get": {
+        "summary": "List submitted quotations for an RFQ",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quotations with line items and attachments"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "RFQ not found"
+          }
+        }
+      }
+    },
     "/api/rfqs/{id}": {
       "get": {
         "summary": "Get one RFQ with suppliers and line items",
@@ -2392,6 +2629,39 @@
         "responses": {
           "201": {
             "description": "Role created successfully"
+          }
+        }
+      }
+    },
+    "/api/suppliers/{id}/quotations": {
+      "get": {
+        "summary": "List RFQ quotations submitted by a supplier",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quotation summaries"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Supplier not found"
           }
         }
       }

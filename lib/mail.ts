@@ -77,3 +77,58 @@ export async function sendOtpEmail({
     throw error;
   }
 }
+
+export async function sendRFQInviteEmail({
+  to,
+  supplierName,
+  rfqNumber,
+  rfqTitle,
+  issuingCompany,
+  deadline,
+  portalLink,
+}: {
+  to: string;
+  supplierName: string;
+  rfqNumber: string;
+  rfqTitle: string;
+  issuingCompany: string;
+  deadline: string;
+  portalLink: string;
+}) {
+  try {
+    const data = await resend.emails.send({
+      from: "FleetCo <noreply@fleetcotelematics.com>",
+      to,
+      subject: `RFQ ${rfqNumber} — ${rfqTitle}`,
+      html: `
+  <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
+    <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
+      <div style="background:#111827; padding:24px; text-align:center;">
+        <span style="font-size:22px; font-weight:700; color:white;">Request for quotation</span>
+      </div>
+      <div style="padding:32px;">
+        <p style="color:#374151; line-height:1.6;">Hello ${supplierName},</p>
+        <p style="color:#374151; line-height:1.6;">
+          <strong>${issuingCompany}</strong> invites you to submit a quotation for <strong>${rfqTitle}</strong>
+          (<strong>${rfqNumber}</strong>).
+        </p>
+        <p style="color:#374151; line-height:1.6;">Submission deadline: <strong>${deadline}</strong></p>
+        <div style="margin:28px 0; text-align:center;">
+          <a href="${portalLink}" style="display:inline-block; background:#2563eb; color:white; padding:14px 28px; border-radius:10px; text-decoration:none; font-weight:700;">
+            Open RFQ portal
+          </a>
+        </div>
+        <p style="color:#6b7280; font-size:13px; word-break:break-all;">Or copy this link: ${portalLink}</p>
+      </div>
+      <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
+        This link is personal to your organization. Do not forward.
+      </div>
+    </div>
+  </div>`,
+    });
+    return data;
+  } catch (error) {
+    console.error("RFQ invite email failed:", error);
+    throw error;
+  }
+}
