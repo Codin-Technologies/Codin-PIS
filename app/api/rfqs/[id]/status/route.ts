@@ -1,5 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { patchRfqStatus } from './patch';
+
+/**
+ * @swagger
+ * /api/rfqs/{id}/status:
+ *   patch:
+ *     summary: Update RFQ workflow status
+ *     description: Requires rfqs.update. Valid status values — draft, sent, evaluating, awarded, cancelled.
+ *     tags: [Procurement]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [draft, sent, evaluating, awarded, cancelled]
+ *     responses:
+ *       200:
+ *         description: Status updated (data.id, data.status)
+ *       400:
+ *         description: Missing or invalid status
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: RFQ not found
+ *       401:
+ *         description: Unauthorized
+ */
 import { AuthenticatedError, AuthenticatedUser, getAuthenticatedUser } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 

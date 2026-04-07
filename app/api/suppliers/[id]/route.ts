@@ -2,6 +2,108 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupplierById } from './get';
 import { putSupplier } from './put';
 import { deleteSupplier } from './delete';
+
+/**
+ * @swagger
+ * /api/suppliers/{id}:
+ *   get:
+ *     summary: Get one supplier
+ *     description: Requires suppliers.read. User must belong to the supplier's organization.
+ *     tags: [Procurement]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Supplier in data envelope
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     summary: Update a supplier
+ *     description: Requires suppliers.update.
+ *     tags: [Procurement]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *                 nullable: true
+ *               email:
+ *                 type: string
+ *                 nullable: true
+ *               phone:
+ *                 type: string
+ *                 nullable: true
+ *               website:
+ *                 type: string
+ *                 nullable: true
+ *               vatNumber:
+ *                 type: string
+ *                 nullable: true
+ *               paymentTerms:
+ *                 type: string
+ *                 nullable: true
+ *               streetAddress:
+ *                 type: string
+ *                 nullable: true
+ *               status:
+ *                 type: string
+ *                 description: Active | Inactive | Under Review
+ *     responses:
+ *       200:
+ *         description: Updated
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       401:
+ *         description: Unauthorized
+ *   delete:
+ *     summary: Soft-delete a supplier
+ *     description: Requires suppliers.delete.
+ *     tags: [Procurement]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       401:
+ *         description: Unauthorized
+ */
 import { AuthenticatedError, AuthenticatedUser, getAuthenticatedUser } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 

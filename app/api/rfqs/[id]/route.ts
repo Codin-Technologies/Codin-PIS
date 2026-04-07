@@ -1,5 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRfqById } from './get';
+
+/**
+ * @swagger
+ * /api/rfqs/{id}:
+ *   get:
+ *     summary: Get one RFQ with suppliers and line items
+ *     description: |
+ *       Requires rfqs.read. Returns requisition line items (from requisition_items) and invited suppliers.
+ *       User must belong to the RFQ's organization.
+ *     tags: [Procurement]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: RFQ detail in data envelope (suppliers, items, rfqNumber, status, etc.)
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       401:
+ *         description: Unauthorized
+ */
 import { AuthenticatedError, AuthenticatedUser, getAuthenticatedUser } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 

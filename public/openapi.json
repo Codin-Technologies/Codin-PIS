@@ -2022,18 +2022,247 @@
         }
       }
     },
+    "/api/rfqs/{id}": {
+      "get": {
+        "summary": "Get one RFQ with suppliers and line items",
+        "description": "Requires rfqs.read. Returns requisition line items (from requisition_items) and invited suppliers.\nUser must belong to the RFQ's organization.\n",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RFQ detail in data envelope (suppliers, items, rfqNumber, status, etc.)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/rfqs/{id}/status": {
+      "patch": {
+        "summary": "Update RFQ workflow status",
+        "description": "Requires rfqs.update. Valid status values — draft, sent, evaluating, awarded, cancelled.",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "sent",
+                      "evaluating",
+                      "awarded",
+                      "cancelled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated (data.id, data.status)"
+          },
+          "400": {
+            "description": "Missing or invalid status"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "RFQ not found"
+          }
+        }
+      }
+    },
     "/api/rfqs": {
       "get": {
         "summary": "List RFQs for an organization",
+        "description": "Requires rfqs.read. branchId must match the signed-in user's organization.",
         "tags": [
           "Procurement"
-        ]
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "branchId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Organization UUID"
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "draft | sent | evaluating | awarded | cancelled"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by title, rfqNumber, or category"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list (data, total, page, pageSize)"
+          },
+          "400": {
+            "description": "Missing branchId"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
       },
       "post": {
         "summary": "Create an RFQ from an approved requisition",
+        "description": "Requires rfqs.create. requisitionId is required; the requisition must be **approved** and in the same organization.\nLine items are not posted — they are read from the requisition's requisition_items on GET.\nsupplierIds is optional (deduplicated server-side).\n",
         "tags": [
           "Procurement"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "branchId",
+                  "requisitionId",
+                  "title"
+                ],
+                "properties": {
+                  "branchId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "organizationId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "requisitionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "paymentTerms": {
+                    "type": "string"
+                  },
+                  "requiredDelivery": {
+                    "type": "string",
+                    "description": "ISO date e.g. 2026-08-01"
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "description": "Supplier response deadline (ISO or display string)"
+                  },
+                  "supplierIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (data includes suppliers and items from requisition)"
+          },
+          "400": {
+            "description": "Validation error (e.g. requisition not approved or wrong org)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
       }
     },
     "/api/roles/{id}": {
@@ -2167,18 +2396,314 @@
         }
       }
     },
+    "/api/suppliers/{id}": {
+      "get": {
+        "summary": "Get one supplier",
+        "description": "Requires suppliers.read. User must belong to the supplier's organization.",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supplier in data envelope"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a supplier",
+        "description": "Requires suppliers.update.",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "contactPerson": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "email": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "phone": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "website": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "vatNumber": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "paymentTerms": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "streetAddress": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Active | Inactive | Under Review"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Soft-delete a supplier",
+        "description": "Requires suppliers.delete.",
+        "tags": [
+          "Procurement"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
     "/api/suppliers": {
       "get": {
         "summary": "List suppliers for an organization",
+        "description": "Requires suppliers.read. branchId must match the signed-in user's organization.",
         "tags": [
           "Procurement"
-        ]
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "branchId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Organization UUID (same as organizationId)"
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Optional alias for branchId"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by name, category, contact, or email (client-side filter after fetch)"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "e.g. Active, Inactive, Under Review"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list (data, total, page, pageSize)"
+          },
+          "400": {
+            "description": "Missing branchId"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden (wrong org or missing suppliers.read)"
+          }
+        }
       },
       "post": {
         "summary": "Create a supplier",
+        "description": "Requires suppliers.create.",
         "tags": [
           "Procurement"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "branchId",
+                  "name",
+                  "category"
+                ],
+                "properties": {
+                  "branchId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Organization UUID"
+                  },
+                  "organizationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Same as branchId"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Company / supplier name"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "contactPerson": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string"
+                  },
+                  "vatNumber": {
+                    "type": "string"
+                  },
+                  "paymentTerms": {
+                    "type": "string"
+                  },
+                  "streetAddress": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (body includes data supplier object)"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
       }
     },
     "/api/users/{id}": {
