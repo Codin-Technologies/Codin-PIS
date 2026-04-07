@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-import { hasPermission } from '@/lib/rbac/utils';
+import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { POFilters, PaginatedResponse, PurchaseOrder } from '@/lib/api';
 
 export async function listPurchaseOrders(
@@ -21,15 +20,7 @@ export async function listPurchaseOrders(
         throw new Error('Unauthorized');
     }
 
-    // 3. Role-Based Access Check
-    // Depending on schema, check valid permission. If 'purchase_orders.read' doesn't exist, this fails securely.
-    // For this example, we assume `purchase_orders.read` is the correct permission node.
-    const allowed = await hasPermission(user as AuthenticatedUser, 'purchase_orders.read');
-    if (!allowed) {
-        throw new Error('Forbidden: Insufficient permissions to read purchase orders');
-    }
-
-    // 4. Call backend using server-side environment variables
+    // 3. Call backend using server-side environment variables
     const baseUrl = getBaseUrl();
     
     const query = new URLSearchParams({ branchId });

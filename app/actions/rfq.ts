@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-import { hasPermission } from '@/lib/rbac/utils';
+import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { 
     RFQ, 
     RFQListItem, 
@@ -19,13 +18,9 @@ import type {
 async function rfqFetch(
     path: string,
     options: RequestInit,
-    permission: string
 ): Promise<Response> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, permission);
-    if (!allowed) throw new Error(`Forbidden: Insufficient permissions (${permission})`);
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
@@ -60,7 +55,7 @@ export async function getRFQsAction(
         ...(params.pageSize !== undefined ? { pageSize: String(params.pageSize) } : {}),
     });
 
-    const res = await rfqFetch(`/api/rfqs?${query}`, { method: 'GET' }, 'rfqs.read');
+    const res = await rfqFetch(`/api/rfqs?${query}`, { method: 'GET' });
     if (!res.ok) throw new Error(`Failed to fetch RFQs: ${res.statusText}`);
     
     return await res.json();
@@ -79,7 +74,6 @@ export async function createRFQAction(
             method: 'POST', 
             body: JSON.stringify(payload) 
         }, 
-        'rfqs.create'
     );
 
     if (!res.ok) {

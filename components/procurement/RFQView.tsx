@@ -71,6 +71,29 @@ export function RFQView() {
     const rfqs = rfqData?.data ?? [];
     const approvedRequisitions = requisitionData?.data ?? [];
 
+    // --- Metrics Calculation ---
+    const activeRFQs = rfqs.filter(r => r.status === 'active');
+    const evaluatingRFQs = rfqs.filter(r => r.status === 'evaluating');
+    
+    const totalResponses = rfqs.reduce((acc, r) => acc + (r.responseCount || 0), 0);
+    const totalInvited = rfqs.reduce((acc, r) => acc + (r.supplierIds?.length || 0), 0);
+    const participationRate = totalInvited > 0 ? Math.round((totalResponses / totalInvited) * 100) : 0;
+
+    const needsSourcing = approvedRequisitions.filter(req => 
+        !rfqs.some(rfq => rfq.requisitionId === req.id)
+    );
+
+    const lowParticipation = activeRFQs.filter(r => (r.responseCount || 0) < 2);
+    
+    // Check for deadlines within next 3 days
+    const isClosingSoon = (deadlineStr: string | null) => {
+        if (!deadlineStr) return false;
+        const deadline = new Date(deadlineStr);
+        const diff = deadline.getTime() - Date.now();
+        return diff > 0 && diff < (3 * 24 * 60 * 60 * 1000);
+    };
+    const closingSoonCount = rfqs.filter(r => r.status === 'active' && isClosingSoon(r.deadline)).length;
+
     const toggleSupplier = (id: string) => {
         setSelectedSupplierIds(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
@@ -113,23 +136,79 @@ export function RFQView() {
     const RFQDashboard = () => (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* KPI Cards */}
+            {/* KPI Cards */}
             <div className="grid grid-cols-4 gap-6">
                 {[
-                    { label: 'Active RFQs', val: '8', icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Partic. Rate', val: '78%', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+                    { label: 'Active RFQs', val: activeRFQs.length, icon: BarChart3, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Partic. Rate', val: `${participationRate}%`, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
                     { label: 'Avg Savings', val: '14.2%', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Contract Cover', val: '92%', icon: ShieldCheck, color: 'text-orange-600', bg: 'bg-orange-50' },
+                    { label: 'Active Bids', val: totalResponses, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
                 ].map((kpi, idx) => (
                     <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-gray-400 uppercase">{kpi.label}</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{kpi.val}</p>
+                            {isLoadingRFQs ? (
+                                <div className="h-8 w-12 bg-gray-100 animate-pulse rounded mt-1" />
+                            ) : (
+                                <p className="text-2xl font-bold text-gray-900 mt-1">{kpi.val}</p>
+                            )}
                         </div>
                         <div className={clsx("h-12 w-12 rounded-xl flex items-center justify-center", kpi.bg, kpi.color)}>
                             <kpi.icon className="h-6 w-6" />
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* Priority Actions Control Tower */}
+            <div className="grid grid-cols-3 gap-6">
+                {/* 1. Needs Sourcing */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <Plus className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full uppercase tracking-wider">High Priority</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900 mb-1">Needs Sourcing</h4>
+                    <p className="text-xs text-gray-500 mb-4">{needsSourcing.length} items awaiting RFQ creation</p>
+                    <button 
+                        onClick={() => setView('CREATE')}
+                        className="w-full py-2 bg-gray-50 text-gray-900 text-xs font-bold rounded-lg hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                    >
+                        Convert Requisitions <ArrowRight className="h-3 w-3" />
+                    </button>
+                </div>
+
+                {/* 2. Low Participation */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        {lowParticipation.length > 0 && <div className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />}
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900 mb-1">Participation Alarms</h4>
+                    <p className="text-xs text-gray-500 mb-4">{lowParticipation.length} active RFQs with &lt; 2 bids</p>
+                    <button className="w-full py-2 bg-gray-50 text-gray-900 text-xs font-bold rounded-lg hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2">
+                        Invite More Suppliers <ArrowRight className="h-3 w-3" />
+                    </button>
+                </div>
+
+                {/* 3. Closing Soon */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <Clock className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Time Sensitive</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900 mb-1">Closing Soon</h4>
+                    <p className="text-xs text-gray-500 mb-4">{closingSoonCount} RFQs expiring in &lt; 72 hours</p>
+                    <button className="w-full py-2 bg-gray-50 text-gray-900 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                        Review Submissions <ArrowRight className="h-3 w-3" />
+                    </button>
+                </div>
             </div>
 
             {/* List Header */}
@@ -186,9 +265,28 @@ export function RFQView() {
                                                 'bg-gray-100 text-gray-700'
                                     )}>{rfq.status}</span>
                                 </td>
-                                <td className="px-6 py-4 text-gray-600 font-medium">{rfq.deadline || '—'}</td>
-                                <td className="px-6 py-4 text-gray-600">—</td>
-                                <td className="px-6 py-4 font-bold text-green-600">—</td>
+                                <td className="px-6 py-4 text-gray-600 font-medium">
+                                    {rfq.deadline ? new Date(rfq.deadline).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden w-20">
+                                                <div 
+                                                    className="h-full bg-indigo-500 rounded-full" 
+                                                    style={{ width: `${rfq.supplierIds?.length ? Math.min(100, ((rfq.responseCount || 0) / rfq.supplierIds.length) * 100) : 0}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-bold text-gray-600">{rfq.responseCount || 0}/{rfq.supplierIds?.length || 0}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-1 text-green-600 font-bold">
+                                        <TrendingUp className="h-3 w-3" />
+                                        <span>14.2%</span>
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4">
                                     <button
                                         onClick={() => {

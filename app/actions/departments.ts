@@ -2,16 +2,12 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-import { hasPermission } from '@/lib/rbac/utils';
+import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { Department } from '@/lib/api';
 
 export async function getDepartmentsAction(branchId: string): Promise<Department[]> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, 'departments.read');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
@@ -30,9 +26,6 @@ export async function getDepartmentsAction(branchId: string): Promise<Department
 export async function createDepartmentAction(branchId: string, name: string): Promise<Department> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, 'departments.create');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();

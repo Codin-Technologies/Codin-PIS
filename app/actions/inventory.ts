@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-import { hasPermission } from '@/lib/rbac/utils';
+import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { InventoryItem, InventoryFilters, CreateInventoryItemPayload, InventoryAlert } from '@/lib/api';
 
 interface PaginatedResponse<T> { data: T[]; total: number; page: number; pageSize: number; }
@@ -58,9 +57,6 @@ export async function createInventoryItemAction(payload: CreateInventoryItemPayl
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
-
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
@@ -81,9 +77,6 @@ export async function createInventoryItemAction(payload: CreateInventoryItemPayl
 export async function updateInventoryItemAction(id: string, payload: Partial<CreateInventoryItemPayload>): Promise<InventoryItem> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
@@ -106,9 +99,6 @@ export async function deleteInventoryItemAction(id: string): Promise<void> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
 
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
-
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
@@ -124,9 +114,6 @@ export async function deleteInventoryItemAction(id: string): Promise<void> {
 export async function adjustInventoryQuantityAction(id: string, payload: { qtyDelta: number; reason?: string }): Promise<InventoryItem> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();
@@ -227,9 +214,6 @@ export async function getInventoryUsageByIdAction(id: string): Promise<{ data: U
 export async function recordInventoryUsageAction(payload: RecordUsagePayload): Promise<void> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
-    const allowed = await hasPermission(user as AuthenticatedUser, 'inventory.manage');
-    if (!allowed) throw new Error('Forbidden: Insufficient permissions');
 
     const baseUrl = getBaseUrl();
     const cookieStore = await cookies();

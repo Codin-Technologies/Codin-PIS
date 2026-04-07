@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
-import { hasPermission } from '@/lib/rbac/utils';
+import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type {
   BudgetRow,
   CreateBudgetPayload,
@@ -13,15 +12,10 @@ import type {
 async function budgetFetch(
   path: string,
   options: RequestInit,
-  permission: string,
 ): Promise<Response> {
   const user = await getAuthenticatedUser();
   if (!user || (user as AuthenticatedError).message) {
     throw new Error('Unauthorized');
-  }
-  const allowed = await hasPermission(user as AuthenticatedUser, permission);
-  if (!allowed) {
-    throw new Error('Forbidden: insufficient permissions');
   }
   const baseUrl = getBaseUrl();
   const cookieStore = await cookies();
@@ -45,7 +39,7 @@ export async function listBudgetsAction(
   const q = new URLSearchParams({ branchId });
   if (params.departmentId) q.set('departmentId', params.departmentId);
   if (params.fiscalYear) q.set('fiscalYear', params.fiscalYear);
-  const res = await budgetFetch(`/api/budgets?${q}`, { method: 'GET' }, 'budgets.read');
+  const res = await budgetFetch(`/api/budgets?${q}`, { method: 'GET' });
   if (!res.ok) {
     throw new Error(`Failed to list budgets: ${res.statusText}`);
   }
@@ -58,7 +52,7 @@ export async function listBudgetsAction(
  * GET /api/budgets/{id}
  */
 export async function getBudgetAction(id: string): Promise<BudgetRow> {
-  const res = await budgetFetch(`/api/budgets/${id}`, { method: 'GET' }, 'budgets.read');
+  const res = await budgetFetch(`/api/budgets/${id}`, { method: 'GET' });
   if (!res.ok) {
     throw new Error(`Failed to fetch budget ${id}: ${res.statusText}`);
   }
@@ -78,7 +72,6 @@ export async function createBudgetAction(payload: CreateBudgetPayload): Promise<
         branchId,
       }),
     },
-    'budgets.create',
   );
   if (!res.ok) {
     const t = await res.text();
@@ -91,7 +84,6 @@ export async function updateBudgetAction(id: string, payload: UpdateBudgetPayloa
   const res = await budgetFetch(
     `/api/budgets/${id}`,
     { method: 'PUT', body: JSON.stringify(payload) },
-    'budgets.update',
   );
   if (!res.ok) {
     const t = await res.text();
@@ -101,7 +93,7 @@ export async function updateBudgetAction(id: string, payload: UpdateBudgetPayloa
 }
 
 export async function deleteBudgetAction(id: string): Promise<void> {
-  const res = await budgetFetch(`/api/budgets/${id}`, { method: 'DELETE' }, 'budgets.delete');
+  const res = await budgetFetch(`/api/budgets/${id}`, { method: 'DELETE' });
   if (!res.ok) {
     const t = await res.text();
     throw new Error(t || res.statusText);
