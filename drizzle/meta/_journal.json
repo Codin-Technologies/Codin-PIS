@@ -50,6 +50,13 @@
       "when": 1775314000000,
       "tag": "0006_suppliers_rfqs_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775550121497,
+      "tag": "0007_rfq_broadcast",
+      "breakpoints": true
     }
   ]
 }
