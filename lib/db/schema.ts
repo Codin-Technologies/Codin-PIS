@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, primaryKey, integer, numeric, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ─── Shared audit columns ─────────────────────────────────────────────────────
@@ -120,6 +120,7 @@ export const inventoryItems = pgTable('inventory_items', {
   unit: text('unit').notNull().default('pcs'),
   icon: text('icon').notNull().default('📦'),
   minQty: integer('min_qty').notNull().default(10), // threshold for Low/Critical status
+  description: text('description'), // rich spec for supplier RFQ portal
   ...timestamps,
 });
 
@@ -278,6 +279,8 @@ export const rfqs = pgTable('rfqs', {
   requiredDelivery: text('required_delivery'),
   deadline: text('deadline'),
   status: text('status').notNull().default('draft'),
+  description: text('description'),
+  terms: text('terms'),
   ...timestamps,
 });
 
@@ -295,6 +298,77 @@ export const rfqSuppliers = pgTable(
   },
   (t) => [primaryKey({ columns: [t.rfqId, t.supplierId] })],
 );
+
+// ─── 20. RFQ supplier portal tokens (one row per RFQ × supplier) ──────────────
+export const rfqSupplierTokens = pgTable(
+  'rfq_supplier_tokens',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    rfqId: uuid('rfq_id')
+      .notNull()
+      .references(() => rfqs.id, { onDelete: 'cascade' }),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'cascade' }),
+    token: uuid('token').defaultRandom().notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    sentAt: timestamp('sent_at'),
+    usedAt: timestamp('used_at'),
+    ...timestamps,
+  },
+  (t) => [unique().on(t.rfqId, t.supplierId)],
+);
+
+// ─── 21. RFQ quotations (supplier submissions) ─────────────────────────────────
+export const rfqQuotations = pgTable('rfq_quotations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  rfqId: uuid('rfq_id')
+    .notNull()
+    .references(() => rfqs.id, { onDelete: 'cascade' }),
+  supplierId: uuid('supplier_id')
+    .notNull()
+    .references(() => suppliers.id, { onDelete: 'cascade' }),
+  tokenId: uuid('token_id')
+    .notNull()
+    .unique()
+    .references(() => rfqSupplierTokens.id, { onDelete: 'restrict' }),
+  currency: text('currency').notNull().default('USD'),
+  validityDate: text('validity_date').notNull(),
+  paymentTerms: text('payment_terms').notNull(),
+  incoterms: text('incoterms').notNull(),
+  notes: text('notes'),
+  totalAmount: numeric('total_amount', { precision: 14, scale: 2 }),
+  status: text('status').notNull().default('submitted'),
+  submittedAt: timestamp('submitted_at'),
+  ...timestamps,
+});
+
+// ─── 22. RFQ quotation line items ─────────────────────────────────────────────
+export const rfqQuotationItems = pgTable('rfq_quotation_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  quotationId: uuid('quotation_id')
+    .notNull()
+    .references(() => rfqQuotations.id, { onDelete: 'cascade' }),
+  requisitionItemId: uuid('requisition_item_id')
+    .notNull()
+    .references(() => requisitionItems.id, { onDelete: 'restrict' }),
+  unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  leadTime: text('lead_time').notNull(),
+  remarks: text('remarks'),
+  ...timestamps,
+});
+
+// ─── 23. RFQ quotation attachments (supplier uploads) ───────────────────────
+export const rfqQuotationAttachments = pgTable('rfq_quotation_attachments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  quotationId: uuid('quotation_id')
+    .notNull()
+    .references(() => rfqQuotations.id, { onDelete: 'cascade' }),
+  fileName: text('file_name').notNull(),
+  fileUrl: text('file_url').notNull(),
+  fileSize: text('file_size'),
+  ...timestamps,
+});
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const permissionGroupsRelations = relations(permissionGroups, ({ many }) => ({
@@ -442,7 +516,7 @@ export const requisitionsRelations = relations(requisitions, ({ one, many }) => 
   rfqs: many(rfqs),
 }));
 
-export const requisitionItemsRelations = relations(requisitionItems, ({ one }) => ({
+export const requisitionItemsRelations = relations(requisitionItems, ({ one, many }) => ({
   requisition: one(requisitions, {
     fields: [requisitionItems.requisitionId],
     references: [requisitions.id],
@@ -451,6 +525,7 @@ export const requisitionItemsRelations = relations(requisitionItems, ({ one }) =
     fields: [requisitionItems.inventoryItemId],
     references: [inventoryItems.id],
   }),
+  rfqQuotationItems: many(rfqQuotationItems),
 }));
 
 export const suppliersRelations = relations(suppliers, ({ one, many }) => ({
@@ -459,6 +534,8 @@ export const suppliersRelations = relations(suppliers, ({ one, many }) => ({
     references: [organizations.id],
   }),
   rfqSuppliers: many(rfqSuppliers),
+  rfqSupplierTokens: many(rfqSupplierTokens),
+  rfqQuotations: many(rfqQuotations),
 }));
 
 export const rfqsRelations = relations(rfqs, ({ one, many }) => ({
@@ -475,6 +552,8 @@ export const rfqsRelations = relations(rfqs, ({ one, many }) => ({
     references: [requisitions.id],
   }),
   rfqSuppliers: many(rfqSuppliers),
+  supplierTokens: many(rfqSupplierTokens),
+  quotations: many(rfqQuotations),
 }));
 
 export const rfqSuppliersRelations = relations(rfqSuppliers, ({ one }) => ({
@@ -485,5 +564,55 @@ export const rfqSuppliersRelations = relations(rfqSuppliers, ({ one }) => ({
   supplier: one(suppliers, {
     fields: [rfqSuppliers.supplierId],
     references: [suppliers.id],
+  }),
+}));
+
+export const rfqSupplierTokensRelations = relations(rfqSupplierTokens, ({ one }) => ({
+  rfq: one(rfqs, {
+    fields: [rfqSupplierTokens.rfqId],
+    references: [rfqs.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [rfqSupplierTokens.supplierId],
+    references: [suppliers.id],
+  }),
+  quotation: one(rfqQuotations, {
+    fields: [rfqSupplierTokens.id],
+    references: [rfqQuotations.tokenId],
+  }),
+}));
+
+export const rfqQuotationsRelations = relations(rfqQuotations, ({ one, many }) => ({
+  rfq: one(rfqs, {
+    fields: [rfqQuotations.rfqId],
+    references: [rfqs.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [rfqQuotations.supplierId],
+    references: [suppliers.id],
+  }),
+  token: one(rfqSupplierTokens, {
+    fields: [rfqQuotations.tokenId],
+    references: [rfqSupplierTokens.id],
+  }),
+  items: many(rfqQuotationItems),
+  attachments: many(rfqQuotationAttachments),
+}));
+
+export const rfqQuotationItemsRelations = relations(rfqQuotationItems, ({ one }) => ({
+  quotation: one(rfqQuotations, {
+    fields: [rfqQuotationItems.quotationId],
+    references: [rfqQuotations.id],
+  }),
+  requisitionItem: one(requisitionItems, {
+    fields: [rfqQuotationItems.requisitionItemId],
+    references: [requisitionItems.id],
+  }),
+}));
+
+export const rfqQuotationAttachmentsRelations = relations(rfqQuotationAttachments, ({ one }) => ({
+  quotation: one(rfqQuotations, {
+    fields: [rfqQuotationAttachments.quotationId],
+    references: [rfqQuotations.id],
   }),
 }));

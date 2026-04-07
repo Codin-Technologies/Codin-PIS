@@ -16,6 +16,8 @@ export async function postRfq(req: NextRequest, authUser: AuthenticatedUser) {
       requiredDelivery,
       deadline,
       supplierIds,
+      description,
+      terms,
     } = body;
 
     if (!orgId || !requisitionId || !title?.trim()) {
@@ -93,6 +95,8 @@ export async function postRfq(req: NextRequest, authUser: AuthenticatedUser) {
           paymentTerms: paymentTerms?.trim() || null,
           requiredDelivery: requiredDelivery?.trim() || null,
           deadline: deadline?.trim() || null,
+          description: description?.trim() || null,
+          terms: terms?.trim() || null,
           status: 'draft',
         })
         .returning();
@@ -141,11 +145,14 @@ export async function postRfq(req: NextRequest, authUser: AuthenticatedUser) {
           paymentTerms: full.paymentTerms,
           requiredDelivery: full.requiredDelivery,
           deadline: full.deadline,
+          description: full.description,
+          terms: full.terms,
           status: full.status,
           createdAt: full.createdAt?.toISOString?.() ?? String(full.createdAt),
           createdById: full.createdById,
           createdByName: full.createdBy?.fullName ?? null,
           responseCount: full.rfqSuppliers?.length ?? 0,
+          supplierIds: (full.rfqSuppliers ?? []).map((rs) => rs.supplierId),
           suppliers: (full.rfqSuppliers ?? [])
             .map((rs) => rs.supplier)
             .filter(Boolean)

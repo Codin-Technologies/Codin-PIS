@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { patchRfqStatus } from './patch';
+import { getSupplierQuotations } from './get';
 
 /**
  * @swagger
- * /api/rfqs/{id}/status:
- *   patch:
- *     summary: Update RFQ workflow status
- *     description: Requires rfqs.update. Valid status values — draft, sent, evaluating, awarded, cancelled.
+ * /api/suppliers/{id}/quotations:
+ *   get:
+ *     summary: List RFQ quotations submitted by a supplier
  *     tags: [Procurement]
  *     parameters:
  *       - in: path
@@ -15,27 +14,13 @@ import { patchRfqStatus } from './patch';
  *         schema:
  *           type: string
  *           format: uuid
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [draft, sent, evaluating, awarded, cancelled]
  *     responses:
  *       200:
- *         description: Status updated (data.id, data.status)
- *       400:
- *         description: Missing or invalid status
+ *         description: Quotation summaries
  *       403:
  *         description: Forbidden
  *       404:
- *         description: RFQ not found
+ *         description: Supplier not found
  *       401:
  *         description: Unauthorized
  */
@@ -59,9 +44,9 @@ async function assertAuthUser(
   return user as AuthenticatedUser;
 }
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await assertAuthUser(request, 'rfqs.update');
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const user = await assertAuthUser(request, 'suppliers.read');
   if (user instanceof NextResponse) return user;
   const { id } = await context.params;
-  return patchRfqStatus(request, id, user);
+  return getSupplierQuotations(request, id, user);
 }

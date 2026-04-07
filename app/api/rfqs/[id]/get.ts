@@ -47,11 +47,14 @@ export async function getRfqById(req: NextRequest, id: string, authUser: Authent
           paymentTerms: full.paymentTerms,
           requiredDelivery: full.requiredDelivery,
           deadline: full.deadline,
+          description: full.description,
+          terms: full.terms,
           status: full.status,
           createdAt: full.createdAt?.toISOString?.() ?? String(full.createdAt),
           createdById: full.createdById,
           createdByName: full.createdBy?.fullName ?? null,
           responseCount: full.rfqSuppliers?.length ?? 0,
+          supplierIds: (full.rfqSuppliers ?? []).map((rs) => rs.supplierId),
           suppliers: (full.rfqSuppliers ?? [])
             .map((rs) => rs.supplier)
             .filter(Boolean)

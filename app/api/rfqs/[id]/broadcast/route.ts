@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { patchRfqStatus } from './patch';
+import { postBroadcastRfq } from './post';
 
 /**
  * @swagger
- * /api/rfqs/{id}/status:
- *   patch:
- *     summary: Update RFQ workflow status
- *     description: Requires rfqs.update. Valid status values — draft, sent, evaluating, awarded, cancelled.
+ * /api/rfqs/{id}/broadcast:
+ *   post:
+ *     summary: Broadcast RFQ to linked suppliers
+ *     description: |
+ *       Requires rfqs.update. Creates or regenerates per-supplier portal tokens, sends invite emails (Resend),
+ *       sets RFQ status to `sent`, and returns `whatsappLink` strings for the UI (no WhatsApp API call).
  *     tags: [Procurement]
  *     parameters:
  *       - in: path
@@ -15,23 +17,11 @@ import { patchRfqStatus } from './patch';
  *         schema:
  *           type: string
  *           format: uuid
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [draft, sent, evaluating, awarded, cancelled]
  *     responses:
  *       200:
- *         description: Status updated (data.id, data.status)
+ *         description: Per-supplier results (portalLink, whatsappLink, emailSent)
  *       400:
- *         description: Missing or invalid status
+ *         description: No suppliers on RFQ
  *       403:
  *         description: Forbidden
  *       404:
@@ -59,9 +49,9 @@ async function assertAuthUser(
   return user as AuthenticatedUser;
 }
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await assertAuthUser(request, 'rfqs.update');
   if (user instanceof NextResponse) return user;
   const { id } = await context.params;
-  return patchRfqStatus(request, id, user);
+  return postBroadcastRfq(request, id, user);
 }

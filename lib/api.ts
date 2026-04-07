@@ -534,6 +534,8 @@ export interface RFQListItem {
     paymentTerms: string | null;
     requiredDelivery: string | null;
     deadline: string | null;
+    description?: string | null;
+    terms?: string | null;
     status: RfqStatus | string;
     createdAt: string;
     createdById: string;
@@ -562,6 +564,8 @@ export interface CreateRFQPayload {
     requiredDelivery?: string;
     deadline?: string;
     supplierIds?: string[];
+    description?: string;
+    terms?: string;
 }
 
 export async function fetchRFQs(
@@ -591,6 +595,75 @@ export async function updateRFQStatus(id: string, status: RfqStatus | string): P
         body: JSON.stringify({ status }),
     });
     return res.data;
+}
+
+export interface BroadcastResult {
+    supplierId: string;
+    name: string;
+    email: string | null;
+    emailSent: boolean;
+    emailError?: string;
+    phone: string | null;
+    whatsappLink: string | null;
+    portalLink: string;
+}
+
+export async function broadcastRFQ(rfqId: string): Promise<{ data: BroadcastResult[] }> {
+    return apiFetch<{ data: BroadcastResult[] }>(`/api/rfqs/${rfqId}/broadcast`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+    });
+}
+
+export interface RFQQuotationItemRow {
+    requisitionItemId: string;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    leadTime: string;
+    remarks: string | null;
+}
+
+export interface RFQQuotationAttachmentRow {
+    fileName: string;
+    fileUrl: string;
+    fileSize: string | null;
+}
+
+export interface RFQQuotation {
+    id: string;
+    supplierId: string;
+    supplierName: string;
+    currency: string;
+    totalAmount: number | null;
+    validityDate: string;
+    paymentTerms: string;
+    incoterms: string;
+    notes: string | null;
+    submittedAt: string | null;
+    status: string;
+    items: RFQQuotationItemRow[];
+    attachments: RFQQuotationAttachmentRow[];
+}
+
+export async function fetchRFQQuotations(rfqId: string): Promise<{ data: RFQQuotation[] }> {
+    return apiFetch<{ data: RFQQuotation[] }>(`/api/rfqs/${rfqId}/quotations`);
+}
+
+export interface SupplierQuotationSummary {
+    id: string;
+    rfqId: string;
+    rfqNumber: string;
+    rfqTitle: string;
+    currency: string;
+    totalAmount: number | null;
+    paymentTerms: string;
+    submittedAt: string | null;
+    status: string;
+}
+
+export async function fetchSupplierQuotations(supplierId: string): Promise<{ data: SupplierQuotationSummary[] }> {
+    return apiFetch<{ data: SupplierQuotationSummary[] }>(`/api/suppliers/${supplierId}/quotations`);
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
