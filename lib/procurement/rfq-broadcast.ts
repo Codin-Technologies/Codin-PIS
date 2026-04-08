@@ -14,10 +14,22 @@ export function computeTokenExpiresAt(deadlineText: string | null | undefined): 
   return fallback;
 }
 
-/** Digits only for api.whatsapp.com/send?phone= */
+/**
+ * Digits only for api.whatsapp.com/send?phone= (international, no +).
+ * Local numbers starting with 0 are converted using WHATSAPP_DEFAULT_COUNTRY_CODE (default 255, Tanzania).
+ */
 export function phoneToWhatsAppParam(phone: string | null | undefined): string | null {
   if (!phone?.trim()) return null;
-  const digits = phone.replace(/\D/g, '');
+  let digits = phone.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+
+  const ccRaw = process.env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? '255';
+  const cc = ccRaw.replace(/\D/g, '') || '255';
+
+  if (digits.startsWith('0')) {
+    digits = cc + digits.slice(1);
+  }
+
   return digits.length >= 8 ? digits : null;
 }
 
