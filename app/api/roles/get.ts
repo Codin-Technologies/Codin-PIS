@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function getRoles() {
+export async function getRoles(user: AuthenticatedUser) {
   try {
     const allRoles = await db.query.roles.findMany({
+      // TODO: Backend dev MUST add organizationId to roles table and filter here:
+      // where: (table, { eq }) => eq(table.organizationId, user.organizationId),
       with: {
         rolePermissions: {
           with: {

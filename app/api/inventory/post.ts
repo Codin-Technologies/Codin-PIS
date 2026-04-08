@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inventoryItems } from '@/lib/db/schema';
+import { inventoryItems, departments } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function postInventory(req: NextRequest) {
+export async function postInventory(req: NextRequest, user: AuthenticatedUser) {
   try {
     const body = await req.json();
-    const { name, sku, departmentId, qty, unit, icon, minQty, unitCost } = body;
+    const { name, sku, departmentId, qty, unit, icon, minQty } = body;
 
     if (!name || !sku || !departmentId) {
       return NextResponse.json({ message: 'name, sku, and departmentId are required' }, { status: 400 });
+    }
+
+    // Security Check: Verify department belongs to user's organization
+    const dept = await db.query.departments.findFirst({
+      where: and(
+        eq(departments.id, departmentId),
+        eq(departments.organizationId, user.organizationId ?? '')
+      ),
+    });
+
+    if (!dept) {
+      return NextResponse.json({ message: 'Invalid department or access denied' }, { status: 403 });
     }
 
     const [item] = await db

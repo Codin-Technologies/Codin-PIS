@@ -8,7 +8,7 @@ import type { AuthenticatedUser } from '@/lib/auth/utils';
 export async function getSuppliers(req: NextRequest, authUser: AuthenticatedUser) {
   try {
     const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get('organizationId') || searchParams.get('branchId');
+    const organizationId = authUser.organizationId;
     const category = searchParams.get('category');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
@@ -16,14 +16,7 @@ export async function getSuppliers(req: NextRequest, authUser: AuthenticatedUser
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize')) || 20));
 
     if (!organizationId) {
-      return NextResponse.json({ message: 'organizationId or branchId is required' }, { status: 400 });
-    }
-
-    const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, authUser.id),
-    });
-    if (!dbUser || dbUser.organizationId !== organizationId) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
     }
 
     const conditions = [eq(suppliers.organizationId, organizationId), isNull(suppliers.deletedAt)];

@@ -3,11 +3,12 @@ import { db } from '@/lib/db';
 import { requisitions } from '@/lib/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { normalizeRequisitionStatus } from '@/lib/procurement/requisition-status';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function getRequisitions(req: NextRequest) {
+export async function getRequisitions(req: NextRequest, user: AuthenticatedUser) {
   try {
     const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get('organizationId') || searchParams.get('branchId');
+    const organizationId = user.organizationId;
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const deptId = searchParams.get('departmentId') || searchParams.get('dept');
@@ -15,7 +16,7 @@ export async function getRequisitions(req: NextRequest) {
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize')) || 20));
 
     if (!organizationId) {
-      return NextResponse.json({ message: 'organizationId or branchId is required' }, { status: 400 });
+      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
     }
 
     const conditions = [eq(requisitions.organizationId, organizationId), isNull(requisitions.deletedAt)];

@@ -2,18 +2,30 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
+import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { Department } from '@/lib/api';
 
-export async function getDepartmentsAction(branchId: string): Promise<Department[]> {
+async function getSessionUser(): Promise<AuthenticatedUser> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+    const authed = user as AuthenticatedUser;
+    if (!authed.organizationId) throw new Error('Unauthorized: missing organizationId');
+    return authed;
+}
 
-    const baseUrl = getBaseUrl();
+async function getCookieHeader(): Promise<string> {
     const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+    return cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+}
 
-    const res = await fetch(`${baseUrl}/api/departments?organizationId=${branchId}`, {
+export async function getDepartmentsAction(branchId: string): Promise<Department[]> {
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
+    const baseUrl = getBaseUrl();
+
+    // Use session organizationId to enforce org-level isolation
+    const query = new URLSearchParams({ organizationId: user.organizationId!, branchId });
+    const res = await fetch(`${baseUrl}/api/departments?${query}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
     });
@@ -24,12 +36,9 @@ export async function getDepartmentsAction(branchId: string): Promise<Department
 }
 
 export async function createDepartmentAction(branchId: string, name: string): Promise<Department> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/departments`, {
         method: 'POST',
@@ -37,7 +46,8 @@ export async function createDepartmentAction(branchId: string, name: string): Pr
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ organizationId: branchId, name })
+        // Override organizationId with session value
+        body: JSON.stringify({ organizationId: user.organizationId, branchId, name })
     });
 
     if (!res.ok) throw new Error(`Failed to create department: ${res.statusText}`);

@@ -1,21 +1,39 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inventoryItems } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { inventoryItems, departments } from '@/lib/db/schema';
+import { sql, eq, and } from 'drizzle-orm';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function getInventoryAlerts() {
+export async function getInventoryAlerts(user: AuthenticatedUser) {
   try {
-    const alerts = await db.query.inventoryItems.findMany({
-      where: sql`${inventoryItems.qty} <= ${inventoryItems.minQty} * 2`,
-      with: { department: true },
-    });
+    const alerts = await db.select({
+      id: inventoryItems.id,
+      name: inventoryItems.name,
+      sku: inventoryItems.sku,
+      departmentId: inventoryItems.departmentId,
+      qty: inventoryItems.qty,
+      unit: inventoryItems.unit,
+      icon: inventoryItems.icon,
+      minQty: inventoryItems.minQty,
+      description: inventoryItems.description,
+      createdAt: inventoryItems.createdAt,
+      updatedAt: inventoryItems.updatedAt,
+      department: departments,
+    })
+    .from(inventoryItems)
+    .innerJoin(departments, eq(inventoryItems.departmentId, departments.id))
+    .where(and(
+      sql`${inventoryItems.qty} <= ${inventoryItems.minQty} * 2`,
+      eq(departments.organizationId, user.organizationId ?? '')
+    ));
 
     const enriched = alerts
-      .map(({ qty, minQty, ...rest }) => ({
+      .map(({ qty, minQty, department, ...rest }) => ({
         ...rest,
         qty,
         minQty,
         status: qty <= minQty ? 'Critical' : 'Low',
+        dept: department?.name || 'Unknown',
       }))
       .sort((a, b) => (a.status === 'Critical' && b.status !== 'Critical' ? -1 : 1));
 

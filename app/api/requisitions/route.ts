@@ -153,9 +153,9 @@ async function assertAuthUser(
 }
 
 export async function GET(request: NextRequest) {
-  const err = await assertAuth(request, 'requisitions.read');
-  if (err) return err;
-  return getRequisitions(request);
+  const user = await assertAuthUser(request, 'requisitions.read');
+  if (user instanceof NextResponse) return user;
+  return getRequisitions(request, user);
 }
 
 export async function POST(request: NextRequest) {

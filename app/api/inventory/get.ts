@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { inventoryItems, departments } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
 function computeStatus(qty: number, minQty: number): 'Good' | 'Low' | 'Critical' {
   if (qty <= minQty) return 'Critical';
@@ -9,35 +10,41 @@ function computeStatus(qty: number, minQty: number): 'Good' | 'Low' | 'Critical'
   return 'Good';
 }
 
-export async function getInventory(req: NextRequest) {
+export async function getInventory(req: NextRequest, user: AuthenticatedUser) {
   try {
     const { searchParams } = new URL(req.url);
     const departmentId = searchParams.get('departmentId');
-    const organizationId = searchParams.get('organizationId') || searchParams.get('branchId');
+    const organizationId = user.organizationId;
+
+    if (!organizationId) {
+      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
+    }
 
     let items: (typeof inventoryItems.$inferSelect & { department: typeof departments.$inferSelect | null })[];
-    if (organizationId) {
-      // Get all departments for the organization, then get inventory items
-      const orgDepartments = await db.query.departments.findMany({
-        where: eq(departments.organizationId, organizationId),
-      });
+    
+    // Get all departments for the organization to ensure isolation
+    const orgDepartments = await db.query.departments.findMany({
+      where: eq(departments.organizationId, organizationId),
+    });
 
-      const departmentIds = orgDepartments.map(dept => dept.id);
+    const departmentIds = orgDepartments.map(dept => dept.id);
 
-      if (departmentIds.length > 0) {
+    if (departmentIds.length > 0) {
+      // If a specific departmentId is requested, ensure it belongs to the user's organization
+      const targetDeptIds = departmentId 
+        ? departmentIds.filter(id => id === departmentId)
+        : departmentIds;
+
+      if (targetDeptIds.length > 0) {
         items = await db.query.inventoryItems.findMany({
-          where: inArray(inventoryItems.departmentId, departmentIds),
+          where: inArray(inventoryItems.departmentId, targetDeptIds),
           with: { department: true },
         });
       } else {
         items = [];
       }
     } else {
-      // Original logic for department filtering
-      items = await db.query.inventoryItems.findMany({
-        where: departmentId ? eq(inventoryItems.departmentId, departmentId) : undefined,
-        with: { department: true },
-      });
+      items = [];
     }
 
     const enriched = items.map(({ minQty, qty, department, ...rest }) => ({

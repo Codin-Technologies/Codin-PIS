@@ -3,16 +3,17 @@ import { db } from '@/lib/db';
 import { budgets } from '@/lib/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { budgetUtilizationTotals } from '@/lib/procurement/budget-utilization';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function getBudgets(req: NextRequest) {
+export async function getBudgets(req: NextRequest, user: AuthenticatedUser) {
   try {
     const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get('organizationId') || searchParams.get('branchId');
+    const organizationId = user.organizationId;
     const departmentId = searchParams.get('departmentId');
     const fiscalYear = searchParams.get('fiscalYear');
 
     if (!organizationId) {
-      return NextResponse.json({ message: 'organizationId or branchId is required' }, { status: 400 });
+      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
     }
 
     const conditions = [

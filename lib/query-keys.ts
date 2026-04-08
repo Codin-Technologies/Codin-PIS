@@ -19,9 +19,15 @@ export const queryKeys = {
 
     suppliers: (branchId: string, params?: object) =>
         ['suppliers', branchId, params] as const,
+    supplier: (id: string) => ['supplier', id] as const,
+    supplierQuotations: (branchId: string, supplierId: string, params?: object) =>
+        ['supplierQuotations', branchId, supplierId, params] as const,
 
     rfqs: (branchId: string, params?: object) =>
         ['rfqs', branchId, params] as const,
+    rfq: (id: string) => ['rfq', id] as const,
+    rfqQuotations: (branchId: string, rfqId: string, params?: object) =>
+        ['rfqQuotations', branchId, rfqId, params] as const,
 
     reports: (branchId: string, type: string, filters?: object) =>
         ['reports', branchId, type, filters] as const,

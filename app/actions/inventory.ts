@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
+import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type { InventoryItem, InventoryFilters, CreateInventoryItemPayload, InventoryAlert } from '@/lib/api';
 
 interface PaginatedResponse<T> { data: T[]; total: number; page: number; pageSize: number; }
@@ -15,15 +15,25 @@ function flattenParams(params: Record<string, unknown>): Record<string, string> 
     );
 }
 
-export async function getInventoryItemsAction(branchId: string, filters: InventoryFilters = {}): Promise<PaginatedResponse<InventoryItem>> {
+async function getSessionUser(): Promise<AuthenticatedUser> {
     const user = await getAuthenticatedUser();
     if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+    const authed = user as AuthenticatedUser;
+    if (!authed.organizationId) throw new Error('Unauthorized: missing organizationId');
+    return authed;
+}
 
-    const baseUrl = getBaseUrl();
+async function getCookieHeader(): Promise<string> {
     const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+    return cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+}
 
-    const query = new URLSearchParams({ branchId, ...flattenParams(filters) });
+export async function getInventoryItemsAction(branchId: string, filters: InventoryFilters = {}): Promise<PaginatedResponse<InventoryItem>> {
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
+    const baseUrl = getBaseUrl();
+
+    const query = new URLSearchParams({ branchId, organizationId: user.organizationId!, ...flattenParams(filters) });
     const res = await fetch(`${baseUrl}/api/inventory?${query}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
@@ -34,14 +44,12 @@ export async function getInventoryItemsAction(branchId: string, filters: Invento
 }
 
 export async function getInventoryAlertsAction(branchId: string): Promise<InventoryAlert[] | InventoryItem[]> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
-    const res = await fetch(`${baseUrl}/api/inventory/alerts?branchId=${branchId}`, {
+    const query = new URLSearchParams({ branchId, organizationId: user.organizationId! });
+    const res = await fetch(`${baseUrl}/api/inventory/alerts?${query}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
     });
@@ -54,12 +62,9 @@ export async function getInventoryAlertsAction(branchId: string): Promise<Invent
 }
 
 export async function createInventoryItemAction(payload: CreateInventoryItemPayload): Promise<InventoryItem> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/inventory`, {
         method: 'POST',
@@ -67,7 +72,7 @@ export async function createInventoryItemAction(payload: CreateInventoryItemPayl
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...payload, organizationId: user.organizationId })
     });
 
     if (!res.ok) throw new Error(`Failed to create inventory item: ${res.statusText}`);
@@ -75,12 +80,9 @@ export async function createInventoryItemAction(payload: CreateInventoryItemPayl
 }
 
 export async function updateInventoryItemAction(id: string, payload: Partial<CreateInventoryItemPayload>): Promise<InventoryItem> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/inventory/${id}`, {
         method: 'PUT',
@@ -88,7 +90,7 @@ export async function updateInventoryItemAction(id: string, payload: Partial<Cre
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...payload, organizationId: user.organizationId })
     });
 
     if (!res.ok) throw new Error(`Failed to update inventory item: ${res.statusText}`);
@@ -96,12 +98,9 @@ export async function updateInventoryItemAction(id: string, payload: Partial<Cre
 }
 
 export async function deleteInventoryItemAction(id: string): Promise<void> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/inventory/${id}`, {
         method: 'DELETE',
@@ -112,12 +111,9 @@ export async function deleteInventoryItemAction(id: string): Promise<void> {
 }
 
 export async function adjustInventoryQuantityAction(id: string, payload: { qtyDelta: number; reason?: string }): Promise<InventoryItem> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/inventory/${id}`, {
         method: 'PATCH',
@@ -178,14 +174,12 @@ export interface UsageDetail extends Omit<UsageRecord, 'itemsCount'> {
 }
 
 export async function getInventoryUsageAction(branchId: string): Promise<{ data: UsageRecord[]; message: string }> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
-    const res = await fetch(`${baseUrl}/api/inventory/usage?branchId=${branchId}`, {
+    const query = new URLSearchParams({ branchId, organizationId: user.organizationId! });
+    const res = await fetch(`${baseUrl}/api/inventory/usage?${query}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
     });
@@ -195,12 +189,9 @@ export async function getInventoryUsageAction(branchId: string): Promise<{ data:
 }
 
 export async function getInventoryUsageByIdAction(id: string): Promise<{ data: UsageDetail; message: string }> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/inventory/usage/${id}`, {
         method: 'GET',
@@ -212,12 +203,12 @@ export async function getInventoryUsageByIdAction(id: string): Promise<{ data: U
 }
 
 export async function recordInventoryUsageAction(payload: RecordUsagePayload): Promise<void> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+
+    // Always override organizationId with the session value
+    const securePayload = { ...payload, organizationId: user.organizationId };
 
     const res = await fetch(`${baseUrl}/api/inventory/usage`, {
         method: 'POST',
@@ -225,7 +216,7 @@ export async function recordInventoryUsageAction(payload: RecordUsagePayload): P
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(securePayload)
     });
 
     if (!res.ok) {

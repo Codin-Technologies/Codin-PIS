@@ -2,21 +2,27 @@
 
 import { cookies } from 'next/headers';
 import { getBaseUrl } from '@/lib/get-base-url';
-import { getAuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
+import { getAuthenticatedUser, AuthenticatedUser, AuthenticatedError } from '@/lib/auth/utils';
 import type {
   BudgetRow,
   CreateBudgetPayload,
   UpdateBudgetPayload,
 } from '@/lib/api';
 
+async function getSessionUser(): Promise<AuthenticatedUser> {
+  const user = await getAuthenticatedUser();
+  if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+  const authed = user as AuthenticatedUser;
+  if (!authed.organizationId) throw new Error('Unauthorized: missing organizationId');
+  return authed;
+}
+
 async function budgetFetch(
   path: string,
   options: RequestInit,
 ): Promise<Response> {
-  const user = await getAuthenticatedUser();
-  if (!user || (user as AuthenticatedError).message) {
-    throw new Error('Unauthorized');
-  }
+  // Session user validated — organizationId injected per-action below
+  await getSessionUser();
   const baseUrl = getBaseUrl();
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join('; ');
@@ -36,7 +42,8 @@ export async function listBudgetsAction(
   params: { departmentId?: string; fiscalYear?: string } = {},
 ): Promise<BudgetRow[]> {
   if (!branchId) throw new Error('branchId is required');
-  const q = new URLSearchParams({ branchId });
+  const user = await getSessionUser();
+  const q = new URLSearchParams({ branchId, organizationId: user.organizationId! });
   if (params.departmentId) q.set('departmentId', params.departmentId);
   if (params.fiscalYear) q.set('fiscalYear', params.fiscalYear);
   const res = await budgetFetch(`/api/budgets?${q}`, { method: 'GET' });
@@ -61,14 +68,16 @@ export async function getBudgetAction(id: string): Promise<BudgetRow> {
 }
 
 export async function createBudgetAction(payload: CreateBudgetPayload): Promise<unknown> {
-  const { branchId, organizationId, ...rest } = payload;
+  const user = await getSessionUser();
+  const { branchId, ...rest } = payload;
   const res = await budgetFetch(
     '/api/budgets',
     {
       method: 'POST',
       body: JSON.stringify({
         ...rest,
-        organizationId: organizationId ?? branchId,
+        // Always use the session's organizationId, not the client-provided value
+        organizationId: user.organizationId,
         branchId,
       }),
     },
@@ -81,9 +90,11 @@ export async function createBudgetAction(payload: CreateBudgetPayload): Promise<
 }
 
 export async function updateBudgetAction(id: string, payload: UpdateBudgetPayload): Promise<unknown> {
+  const user = await getSessionUser();
+  // Enforce organizationId from session in update payload
   const res = await budgetFetch(
     `/api/budgets/${id}`,
-    { method: 'PUT', body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify({ ...payload, organizationId: user.organizationId }) },
   );
   if (!res.ok) {
     const t = await res.text();

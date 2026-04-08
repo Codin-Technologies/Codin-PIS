@@ -8,7 +8,7 @@ import { supplierToDto } from '@/lib/procurement/supplier-dto';
 export async function postSupplier(req: NextRequest, authUser: AuthenticatedUser) {
   try {
     const body = await req.json();
-    const orgId = body.organizationId || body.branchId;
+    const organizationId = authUser.organizationId;
     const {
       name,
       category,
@@ -21,18 +21,15 @@ export async function postSupplier(req: NextRequest, authUser: AuthenticatedUser
       streetAddress,
     } = body;
 
-    if (!orgId || !name?.trim() || !category?.trim()) {
-      return NextResponse.json(
-        { message: 'organizationId (or branchId), name, and category are required' },
-        { status: 400 },
-      );
+    if (!organizationId) {
+      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
     }
 
-    const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, authUser.id),
-    });
-    if (!dbUser || dbUser.organizationId !== orgId) {
-      return NextResponse.json({ message: 'User does not belong to this organization' }, { status: 403 });
+    if (!name?.trim() || !category?.trim()) {
+      return NextResponse.json(
+        { message: 'name and category are required' },
+        { status: 400 },
+      );
     }
 
     const [row] = await db

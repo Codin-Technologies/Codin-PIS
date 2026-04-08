@@ -11,6 +11,19 @@ import type {
     RequisitionStatus
 } from '@/lib/api';
 
+async function getSessionUser(): Promise<AuthenticatedUser> {
+    const user = await getAuthenticatedUser();
+    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+    const authed = user as AuthenticatedUser;
+    if (!authed.organizationId) throw new Error('Unauthorized: missing organizationId');
+    return authed;
+}
+
+async function getCookieHeader(): Promise<string> {
+    const cookieStore = await cookies();
+    return cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+}
+
 /**
  * createRequisitionAction
  * POST /api/requisitions
@@ -22,12 +35,9 @@ export async function createRequisitionAction(
         throw new Error('Invalid requisition payload: branchId, departmentId, and items are required');
     }
 
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/requisitions`, {
         method: 'POST',
@@ -36,7 +46,8 @@ export async function createRequisitionAction(
             'Cookie': cookieHeader,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        // Override organizationId with session value to prevent spoofing
+        body: JSON.stringify({ ...payload, organizationId: user.organizationId })
     });
 
     if (!res.ok) {
@@ -46,7 +57,7 @@ export async function createRequisitionAction(
     }
 
     const json = (await res.json()) as { data: Requisition };
-    console.log(`[AUDIT] User ${(user as AuthenticatedUser).id} created requisition`);
+    console.log(`[AUDIT] User ${user.id} created requisition`);
     return json.data;
 }
 
@@ -58,11 +69,12 @@ export async function getRequisitionsAction(
     branchId: string,
     params: RequisitionFilters = {}
 ): Promise<PaginatedResponse<Requisition>> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
+    const user = await getSessionUser();
+    const cookieHeader = await getCookieHeader();
 
     const query = new URLSearchParams({
         branchId,
+        organizationId: user.organizationId!,
         ...(params.status && params.status !== 'All' ? { status: params.status.toLowerCase() } : {}),
         ...(params.search ? { search: params.search } : {}),
         ...(params.departmentId ? { departmentId: params.departmentId } : {}),
@@ -71,9 +83,6 @@ export async function getRequisitionsAction(
     });
 
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
-
     const res = await fetch(`${baseUrl}/api/requisitions?${query}`, {
         method: 'GET',
         headers: { 'Cookie': cookieHeader }
@@ -88,12 +97,9 @@ export async function getRequisitionsAction(
  * GET /api/requisitions/{id}
  */
 export async function getRequisitionAction(id: string): Promise<Requisition> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/requisitions/${id}`, {
         method: 'GET',
@@ -113,12 +119,9 @@ export async function updateRequisitionStatusAction(
     id: string,
     status: RequisitionStatus
 ): Promise<Requisition> {
-    const user = await getAuthenticatedUser();
-    if (!user || (user as AuthenticatedError).message) throw new Error('Unauthorized');
-
+    await getSessionUser();
+    const cookieHeader = await getCookieHeader();
     const baseUrl = getBaseUrl();
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
 
     const res = await fetch(`${baseUrl}/api/requisitions/${id}/status`, {
         method: 'PATCH',

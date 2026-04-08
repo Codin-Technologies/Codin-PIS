@@ -310,7 +310,8 @@ export function SuppliersView() {
             <SupplierDetailModal
                 isOpen={!!selectedSupplierForDetail}
                 onClose={() => setSelectedSupplierForDetail(null)}
-                supplier={suppliers.find(s => s.id === selectedSupplierForDetail) || null}
+                supplierId={selectedSupplierForDetail}
+                onDeleted={() => setSelectedSupplierForDetail(null)}
             />
         </div>
     );

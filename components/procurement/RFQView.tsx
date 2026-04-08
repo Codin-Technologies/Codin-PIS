@@ -10,34 +10,22 @@ import {
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import { useRFQs, useCreateRFQ } from '@/hooks/useRFQs';
+import {
+    useRFQs,
+    useCreateRFQ,
+    useRFQ,
+    useRFQQuotations,
+    useBroadcastRFQ,
+    useUpdateRFQStatus,
+} from '@/hooks/useRFQs';
 import { useRequisitions } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
 import { useCurrency } from '@/hooks/useCurrency';
-import type { CreateRFQPayload } from '@/lib/api';
+import { ErrorState } from '@/components/ui/error-state';
+import type { CreateRFQPayload, RfqStatus } from '@/lib/api';
 
 // --- Types ---
 type ViewState = 'DASHBOARD' | 'CREATE' | 'COMPARE';
-
-// --- Mock Data ---
-const MOCK_RFQS = [
-    { id: 'RFQ-2026-001', title: 'Q1 Bulk Beef Procurement', status: 'Active', closingIn: '2 days', participation: '3/5', savings: '-', items: 4 },
-    { id: 'RFQ-2026-002', title: 'Cleaning Supplies Annual Contract', status: 'Evaluating', closingIn: 'Closed', participation: '4/4', savings: '12%', items: 15 },
-    { id: 'RFQ-2026-003', title: 'Kitchen Equipment Upgrade', status: 'Draft', closingIn: '-', participation: '-', savings: '-', items: 2 },
-];
-
-const MOCK_SUPPLIERS = [
-    { id: 1, name: 'Premium Foods Ltd', score: 98, status: 'Preferred' },
-    { id: 2, name: 'Global Provisions', score: 85, status: 'Approved' },
-    { id: 3, name: 'Local Farmers Co-op', score: 92, status: 'Preferred' },
-    { id: 4, name: 'Budget Supplies Inc', score: 71, status: 'Condtional' },
-];
-
-const MOCK_QUOTES = [
-    { supplierId: 1, supplierName: 'Premium Foods Ltd', price: 12500, leadTime: '2 Days', quality: 'High', risk: 'Low', rank: 1, recommended: true },
-    { supplierId: 2, supplierName: 'Global Provisions', price: 11800, leadTime: '5 Days', quality: 'Med', risk: 'Med', rank: 2, recommended: false },
-    { supplierId: 3, supplierName: 'Local Farmers Co-op', price: 13000, leadTime: '1 Day', quality: 'High', risk: 'Low', rank: 3, recommended: false },
-];
 
 export function RFQView() {
     const { branchId } = useBranch();
@@ -66,6 +54,15 @@ export function RFQView() {
 
     // Mutation
     const createRFQMutation = useCreateRFQ(branchId);
+    const updateStatusMutation = useUpdateRFQStatus(branchId);
+    const broadcastMutation = useBroadcastRFQ(branchId);
+    const { data: selectedRfqData } = useRFQ(selectedRfq);
+    const {
+        data: quotationData,
+        isLoading: isLoadingQuotations,
+        isError: isQuotationError,
+        error: quotationError,
+    } = useRFQQuotations(branchId, selectedRfq);
 
     const suppliers = supplierData?.data ?? [];
     const rfqs = rfqData?.data ?? [];
@@ -129,6 +126,14 @@ export function RFQView() {
                 setSelectedSupplierIds([]);
             },
         });
+    };
+
+    const handleStatusChange = (id: string, status: RfqStatus) => {
+        updateStatusMutation.mutate({ id, status });
+    };
+
+    const handleBroadcast = (id: string) => {
+        broadcastMutation.mutate(id);
     };
 
     // --- Sub-Components ---
@@ -290,14 +295,12 @@ export function RFQView() {
                                 <td className="px-6 py-4">
                                     <button
                                         onClick={() => {
-                                            if (rfq.status === 'evaluating') {
-                                                setSelectedRfq(rfq.id);
-                                                setView('COMPARE');
-                                            }
+                                            setSelectedRfq(rfq.id);
+                                            setView('COMPARE');
                                         }}
                                         className="text-blue-600 hover:text-blue-800 font-bold text-xs"
                                     >
-                                        {rfq.status === 'evaluating' ? 'Compare Quotes' : 'Manage'}
+                                        Manage
                                     </button>
                                 </td>
                             </tr>
@@ -462,7 +465,12 @@ export function RFQView() {
         </div>
     );
 
-    const QuoteComparison = () => (
+    const QuoteComparison = () => {
+        const currentRfq = selectedRfqData;
+        const broadcastResults = broadcastMutation.data ?? [];
+        const tokenFromLink = (portalLink: string) => portalLink.split('/').filter(Boolean).pop() ?? 'N/A';
+
+        return (
         <div className="space-y-6 animate-in slide-in-from-right duration-300">
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
@@ -470,10 +478,68 @@ export function RFQView() {
                     <ArrowRight className="h-6 w-6 rotate-180 text-gray-500" />
                 </button>
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">Quote Comparison Engine</h2>
-                    <p className="text-xs text-gray-500">Evaluating: {selectedRfq || 'Annual Contract'}</p>
+                    <h2 className="text-xl font-bold text-gray-900">RFQ Manage Center</h2>
+                    <p className="text-xs text-gray-500">{currentRfq?.rfqNumber || selectedRfq || 'RFQ'}</p>
                 </div>
             </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex items-center gap-3">
+                <button
+                    onClick={() => currentRfq?.id && handleStatusChange(currentRfq.id, 'sent')}
+                    disabled={!currentRfq?.id || updateStatusMutation.isPending}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-50"
+                >
+                    Mark Sent
+                </button>
+                <button
+                    onClick={() => currentRfq?.id && handleBroadcast(currentRfq.id)}
+                    disabled={!currentRfq?.id || broadcastMutation.isPending}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-2"
+                >
+                    {broadcastMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Broadcast RFQ
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3">Suppliers Linked to RFQ</h4>
+                    {!currentRfq?.suppliers?.length ? (
+                        <p className="text-sm text-gray-500">No suppliers linked.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {currentRfq.suppliers.map((s) => (
+                                <div key={s.id} className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                    <p className="text-sm font-semibold text-gray-900">{s.name}</p>
+                                    <p className="text-xs text-gray-500">{s.email || s.phone || 'No contact'}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3">Broadcast Tokens</h4>
+                    {!broadcastResults.length ? (
+                        <p className="text-sm text-gray-500">No broadcast run yet for this session.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {broadcastResults.map((result) => (
+                                <div key={result.supplierId} className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                    <p className="text-sm font-semibold text-gray-900">{result.name}</p>
+                                    <p className="text-xs text-gray-600 font-mono break-all">
+                                        Token: {tokenFromLink(result.portalLink)}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {isQuotationError && (
+                <ErrorState title="Quotations unavailable" error={quotationError as Error} />
+            )}
 
             {/* Comparison Table */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -488,9 +554,20 @@ export function RFQView() {
                     </div>
 
                     {/* Supplier Columns */}
-                    {MOCK_QUOTES.map((quote, idx) => (
+                    {isLoadingQuotations && (
+                        <div className="col-span-3 p-10 text-center text-gray-400">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                            Loading quotations...
+                        </div>
+                    )}
+                    {!isLoadingQuotations && (quotationData?.data ?? []).length === 0 && (
+                        <div className="col-span-3 p-10 text-center text-gray-400">
+                            No quotations submitted yet for this RFQ.
+                        </div>
+                    )}
+                    {!isLoadingQuotations && (quotationData?.data ?? []).map((quote, idx) => (
                         <div key={idx} className={clsx("p-6 flex flex-col relative border-r border-gray-100 last:border-0", quote.recommended ? 'bg-blue-50/30' : '')}>
-                            {quote.recommended && (
+                            {idx === 0 && (
                                 <div className="absolute top-0 left-0 right-0 bg-blue-600 text-white text-[10px] uppercase font-bold text-center py-1">
                                     System Recommendation
                                 </div>
@@ -499,7 +576,7 @@ export function RFQView() {
                             {/* Header */}
                             <div className="text-center mb-8 mt-4">
                                 <h3 className="font-bold text-lg text-gray-900">{quote.supplierName}</h3>
-                                <div className="text-xs text-gray-500 mb-4">Rank #{quote.rank}</div>
+                                <div className="text-xs text-gray-500 mb-4">Quote #{idx + 1}</div>
                                 <button className="w-full py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold hover:bg-gray-50">
                                     View Full Quote
                                 </button>
@@ -508,31 +585,35 @@ export function RFQView() {
                             {/* Metrics */}
                             <div className="flex flex-col gap-6">
                                 <div className="h-8 flex items-center justify-center font-bold text-xl text-gray-900">
-                                    {f(quote.price)}
+                                    {f(Number(quote.totalAmount ?? 0))}
                                 </div>
                                 <div className="h-8 flex items-center justify-center font-medium text-gray-700">
-                                    {quote.leadTime}
+                                    {quote.items[0]?.leadTime ?? 'N/A'}
                                 </div>
                                 <div className="h-8 flex items-center justify-center">
-                                    <span className={clsx("px-2 py-1 rounded text-xs font-bold",
-                                        quote.quality === 'High' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                    )}>{quote.quality}</span>
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-700">
+                                        {quote.currency || 'N/A'}
+                                    </span>
                                 </div>
                                 <div className="h-8 flex items-center justify-center">
-                                    <span className={clsx("px-2 py-1 rounded text-xs font-bold",
-                                        quote.risk === 'Low' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                    )}>{quote.risk}</span>
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-700">
+                                        {quote.status}
+                                    </span>
                                 </div>
                             </div>
 
                             {/* Action */}
                             <div className="mt-8">
-                                <button onClick={() => {
-                                    alert(`Bid Awarded to ${quote.supplierName}! Purchase Order Generated.`);
-                                    setView('DASHBOARD');
-                                }} className={clsx("w-full py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95",
-                                    quote.recommended ? 'bg-[#2a2b2d] text-white hover:bg-gray-800' : 'bg-white border text-gray-700 hover:bg-gray-50'
-                                )}>
+                                <button
+                                    onClick={() => {
+                                        if (!selectedRfqData?.id) return;
+                                        handleStatusChange(selectedRfqData.id, 'awarded');
+                                        setView('DASHBOARD');
+                                    }}
+                                    className={clsx("w-full py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95",
+                                        idx === 0 ? 'bg-[#2a2b2d] text-white hover:bg-gray-800' : 'bg-white border text-gray-700 hover:bg-gray-50'
+                                    )}
+                                >
                                     <div className="flex items-center justify-center gap-2">
                                         <Award className="h-4 w-4" />
                                         Award Contract
@@ -545,6 +626,7 @@ export function RFQView() {
             </div>
         </div>
     );
+    };
 
     return (
         <div className="h-full">

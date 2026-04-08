@@ -8,45 +8,33 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
-import { useRFQs } from '@/hooks/useRFQs';
+import { useSupplier, useSupplierQuotations, useDeleteSupplier } from '@/hooks/useSuppliers';
 import { useBranch } from '@/hooks/useBranch';
 import { useCurrency } from '@/hooks/useCurrency';
-import type { Supplier } from '@/lib/api';
+import { ErrorState } from '@/components/ui/error-state';
 
 interface SupplierDetailModalProps {
-    supplier: Supplier | null;
+    supplierId: string | null;
     isOpen: boolean;
     onClose: () => void;
+    onDeleted?: () => void;
 }
 
-export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetailModalProps) {
+export function SupplierDetailModal({ supplierId, isOpen, onClose, onDeleted }: SupplierDetailModalProps) {
     const { branchId } = useBranch();
     const { format: f } = useCurrency();
-    const { data: rfqData, isLoading: isLoadingRFQs } = useRFQs(branchId);
+    const { data: supplier, isLoading: isLoadingSupplier, isError: isSupplierError, error: supplierError } =
+        useSupplier(supplierId);
+    const {
+        data: quotationData,
+        isLoading: isLoadingQuotations,
+        isError: isQuotationError,
+        error: quotationError,
+    } = useSupplierQuotations(branchId, supplierId, { page: 1, pageSize: 20 });
+    const deleteSupplierMutation = useDeleteSupplier(branchId);
 
-    if (!supplier) return null;
-
-    const supplierRFQs = (rfqData?.data || []).filter(rfq => 
-        rfq.supplierIds?.includes(supplier.id)
-    );
-
-    // Mock response data generator based on RFQ status and supplier ID
-    const getMockResponse = (rfqId: string) => {
-        const hash = rfqId.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
-        const states = ['Submitted', 'Awaiting Quote', 'Declined', 'Draft'];
-        const state = states[Math.abs(hash) % states.length];
-        
-        if (state === 'Submitted') {
-            const baseValue = 5000 + (Math.abs(hash) % 15000);
-            return {
-                status: 'Submitted',
-                value: baseValue,
-                leadTime: (Math.abs(hash) % 10) + 3 + ' days',
-                date: new Date(Date.now() - (Math.abs(hash) % 86400000 * 5)).toLocaleDateString()
-            };
-        }
-        return { status: state };
-    };
+    if (!supplierId) return null;
+    const supplierQuotes = quotationData?.data ?? [];
 
     return (
         <AnimatePresence>
@@ -71,7 +59,7 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                         <div className="bg-white border-b border-gray-100 p-8">
                             <div className="flex justify-between items-start mb-6">
                                 <div className="h-16 w-16 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
-                                    <span className="text-2xl font-bold text-gray-400">{supplier.name.charAt(0)}</span>
+                                    <span className="text-2xl font-bold text-gray-400">{supplier?.name?.charAt(0) ?? '—'}</span>
                                 </div>
                                 <button 
                                     onClick={onClose}
@@ -81,6 +69,11 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                 </button>
                             </div>
 
+                            {isLoadingSupplier ? (
+                                <div className="h-7 w-52 rounded bg-gray-100 animate-pulse" />
+                            ) : isSupplierError ? (
+                                <ErrorState title="Supplier unavailable" error={supplierError as Error} />
+                            ) : supplier ? (
                             <div className="flex items-center gap-3 mb-2">
                                 <h2 className="text-2xl font-black text-gray-900 tracking-tight">{supplier.name}</h2>
                                 {supplier.status === 'Active' && (
@@ -89,8 +82,9 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                     </span>
                                 )}
                             </div>
+                            ) : null}
                             
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-6">
+                            {supplier && <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-6">
                                 <span className="flex items-center gap-1.5 font-medium"><Building2 className="h-4 w-4 text-gray-400" /> {supplier.category}</span>
                                 <span className="flex items-center gap-1.5 font-medium"><MapPin className="h-4 w-4 text-gray-400" /> {supplier.location}</span>
                                 <span className="flex items-center gap-1.5 font-medium">
@@ -98,9 +92,9 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                     <span className="text-gray-900 font-bold">{supplier.rating}</span> 
                                     <span className="text-gray-400">Score</span>
                                 </span>
-                            </div>
+                            </div>}
 
-                            <div className="grid grid-cols-3 gap-4">
+                            {supplier && <div className="grid grid-cols-3 gap-4">
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total Spend</p>
                                     <p className="text-lg font-black text-gray-900">{f(supplier.spend)}</p>
@@ -119,9 +113,9 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Recent RFQs</p>
-                                    <p className="text-lg font-black text-gray-900">{supplierRFQs.length}</p>
+                                    <p className="text-lg font-black text-gray-900">{supplierQuotes.length}</p>
                                 </div>
-                            </div>
+                            </div>}
                         </div>
 
                         {/* Content Body */}
@@ -138,14 +132,14 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                             <Mail className="h-4 w-4 text-gray-300" />
                                             <div>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Email</p>
-                                                <p className="text-gray-900 font-medium">contact@{supplier.name.toLowerCase().replace(/\s/g, '')}.com</p>
+                                                <p className="text-gray-900 font-medium">{supplier?.email || 'N/A'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <Phone className="h-4 w-4 text-gray-300" />
                                             <div>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Phone</p>
-                                                <p className="text-gray-900 font-medium">+255 784 000 000</p>
+                                                <p className="text-gray-900 font-medium">{supplier?.phone || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -154,7 +148,7 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                             <Globe className="h-4 w-4 text-gray-300" />
                                             <div>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Website</p>
-                                                <p className="text-gray-900 font-medium">www.{supplier.name.toLowerCase().replace(/\s/g, '')}.com</p>
+                                                <p className="text-gray-900 font-medium">{supplier?.website || 'N/A'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -175,70 +169,55 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                                         <Clock className="h-3 text-orange-400" />
                                         Sourcing Activity
                                     </h3>
-                                    <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{supplierRFQs.length} total events</span>
+                                    <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{supplierQuotes.length} total events</span>
                                 </div>
 
                                 <div className="space-y-3">
-                                    {isLoadingRFQs ? (
+                                    {isLoadingQuotations ? (
                                         <div className="text-center py-12">
                                             <Clock className="h-8 w-8 text-gray-200 animate-spin mx-auto mb-2" />
                                             <p className="text-sm text-gray-400">Loading sourcing history...</p>
                                         </div>
-                                    ) : supplierRFQs.length === 0 ? (
+                                    ) : isQuotationError ? (
+                                        <ErrorState title="Quotation history unavailable" error={quotationError as Error} />
+                                    ) : supplierQuotes.length === 0 ? (
                                         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
                                             <FileText className="h-8 w-8 text-gray-200 mx-auto mb-2" />
                                             <p className="text-sm text-gray-500">No RFQs sent to this supplier yet.</p>
                                         </div>
                                     ) : (
-                                        supplierRFQs.map(rfq => {
-                                            const response = getMockResponse(rfq.id);
-                                            return (
-                                                <div key={rfq.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-gray-300 transition-all">
+                                        supplierQuotes.map((quote) => (
+                                                <div key={quote.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-gray-300 transition-all">
                                                     <div className="flex items-center gap-4">
                                                         <div className={clsx(
                                                             "h-10 w-10 rounded-xl flex items-center justify-center",
-                                                            rfq.status === 'active' ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'
+                                                            quote.status === 'submitted' ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'
                                                         )}>
                                                             <FileText className="h-5 w-5" />
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-sm font-bold text-gray-900">{rfq.title}</p>
+                                                                <p className="text-sm font-bold text-gray-900">{quote.rfqTitle}</p>
                                                                 <span className={clsx(
                                                                     "text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter",
-                                                                    rfq.status === 'active' ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
-                                                                )}>{rfq.status}</span>
+                                                                    quote.status === 'submitted' ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                                                                )}>{quote.status}</span>
                                                             </div>
-                                                            <p className="text-[10px] text-gray-500 mt-0.5">{rfq.rfqNumber} • Sent on {new Date(rfq.createdAt).toLocaleDateString()}</p>
+                                                            <p className="text-[10px] text-gray-500 mt-0.5">{quote.rfqNumber} • Submitted on {quote.submittedAt ? new Date(quote.submittedAt).toLocaleDateString() : 'N/A'}</p>
                                                         </div>
                                                     </div>
 
                                                     <div className="text-right">
-                                                        {response.status === 'Submitted' ? (
-                                                            <div>
-                                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center justify-end gap-1">
-                                                                    <CheckCircle2 className="h-3 w-3" /> Submitted
-                                                                </p>
-                                                                <p className="text-sm font-black text-gray-900 mt-1">{f(response.value!)}</p>
-                                                                <p className="text-[9px] text-gray-400 mt-0.5">Lead time: {response.leadTime}</p>
-                                                            </div>
-                                                        ) : response.status === 'Awaiting Quote' ? (
-                                                            <div>
-                                                                <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center justify-end gap-1">
-                                                                    <Clock className="h-3 w-3" /> Awaiting Quote
-                                                                </p>
-                                                                <p className="text-[10px] text-gray-400 mt-1">Due in 2 days</p>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2 text-gray-400 opacity-50">
-                                                                <p className="text-[10px] font-bold uppercase tracking-widest">{response.status}</p>
-                                                                <AlertCircle className="h-4 w-4" />
-                                                            </div>
-                                                        )}
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center justify-end gap-1">
+                                                                <CheckCircle2 className="h-3 w-3" /> Submitted
+                                                            </p>
+                                                            <p className="text-sm font-black text-gray-900 mt-1">{f(Number(quote.totalAmount ?? 0))}</p>
+                                                            <p className="text-[9px] text-gray-400 mt-0.5">{quote.currency}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            );
-                                        })
+                                        ))
                                     )}
                                 </div>
                             </section>
@@ -253,6 +232,20 @@ export function SupplierDetailModal({ supplier, isOpen, onClose }: SupplierDetai
                             <div className="flex gap-3">
                                 <button className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors">
                                     Send Email
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (!supplier?.id) return;
+                                        deleteSupplierMutation.mutate(supplier.id, {
+                                            onSuccess: () => {
+                                                onDeleted?.();
+                                                onClose();
+                                            },
+                                        });
+                                    }}
+                                    className="px-5 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                    Remove Supplier
                                 </button>
                                 <button className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black transition-colors shadow-lg shadow-black/10 flex items-center gap-2">
                                     Download Profile

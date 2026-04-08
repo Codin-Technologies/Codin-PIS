@@ -37,23 +37,23 @@ import { hasPermission } from '@/lib/rbac/utils';
  */
 
 // ── Real handlers with RBAC ───────────────────────────────────────────────────
-async function assertAuth(request: NextRequest, permission: string) {
+async function getUserContext(request: NextRequest, permission: string): Promise<NextResponse | AuthenticatedUser> {
   const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ message: 'Unauthorized Please login' }, { status: 401 });
   if ((user as AuthenticatedError).message) return NextResponse.json({ message: (user as AuthenticatedError).message }, { status: 400 });
   const allowed = await hasPermission(user as AuthenticatedUser, permission);
   if (!allowed) return NextResponse.json({ timestamp: new Date(), success: false, message: 'Forbidden!! Contact Administrator' }, { status: 403 });
-  return null;
+  return user as AuthenticatedUser;
 }
 
 export async function GET(request: NextRequest) {
-  const err = await assertAuth(request, 'roles.read');
-  if (err) return err;
-  return getRoles();
+  const user = await getUserContext(request, 'roles.read');
+  if (user instanceof NextResponse) return user;
+  return getRoles(user);
 }
 
 export async function POST(request: NextRequest) {
-  const err = await assertAuth(request, 'roles.create');
-  if (err) return err;
-  return postRole(request);
+  const user = await getUserContext(request, 'roles.create');
+  if (user instanceof NextResponse) return user;
+  return postRole(request, user);
 }

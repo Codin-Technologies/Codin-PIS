@@ -17,17 +17,17 @@ import { hasPermission } from '@/lib/rbac/utils';
  *         description: List of low/critical stock items with computed status
  */
 
-async function assertAuth(request: NextRequest, permission: string) {
+async function getUserContext(request: NextRequest, permission: string): Promise<NextResponse | AuthenticatedUser> {
   const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ message: 'Unauthorized Please login' }, { status: 401 });
   if ((user as AuthenticatedError).message) return NextResponse.json({ message: (user as AuthenticatedError).message }, { status: 400 });
   const allowed = await hasPermission(user as AuthenticatedUser, permission);
   if (!allowed) return NextResponse.json({ timestamp: new Date(), success: false, message: 'Forbidden!! Contact Administrator' }, { status: 403 });
-  return null;
+  return user as AuthenticatedUser;
 }
 
 export async function GET(request: NextRequest) {
-  const err = await assertAuth(request, 'inventory.read');
-  if (err) return err;
-  return getInventoryAlerts();
+  const user = await getUserContext(request, 'inventory.read');
+  if (user instanceof NextResponse) return user;
+  return getInventoryAlerts(user);
 }

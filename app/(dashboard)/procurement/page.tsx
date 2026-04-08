@@ -16,6 +16,7 @@ import { PurchaseOrderView } from '@/components/procurement/PurchaseOrderView';
 import { SuppliersView } from '@/components/procurement/SuppliersView';
 import { BudgetView } from '@/components/procurement/BudgetView';
 import { InvoiceView } from '@/components/procurement/InvoiceView';
+import { GoodsReceivedView } from '@/components/procurement/GoodsReceivedView';
 import { useBranch } from '@/hooks/useBranch';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useRequisitions } from '@/hooks/useRequisitions';

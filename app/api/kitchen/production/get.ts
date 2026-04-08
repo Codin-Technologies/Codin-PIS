@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { AuthenticatedUser } from '@/lib/auth/utils';
 
-export async function getProductionPlans() {
+export async function getProductionPlans(req: NextRequest, user: AuthenticatedUser) {
   try {
     const plans = await db.query.productionPlans.findMany({
+      // TODO: Backend dev MUST add organizationId to productionPlans table and filter here:
+      // where: (plans, { eq }) => eq(plans.organizationId, user.organizationId),
       with: {
         ingredients: {
           with: {

@@ -26,8 +26,9 @@ async function getRequestConfig() {
 
 export async function getProductionPlansAction(branchId: string) {
     try {
-        const { baseUrl, cookieHeader } = await getRequestConfig();
-        const res = await fetch(`${baseUrl}/api/kitchen/production?branchId=${branchId}`, {
+        const { baseUrl, cookieHeader, user } = await getRequestConfig();
+        const query = new URLSearchParams({ branchId, organizationId: user.organizationId ?? '' });
+        const res = await fetch(`${baseUrl}/api/kitchen/production?${query}`, {
             method: 'GET',
             headers: { 'Cookie': cookieHeader }
         });
@@ -145,8 +146,9 @@ export async function deductProductionInventoryAction(id: string, payload?: Dedu
 
 export async function getSpecialOrdersAction(branchId: string) {
     try {
-        const { baseUrl, cookieHeader } = await getRequestConfig();
-        const res = await fetch(`${baseUrl}/api/kitchen/special-orders?branchId=${branchId}`, {
+        const { baseUrl, cookieHeader, user } = await getRequestConfig();
+        const query = new URLSearchParams({ branchId, organizationId: user.organizationId ?? '' });
+        const res = await fetch(`${baseUrl}/api/kitchen/special-orders?${query}`, {
             method: 'GET',
             headers: { 'Cookie': cookieHeader }
         });
