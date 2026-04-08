@@ -69,5 +69,5 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getUserContext(request, 'kitchen.create');
   if (user instanceof NextResponse) return user;
-  return postProductionPlan(request, user);
+  return postProductionPlan(request);
 }
