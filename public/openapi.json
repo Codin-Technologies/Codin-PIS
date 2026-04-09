@@ -454,6 +454,48 @@
         }
       }
     },
+    "/api/departments/{id}": {
+      "delete": {
+        "summary": "Delete a department",
+        "description": "Requires departments.delete. User must belong to the department's organization. Fails with 409 if inventory, budgets, or requisitions still reference this department.",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Department still referenced by other records"
+          }
+        }
+      }
+    },
     "/api/departments": {
       "get": {
         "summary": "List all departments (filter by ?organizationId=)",
@@ -1255,6 +1297,42 @@
         "responses": {
           "200": {
             "description": "Status updated"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a production plan",
+        "description": "Removes the plan and its ingredient rows (cascade). Requires kitchen.update.",
+        "tags": [
+          "Kitchen"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Plan not found"
@@ -3081,6 +3159,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "fullName",
+                  "email",
+                  "roleId",
+                  "password"
+                ],
                 "properties": {
                   "fullName": {
                     "type": "string"
@@ -3095,7 +3179,9 @@
                     "type": "string"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "Hashed for storage; same value is sent in the welcome email (if RESEND_API_KEY is set)."
                   }
                 }
               }
@@ -3104,7 +3190,7 @@
         },
         "responses": {
           "201": {
-            "description": "User created successfully"
+            "description": "User created successfully (welcomeEmailSent indicates if the welcome email was delivered)"
           }
         }
       }

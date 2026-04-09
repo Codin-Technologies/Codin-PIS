@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { patchProductionPlan } from './patch';
+import { deleteProductionPlan } from './delete';
 import { AuthenticatedError, AuthenticatedUser, getAuthenticatedUser } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 
@@ -34,6 +35,27 @@ import { hasPermission } from '@/lib/rbac/utils';
  *         description: Status updated
  *       404:
  *         description: Plan not found
+ *   delete:
+ *     summary: Delete a production plan
+ *     description: Removes the plan and its ingredient rows (cascade). Requires kitchen.update.
+ *     tags: [Kitchen]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Plan deleted
+ *       404:
+ *         description: Plan not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 
 async function assertAuth(request: NextRequest, permission: string) {
@@ -49,4 +71,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   const err = await assertAuth(request, 'kitchen.update');
   if (err) return err;
   return patchProductionPlan(request, context);
+}
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const err = await assertAuth(request, 'kitchen.update');
+  if (err) return err;
+  return deleteProductionPlan(request, context);
 }
