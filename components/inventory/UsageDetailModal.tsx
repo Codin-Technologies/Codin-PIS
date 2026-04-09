@@ -89,7 +89,9 @@ export function UsageDetailModal({ isOpen, onClose, usageId }: UsageDetailModalP
                                     {detail.notes && (
                                         <div className="pt-4 border-t border-gray-200">
                                             <p className="text-xs font-bold text-gray-400 uppercase mb-2">Notes</p>
-                                            <p className="text-sm text-gray-700 leading-relaxed italic">"{detail.notes}"</p>
+                                            <p className="text-sm text-gray-700 leading-relaxed italic">
+                                                &ldquo;{detail.notes}&rdquo;
+                                            </p>
                                         </div>
                                     )}
                                 </div>

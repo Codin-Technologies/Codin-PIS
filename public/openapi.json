@@ -738,22 +738,6 @@
               "type": "string"
             },
             "description": "Filter items by department UUID"
-          },
-          {
-            "in": "query",
-            "name": "organizationId",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter items by organization UUID (returns all items from all departments in the organization)"
-          },
-          {
-            "in": "query",
-            "name": "branchId",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Alias for organizationId"
           }
         ],
         "responses": {
