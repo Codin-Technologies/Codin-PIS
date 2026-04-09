@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { suppliers, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { suppliers } from '@/lib/db/schema';
 import type { AuthenticatedUser } from '@/lib/auth/utils';
 import { supplierToDto } from '@/lib/procurement/supplier-dto';
 
@@ -35,7 +34,7 @@ export async function postSupplier(req: NextRequest, authUser: AuthenticatedUser
     const [row] = await db
       .insert(suppliers)
       .values({
-        organizationId: orgId,
+        organizationId,
         name: name.trim(),
         category: category.trim(),
         contactPerson: contactPerson?.trim() || null,

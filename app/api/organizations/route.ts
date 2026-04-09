@@ -55,5 +55,5 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getUserContext(request, 'organizations.create');
   if (user instanceof NextResponse) return user;
-  return postOrganization(request, user);
+  return postOrganization(request);
 }

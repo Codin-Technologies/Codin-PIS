@@ -566,7 +566,7 @@ export function RFQView() {
                         </div>
                     )}
                     {!isLoadingQuotations && (quotationData?.data ?? []).map((quote, idx) => (
-                        <div key={idx} className={clsx("p-6 flex flex-col relative border-r border-gray-100 last:border-0", quote.recommended ? 'bg-blue-50/30' : '')}>
+                        <div key={idx} className={clsx("p-6 flex flex-col relative border-r border-gray-100 last:border-0", idx === 0 ? 'bg-blue-50/30' : '')}>
                             {idx === 0 && (
                                 <div className="absolute top-0 left-0 right-0 bg-blue-600 text-white text-[10px] uppercase font-bold text-center py-1">
                                     System Recommendation

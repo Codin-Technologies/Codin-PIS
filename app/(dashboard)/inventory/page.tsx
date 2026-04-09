@@ -9,6 +9,7 @@ import { AddItemModal } from '@/components/inventory/AddItemModal';
 import { UpdateItemModal } from '@/components/inventory/UpdateItemModal';
 import { DeleteConfirmModal } from '@/components/inventory/DeleteConfirmModal';
 import { RecordUsageModal } from '@/components/inventory/RecordUsageModal';
+import { KitchenRequisitionCard } from '@/components/inventory/KitchenRequisitionCard';
 
 import { 
     useInventory, 
@@ -21,6 +22,7 @@ import {
 } from '@/hooks/useInventory';
 import { useDepartments, useCreateDepartment } from '@/hooks/useDepartments';
 import { useBranch } from '@/hooks/useBranch';
+import { useProductionPlans } from '@/hooks/useKitchen';
 import { ErrorState } from '@/components/ui/error-state';
 import type { CreateInventoryItemPayload, InventoryItem, InventoryAlert } from '@/lib/api';
 
@@ -68,6 +70,7 @@ function InventoryContent() {
     });
     const { data: alertsData, isLoading: alertsLoading } = useInventoryAlerts(branchId);
     const { data: deptData, isLoading: deptLoading } = useDepartments(branchId);
+    const { data: productionData, isLoading: productionLoading } = useProductionPlans(branchId);
 
     // Mutations
     const createItemMutation = useCreateInventoryItem(branchId);
@@ -81,6 +84,7 @@ function InventoryContent() {
     const alerts: InventoryAlert[] = (alertsData as InventoryAlert[]) ?? [];
     const departments = deptData ?? [];
     const totalValuation = items.reduce((sum, i) => sum + (i.qty * (i.unitCost ?? 0)), 0);
+    const pendingRequisitions = productionData?.data?.filter((p: any) => !p.deductedAt) || [];
 
     // Handlers
     function handleAddItem(payload: CreateInventoryItemPayload) {
@@ -402,6 +406,38 @@ function InventoryContent() {
                         <button onClick={() => router.push('/procurement')} className="text-sm font-medium text-blue-600 hover:text-blue-800">
                             View Procurement
                         </button>
+                    </div>
+                </div>
+
+                {/* Kitchen Requisitions Section */}
+                <div className="flex flex-col rounded-2xl bg-white p-6 shadow-sm border border-gray-100 max-h-[400px]">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">Kitchen Demands</h2>
+                            <p className="text-xs text-gray-500">Stock approval requests</p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                            <ClipboardList className="h-4 w-4" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-4 scrollbar-thin">
+                        {productionLoading && Array.from({ length: 2 }).map((_, i) => (
+                            <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
+                        ))}
+                        
+                        {!productionLoading && pendingRequisitions.map((plan: any) => (
+                            <KitchenRequisitionCard key={plan.id} plan={plan} />
+                        ))}
+
+                        {!productionLoading && pendingRequisitions.length === 0 && (
+                            <div className="text-center py-8">
+                                <div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+                                    <CheckCircle className="h-6 w-6 text-green-500" />
+                                </div>
+                                <p className="text-sm text-gray-500">No pending requisitions</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
