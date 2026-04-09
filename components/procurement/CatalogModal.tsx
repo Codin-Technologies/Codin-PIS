@@ -3,11 +3,21 @@
 import { useState } from 'react';
 import { Search, X, ShoppingCart, Check, Plus, Loader2, AlertCircle, Package } from 'lucide-react';
 import clsx from 'clsx';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useInventory } from '@/hooks/useInventory';
 import { useBranch } from '@/hooks/useBranch';
 import { useDepartments } from '@/hooks/useDepartments';
 import { Button } from '@/components/ui/button';
+
+export interface CatalogLineItem {
+    id: string;
+    name: string;
+    sku: string;
+    price: number;
+    unit: string;
+    qty: number;
+    category?: string;
+}
 
 export function CatalogModal({ 
     isOpen, 
@@ -16,7 +26,7 @@ export function CatalogModal({
 }: { 
     isOpen: boolean; 
     onClose: () => void; 
-    onAddItems: (items: any[]) => void 
+    onAddItems: (items: CatalogLineItem[]) => void 
 }) {
     const { branchId } = useBranch();
     const [searchTerm, setSearchTerm] = useState('');

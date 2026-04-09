@@ -14,6 +14,8 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 import { CreateRFQFromReqModal } from './CreateRFQFromReqModal';
+import { useSearchParams } from 'next/navigation';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 export function RequisitionDetailModal({
     requisitionId,
@@ -24,6 +26,7 @@ export function RequisitionDetailModal({
     isOpen: boolean;
     onClose: () => void;
 }) {
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { format: f } = useCurrency();
     const { data: requisition, isLoading, isError } = useRequisition(requisitionId || '');
@@ -32,22 +35,30 @@ export function RequisitionDetailModal({
     const [comment, setComment] = useState('');
     const [isCreateRfqOpen, setIsCreateRfqOpen] = useState(false);
 
-    const selectedBudget = (budgetData || []).find(b => b.id === requisition?.budgetId);
+    const selectedBudget = (budgetData || []).find((budget) => budget.id === requisition?.budgetId);
     const totalCost = requisition?.value || 0;
     const remainingBudget = selectedBudget ? Number(selectedBudget.remaining) : 0;
     const isOverBudget = remainingBudget < 0;
     const allocatedNum = selectedBudget ? Number(selectedBudget.allocatedAmount) : 0;
     const spentPlusCommitted = selectedBudget ? (selectedBudget.spent + selectedBudget.committed) : 0;
     const utilizationPct = allocatedNum > 0 ? Math.min(100, (spentPlusCommitted / allocatedNum) * 100) : 0;
+    const isCreateRfqVisible =
+        isCreateRfqOpen ||
+        (searchParams.get('action') === 'create-rfq-from-approved' && requisition?.status === 'approved');
 
     if (!isOpen || !requisitionId) return null;
 
     const handleStatusUpdate = async (status: 'approved' | 'rejected') => {
         try {
             await updateStatusMutation.mutateAsync({ id: requisitionId, status });
+
+            if (status === 'approved') {
+                emitOnboardingAction('approve-requisition');
+            }
+
             onClose();
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -60,7 +71,6 @@ export function RequisitionDetailModal({
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
                 >
-                    {/* Header */}
                     <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-gray-50">
                         <div>
                             {isLoading ? (
@@ -103,7 +113,6 @@ export function RequisitionDetailModal({
                             </div>
                         ) : requisition ? (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* LEFT: Details & Items */}
                                 <div className="lg:col-span-2 space-y-8">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-4">
@@ -126,7 +135,6 @@ export function RequisitionDetailModal({
                                         </div>
                                     </div>
 
-                                    {/* Line Items */}
                                     <div className="rounded-2xl border border-gray-100 overflow-hidden bg-white shadow-sm">
                                         <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                                             <h3 className="font-bold text-gray-700 text-sm">Line Items</h3>
@@ -168,7 +176,6 @@ export function RequisitionDetailModal({
                                         </table>
                                     </div>
 
-                                    {/* Budget allocation */}
                                     {selectedBudget && (
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
                                             <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -185,10 +192,11 @@ export function RequisitionDetailModal({
                                             <div className="space-y-4 relative z-10">
                                                 <div>
                                                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                                        <motion.div 
+                                                        <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${utilizationPct}%` }}
-                                                            className={clsx("h-full transition-all duration-1000", 
+                                                            className={clsx(
+                                                                "h-full transition-all duration-1000",
                                                                 isOverBudget ? 'bg-red-500' : utilizationPct > 80 ? 'bg-orange-500' : 'bg-emerald-500'
                                                             )}
                                                         />
@@ -228,7 +236,6 @@ export function RequisitionDetailModal({
                                         </div>
                                     )}
 
-                                    {/* Reason */}
                                     <div className="bg-orange-50/30 rounded-2xl p-6 border border-orange-100/50">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Info className="h-4 w-4 text-orange-500" />
@@ -240,9 +247,7 @@ export function RequisitionDetailModal({
                                     </div>
                                 </div>
 
-                                {/* RIGHT: Approval Flow & Actions */}
                                 <div className="space-y-6">
-                                    {/* Workflow Timeline */}
                                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-4 opacity-5">
                                             <FileText className="h-16 w-16" />
@@ -250,7 +255,7 @@ export function RequisitionDetailModal({
                                         <h3 className="font-bold text-gray-900 mb-6">Approval Flow</h3>
                                         <div className="space-y-6 relative">
                                             <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-100"></div>
-                                            
+
                                             <div className="relative flex gap-4">
                                                 <div className="relative z-10 w-8 h-8 rounded-full bg-green-100 border-2 border-green-500 flex items-center justify-center text-green-600">
                                                     <CheckCircle className="h-4 w-4" />
@@ -263,7 +268,8 @@ export function RequisitionDetailModal({
                                             </div>
 
                                             <div className="relative flex gap-4">
-                                                <div className={clsx("relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2",
+                                                <div className={clsx(
+                                                    "relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2",
                                                     requisition.status === 'pending' || requisition.status === 'in_review' ? "bg-blue-50 border-blue-500 text-blue-600 animate-pulse" :
                                                     requisition.status === 'approved' ? "bg-green-100 border-green-500 text-green-600" :
                                                     requisition.status === 'rejected' ? "bg-red-50 border-red-500 text-red-600" :
@@ -283,8 +289,6 @@ export function RequisitionDetailModal({
                                         </div>
                                     </div>
 
-
-                                    {/* Actions (Only if Pending) */}
                                     {(requisition.status === 'pending' || requisition.status === 'in_review') && (
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl ring-1 ring-black/5">
                                             <div className="flex items-center gap-2 mb-4">
@@ -310,6 +314,7 @@ export function RequisitionDetailModal({
                                                         onClick={() => handleStatusUpdate('approved')}
                                                         disabled={updateStatusMutation.isPending}
                                                         className="w-full py-6 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+                                                        data-tour="approve-requisition-btn"
                                                     >
                                                         {updateStatusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                                                         Approve Requisition
@@ -328,7 +333,6 @@ export function RequisitionDetailModal({
                                         </div>
                                     )}
 
-                                    {/* Actions (Only if Approved) */}
                                     {requisition.status === 'approved' && (
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl ring-1 ring-black/5">
                                             <div className="flex items-center gap-2 mb-4">
@@ -340,9 +344,10 @@ export function RequisitionDetailModal({
                                             <p className="text-[11px] text-gray-400 mb-6 leading-relaxed">
                                                 This requisition has been approved. You can now use the details to broadcast a Request for Quotation to your suppliers.
                                             </p>
-                                            <Button 
+                                            <Button
                                                 onClick={() => setIsCreateRfqOpen(true)}
                                                 className="w-full bg-[#2a2b2d] hover:bg-black text-white rounded-xl py-6 font-bold flex items-center justify-center gap-2 shadow-sm transition-all hover:-translate-y-0.5"
+                                                data-tour="create-rfq-from-requisition-btn"
                                             >
                                                 Create RFQ
                                             </Button>
@@ -355,7 +360,7 @@ export function RequisitionDetailModal({
                 </motion.div>
                 {requisition && (
                     <CreateRFQFromReqModal
-                        isOpen={isCreateRfqOpen}
+                        isOpen={isCreateRfqVisible}
                         onClose={() => setIsCreateRfqOpen(false)}
                         requisition={requisition}
                         onSuccess={() => {

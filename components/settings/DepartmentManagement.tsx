@@ -1,27 +1,44 @@
 'use client';
 
 import { useState } from 'react';
-import { Layers, Plus, Search, Building2, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Layers, Plus, Search, Loader2 } from 'lucide-react';
 import { useBranch } from '@/hooks/useBranch';
 import { useDepartments, useCreateDepartment } from '@/hooks/useDepartments';
-import { useOrganizations } from '@/hooks/useUsers';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 export function DepartmentManagement() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { data: departments, isLoading, isError, error } = useDepartments(branchId);
-    const createDeptMutation = useCreateDepartment(branchId);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const isCreateModalVisible = isCreateModalOpen || searchParams.get('action') === 'create-department';
 
     const filtered = (departments || []).filter(d => 
         d.name.toLowerCase().includes(search.toLowerCase())
     );
 
     function handleCreateSuccess() {
+        closeCreateModal();
+    }
+
+    function closeCreateModal() {
         setIsCreateModalOpen(false);
+
+        if (searchParams.get('action') !== 'create-department') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     }
 
     return (
@@ -34,6 +51,7 @@ export function DepartmentManagement() {
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition-all font-sans"
+                    data-tour="add-department-btn"
                 >
                     <Plus className="w-4 h-4" />
                     New Department
@@ -99,9 +117,9 @@ export function DepartmentManagement() {
 
             {/* Create Modal */}
             <AnimatePresence>
-                {isCreateModalOpen && (
+                {isCreateModalVisible && (
                     <CreateDepartmentModal 
-                        onClose={() => setIsCreateModalOpen(false)}
+                        onClose={closeCreateModal}
                         onSuccess={handleCreateSuccess}
                         branchId={branchId}
                     />
@@ -122,9 +140,10 @@ function CreateDepartmentModal({ onClose, onSuccess, branchId }: { onClose: () =
         
         try {
             await createMutation.mutateAsync(name);
+            emitOnboardingAction('add-department');
             onSuccess();
-        } catch (err: any) {
-            setError(err.message || 'Something went wrong');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong');
         }
     }
 
@@ -173,6 +192,7 @@ function CreateDepartmentModal({ onClose, onSuccess, branchId }: { onClose: () =
                             type="submit"
                             disabled={createMutation.isPending}
                             className="flex-1 h-12 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-lg"
+                            data-tour="create-department-submit-btn"
                         >
                             {createMutation.isPending ? (
                                 <>

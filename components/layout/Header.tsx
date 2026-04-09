@@ -1,6 +1,7 @@
 'use client';
 import { Bell, Search, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { requestOnboardingContinue, requestOnboardingRestart } from '@/onboarding/helpers';
 
 const PAGE_TITLES: { [key: string]: string } = {
     '/': 'Dashboard',
@@ -49,6 +50,18 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
             </div>
 
             <div className="flex items-center space-x-4">
+                <button
+                    onClick={requestOnboardingContinue}
+                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:bg-[#2d2e30] hover:text-white"
+                >
+                    Continue Onboarding
+                </button>
+                <button
+                    onClick={requestOnboardingRestart}
+                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:bg-[#2d2e30] hover:text-white"
+                >
+                    Restart Onboarding
+                </button>
                 <button className="rounded-full p-1 text-gray-400 hover:bg-[#2d2e30] transition-colors">
                     <Bell className="h-5 w-5" />
                 </button>

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
-import { LayoutDashboard, Package, ShoppingCart, Truck, BarChart3, Settings, Plus, UtensilsCrossed, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Plus, UtensilsCrossed, FileText, LogOut } from 'lucide-react';
 
 const navItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -16,10 +16,20 @@ const navItems = [
     { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export function Sidebar({ isOpen }: { isOpen: boolean }) {
+export function Sidebar({
+    isOpen,
+    onMouseEnter,
+    onMouseLeave,
+}: {
+    isOpen: boolean;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+}) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isFullyExpanded, setIsFullyExpanded] = useState(isOpen);
+    const isCreateMenuVisible = isFullyExpanded && isCreateOpen;
 
     const userInitial = session?.user?.email?.charAt(0).toUpperCase() || 'U';
 
@@ -31,6 +41,19 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
         <motion.div
             initial={{ width: 240 }}
             animate={{ width: isOpen ? 240 : 72 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            onUpdate={(latest) => {
+                if (!isOpen && typeof latest.width === 'number' && latest.width <= 90 && isFullyExpanded) {
+                    setIsFullyExpanded(false);
+                }
+            }}
+            onAnimationComplete={() => {
+                if (isOpen) {
+                    setIsFullyExpanded(true);
+                }
+            }}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             className="flex h-full flex-col bg-[#1e1f21] text-white transition-all duration-300 ease-in-out border-r border-[#2a2b2d]"
         >
             {/* Brand / Logo Area */}
@@ -39,7 +62,7 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                     <span className="text-xs font-bold text-white">PIS</span>
                 </div>
                 <AnimatePresence>
-                    {isOpen && (
+                    {isFullyExpanded && (
                         <motion.span
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -53,21 +76,21 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
             </div>
 
             {/* Quick Action FAB (Asana style) - DROPDOWN */}
-            <div className={clsx("px-4 py-4 flex flex-col relative", isOpen ? "items-start" : "items-center")}>
+            <div className={clsx("px-4 py-4 flex flex-col relative", isFullyExpanded ? "items-start" : "items-center")}>
                 <button
                     onClick={() => setIsCreateOpen(!isCreateOpen)}
                     className={clsx(
                         "flex items-center justify-center rounded-full bg-[#f06a6a] hover:bg-[#d95d5d] text-white transition-all shadow-md z-20",
-                        isOpen ? "px-3 py-2 w-full space-x-2" : "w-10 h-10"
+                        isFullyExpanded ? "px-3 py-2 w-full space-x-2" : "w-10 h-10"
                     )}
                 >
-                    <Plus className={clsx("w-5 h-5 transition-transform duration-300", isCreateOpen && "rotate-45")} />
-                    {isOpen && <span className="text-sm font-medium">Create New</span>}
+                    <Plus className={clsx("w-5 h-5 transition-transform duration-300", isCreateMenuVisible && "rotate-45")} />
+                    {isFullyExpanded && <span className="text-sm font-medium">Create New</span>}
                 </button>
 
                 {/* Dropdown Menu */}
                 <AnimatePresence>
-                    {isCreateOpen && (
+                    {isCreateMenuVisible && (
                         <motion.div
                             initial={{ opacity: 0, y: -10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -120,12 +143,12 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                             className={clsx(
                                 isActive ? 'bg-[#2d2e30] text-white' : 'text-[#9ca6af] hover:bg-[#2d2e30] hover:text-white',
                                 'group flex items-center rounded-md px-2 py-3 text-sm font-medium transition-colors',
-                                !isOpen && 'justify-center'
+                                !isFullyExpanded && 'justify-center'
                             )}
-                            title={!isOpen ? item.name : undefined}
+                            title={!isFullyExpanded ? item.name : undefined}
                         >
-                            <item.icon className={clsx("h-6 w-6 flex-shrink-0", isOpen && "mr-3")} aria-hidden="true" />
-                            {isOpen && <span>{item.name}</span>}
+                            <item.icon className={clsx("h-6 w-6 flex-shrink-0", isFullyExpanded && "mr-3")} aria-hidden="true" />
+                            {isFullyExpanded && <span>{item.name}</span>}
                         </Link>
                     );
                 })}
@@ -139,7 +162,7 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                             {userInitial}
                         </div>
                         <AnimatePresence>
-                            {isOpen && (
+                            {isFullyExpanded && (
                                 <motion.div 
                                     initial={{ opacity: 0, width: 0 }}
                                     animate={{ opacity: 1, width: "auto" }}
@@ -156,7 +179,7 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                             )}
                         </AnimatePresence>
                     </div>
-                    {isOpen && (
+                    {isFullyExpanded && (
                         <button 
                             onClick={handleLogout}
                             className="p-2 ml-2 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors flex shrink-0"
@@ -167,7 +190,7 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                     )}
                  </div>
                  {/* Compact logout for closed sidebar */}
-                 {!isOpen && (
+                 {!isFullyExpanded && (
                      <button 
                          onClick={handleLogout}
                          className="mt-4 p-2 w-full flex justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"

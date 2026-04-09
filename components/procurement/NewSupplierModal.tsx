@@ -4,10 +4,9 @@ import { useState } from 'react';
 import {
     X, Save, Building, Users,
     Mail, Phone, MapPin, Globe,
-    ShieldCheck, CreditCard, Tag
+    ShieldCheck, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 import type { CreateSupplierPayload } from '@/lib/api';
 
@@ -20,7 +19,6 @@ interface NewSupplierModalProps {
 }
 
 export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchId }: NewSupplierModalProps) {
-    const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         name: '',
         category: '',
@@ -244,6 +242,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     type="submit"
                                     disabled={isPending}
                                     className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    data-tour="create-supplier-submit-btn"
                                 >
                                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     Register Supplier

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2, CheckSquare } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 import { AddItemModal } from '@/components/inventory/AddItemModal';
@@ -17,14 +17,14 @@ import {
     useCreateInventoryItem, 
     useUpdateInventoryItem,
     useDeleteInventoryItem,
-    useAdjustInventoryQuantity,
     useRecordInventoryUsage
 } from '@/hooks/useInventory';
 import { useDepartments, useCreateDepartment } from '@/hooks/useDepartments';
 import { useBranch } from '@/hooks/useBranch';
 import { useProductionPlans } from '@/hooks/useKitchen';
 import { ErrorState } from '@/components/ui/error-state';
-import type { CreateInventoryItemPayload, InventoryItem, InventoryAlert } from '@/lib/api';
+import type { CreateInventoryItemPayload, InventoryItem, InventoryAlert, ProductionPlan } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 function InventorySkeletonCard() {
     return (
@@ -43,6 +43,7 @@ function InventorySkeletonCard() {
 
 function InventoryContent() {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const { branchId } = useBranch();
 
@@ -59,10 +60,6 @@ function InventoryContent() {
     const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
     const [openDropdown, setOpenDropdown]     = useState<string | null>(null);
 
-    useEffect(() => {
-        if (searchParams.get('action') === 'new-item') setIsAddModalOpen(true);
-    }, [searchParams]);
-
     // Data Fetching
     const { data, isLoading, isError, error } = useInventory(branchId, {
         dept: selectedDept === 'All' ? undefined : selectedDept,
@@ -76,7 +73,6 @@ function InventoryContent() {
     const createItemMutation = useCreateInventoryItem(branchId);
     const updateItemMutation = useUpdateInventoryItem(branchId);
     const deleteItemMutation = useDeleteInventoryItem(branchId);
-    const adjustQtyMutation = useAdjustInventoryQuantity(branchId);
     const recordUsageMutation = useRecordInventoryUsage(branchId);
     const createDeptMutation = useCreateDepartment(branchId);
 
@@ -84,17 +80,25 @@ function InventoryContent() {
     const alerts: InventoryAlert[] = (alertsData as InventoryAlert[]) ?? [];
     const departments = deptData ?? [];
     const totalValuation = items.reduce((sum, i) => sum + (i.qty * (i.unitCost ?? 0)), 0);
-    const pendingRequisitions = productionData?.data?.filter((p: any) => !p.deductedAt) || [];
+    const pendingRequisitions = (productionData?.data ?? []).filter(
+        (plan: ProductionPlan & { deductedAt?: string | null }) => !plan.deductedAt,
+    );
+    const isAddModalVisible = isAddModalOpen || searchParams.get('action') === 'new-item';
 
     // Handlers
     function handleAddItem(payload: CreateInventoryItemPayload) {
         createItemMutation.mutate(
             { ...payload, branchId }, 
-            { onSuccess: () => setIsAddModalOpen(false) }
+            {
+                onSuccess: () => {
+                    emitOnboardingAction('add-inventory-item');
+                    setIsAddModalOpen(false);
+                }
+            }
         );
     }
 
-    function handleUpdateItem(id: string, payload: any) {
+    function handleUpdateItem(id: string, payload: Partial<CreateInventoryItemPayload>) {
         updateItemMutation.mutate({ id, payload }, {
             onSuccess: () => setUpdateItem(null)
         });
@@ -103,12 +107,6 @@ function InventoryContent() {
     function handleDeleteItem(id: string) {
         deleteItemMutation.mutate(id, {
             onSuccess: () => setDeleteItem(null)
-        });
-    }
-
-    function handleAdjustQty(id: string, payload: { qtyDelta: number; reason: string }) {
-        adjustQtyMutation.mutate({ id, payload }, {
-            onSuccess: () => setUsageItem(null)
         });
     }
 
@@ -135,6 +133,19 @@ function InventoryContent() {
         });
     }
 
+    function closeAddModal() {
+        setIsAddModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-item') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }
+
     // Close dropdown on outside click (simple hookless behavior via window click)
     useEffect(() => {
         const handleClick = () => setOpenDropdown(null);
@@ -145,9 +156,9 @@ function InventoryContent() {
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
             <AddItemModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onAdd={handleAddItem as any}
+                isOpen={isAddModalVisible}
+                onClose={closeAddModal}
+                onAdd={handleAddItem}
                 departments={departments}
                 isPending={createItemMutation.isPending}
                 error={createItemMutation.error}
@@ -192,6 +203,7 @@ function InventoryContent() {
                             <button
                                 onClick={() => router.push('/inventory/usage')}
                                 className="flex items-center space-x-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 shadow-sm"
+                                data-tour="usage-records-btn"
                             >
                                 <ClipboardList className="h-4 w-4" />
                                 <span>Usage Logs</span>
@@ -199,6 +211,7 @@ function InventoryContent() {
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="flex items-center space-x-2 rounded-xl bg-[#2a2b2d] px-4 py-2 text-sm font-bold text-white hover:bg-gray-800 shadow-lg"
+                                data-tour="add-inventory-btn"
                             >
                                 <Plus className="h-4 w-4" />
                                 <span>Add Item</span>
@@ -426,7 +439,7 @@ function InventoryContent() {
                             <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
                         ))}
                         
-                        {!productionLoading && pendingRequisitions.map((plan: any) => (
+                        {!productionLoading && pendingRequisitions.map((plan) => (
                             <KitchenRequisitionCard key={plan.id} plan={plan} />
                         ))}
 

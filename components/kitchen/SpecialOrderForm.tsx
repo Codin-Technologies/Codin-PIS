@@ -1,10 +1,11 @@
 'use client';
 
-import { X, Send, AlertCircle, Clock, FileText, Loader2 } from 'lucide-react';
+import { X, Send, Clock, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBranch } from '@/hooks/useBranch';
 import { useCreateSpecialOrder } from '@/hooks/useKitchen';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface SpecialOrderFormProps {
     isOpen: boolean;
@@ -26,6 +27,7 @@ export function SpecialOrderForm({ isOpen, onClose }: SpecialOrderFormProps) {
         e.preventDefault();
         createSpecialOrderMutation.mutate(formData, {
             onSuccess: () => {
+                emitOnboardingAction('create-special-order');
                 setFormData({ 
                     requestName: '', 
                     preparationNotes: '', 
@@ -121,6 +123,7 @@ export function SpecialOrderForm({ isOpen, onClose }: SpecialOrderFormProps) {
                                 type="submit"
                                 disabled={createSpecialOrderMutation.isPending}
                                 className="flex-1 py-3 bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-orange-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                data-tour="create-special-order-submit-btn"
                             >
                                 {createSpecialOrderMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

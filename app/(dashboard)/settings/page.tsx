@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { Users, Shield, Building2, Settings, KeyRound, Layers } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { UserManagement } from '@/components/settings/UserManagement';
 import { RoleManagement } from '@/components/settings/RoleManagement';
 import { OrgManagement } from '@/components/settings/OrgManagement';
@@ -30,7 +30,20 @@ const TABS = [
 ];
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState('users');
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const requestedTab = searchParams.get('tab');
+    const activeTab =
+        requestedTab && TABS.some((tab) => tab.id === requestedTab) ? requestedTab : 'users';
+
+    const handleTabChange = (tabId: string) => {
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set('tab', tabId);
+        nextParams.delete('action');
+
+        router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    };
 
     const ActiveComponent = TABS.find(t => t.id === activeTab)?.component || UserManagement;
 
@@ -54,13 +67,14 @@ export default function SettingsPage() {
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => handleTabChange(tab.id)}
                         className={clsx(
                             "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300",
                             activeTab === tab.id
                                 ? "bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/20"
                                 : "text-[#9ca6af] hover:text-white hover:bg-white/5"
                         )}
+                        data-tour={`settings-${tab.id}-tab`}
                     >
                         <tab.icon className="w-4 h-4" />
                         {tab.label}

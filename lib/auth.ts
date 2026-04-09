@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { users } from "./db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 12;
@@ -20,7 +20,7 @@ export async function verifyUserCredentials(email: string, password?: string) {
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email));
+    .where(and(eq(users.email, email), isNull(users.deletedAt)));
 
   if (!user || !user.passwordHash) {
     throw new Error("Invalid credentials");
@@ -31,12 +31,21 @@ export async function verifyUserCredentials(email: string, password?: string) {
     throw new Error("Invalid credentials");
   }
 
+  const previousLoginAt = user.loginAt;
+  const currentLoginAt = new Date();
+
   // Update login timestamp
   await db
     .update(users)
-    .set({ loginAt: new Date() })
+    .set({ loginAt: currentLoginAt })
     .where(eq(users.id, user.id));
 
-  const { passwordHash, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+  const userWithoutPassword = { ...user };
+  delete userWithoutPassword.passwordHash;
+  return {
+    ...userWithoutPassword,
+    loginAt: currentLoginAt,
+    lastLoginAt: previousLoginAt,
+    mustChangePassword: previousLoginAt == null,
+  };
 }

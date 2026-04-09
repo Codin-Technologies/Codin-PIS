@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     LayoutDashboard, FileText, Users, ShoppingCart, Truck,
     Receipt, FileCheck, ShieldAlert, BadgeDollarSign,
-    PieChart, ArrowUpRight, ArrowDownRight, MoreHorizontal,
-    Search, Filter, Plus
+    Search, Plus
 } from 'lucide-react';
 import clsx from 'clsx';
 import { NewRequisitionModal } from '@/components/procurement/NewRequisitionModal';
@@ -28,18 +27,19 @@ import { useInventoryAlerts } from '@/hooks/useInventory';
 // --- Types ---
 
 type Tab = 'overview' | 'requisitions' | 'rfq' | 'orders' | 'receiving' | 'invoices' | 'suppliers' | 'contracts' | 'budget' | 'compliance';
+const TABS_IDS: Tab[] = ['overview', 'requisitions', 'rfq', 'orders', 'receiving', 'invoices', 'suppliers', 'contracts', 'budget', 'compliance'];
 
 function ProcurementContent() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { format: f } = useCurrency();
-    const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [isReqModalOpen, setIsReqModalOpen] = useState(false);
-
-    const searchParams = useSearchParams();
 
     // Data Hooks
     const { data: requisitionData, isLoading: isLoadingReqs } = useRequisitions(branchId, { pageSize: 5 });
-    const { data: poData, isLoading: isLoadingPOs } = usePurchaseOrders(branchId);
+    const { data: poData } = usePurchaseOrders(branchId);
     const { data: rfqData } = useRFQs(branchId);
     const { data: supplierData } = useSuppliers(branchId);
     const { data: inventoryAlerts } = useInventoryAlerts(branchId);
@@ -49,6 +49,10 @@ function ProcurementContent() {
     const rfqs = rfqData?.data ?? [];
     const suppliers = supplierData?.data ?? [];
     const alerts = inventoryAlerts ?? [];
+    const [currentTimestamp] = useState(() => Date.now());
+    const requestedTab = searchParams.get('tab');
+    const activeTab: Tab = TABS_IDS.includes(requestedTab as Tab) ? (requestedTab as Tab) : 'overview';
+    const isReqModalVisible = isReqModalOpen || searchParams.get('action') === 'new-req';
 
     // --- Calculations ---
 
@@ -85,7 +89,7 @@ function ProcurementContent() {
         })),
         ...rfqs.filter(r => {
             if (!r.deadline) return false;
-            const diff = new Date(r.deadline).getTime() - Date.now();
+            const diff = new Date(r.deadline).getTime() - currentTimestamp;
             return diff > 0 && diff < 48 * 60 * 60 * 1000;
         }).map(rfq => ({
             id: `rfq-${rfq.id}`,
@@ -101,7 +105,7 @@ function ProcurementContent() {
         }))
     ].slice(0, 3);
 
-    const TABS: { id: Tab; label: string; icon: any }[] = [
+    const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
         { id: 'overview', label: 'Control Tower', icon: LayoutDashboard },
         { id: 'requisitions', label: 'Requisitions', icon: FileText },
         { id: 'rfq', label: 'Sourcing (RFQ)', icon: Users },
@@ -114,26 +118,30 @@ function ProcurementContent() {
         { id: 'compliance', label: 'Compliance', icon: ShieldAlert },
     ];
 
-    useEffect(() => {
-        const action = searchParams.get('action');
-        const tabParam = searchParams.get('tab');
+    const handleTabChange = (tab: Tab) => {
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set('tab', tab);
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
 
-        if (tabParam && TABS.some(t => t.id === tabParam)) {
-            setActiveTab(tabParam as Tab);
+    const closeRequisitionModal = () => {
+        setIsReqModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-req') {
+            return;
         }
 
-        if (action === 'new-req') {
-            setIsReqModalOpen(true);
-        }
-        // For new-po, we expect the tab to be switched to 'orders' via the URL param,
-        // and then we can pass a prop or use state to trigger the create view within PurchaseOrderView.
-        // However, PurchaseOrderView manages its own state. 
-        // We might need to lift state or pass a default view prop to PurchaseOrderView.
-    }, [searchParams]);
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
 
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
-            <NewRequisitionModal isOpen={isReqModalOpen} onClose={() => setIsReqModalOpen(false)} />
+            <NewRequisitionModal isOpen={isReqModalVisible} onClose={closeRequisitionModal} />
 
             {/* Left Sidebar: Navigation Tabs */}
             <div className="w-64 flex-shrink-0 flex flex-col gap-2 overflow-y-auto pr-2 scrollbar-thin">
@@ -146,7 +154,7 @@ function ProcurementContent() {
                     {TABS.map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => handleTabChange(tab.id)}
                             className={clsx(
                                 "flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all group",
                                 activeTab === tab.id
@@ -177,6 +185,7 @@ function ProcurementContent() {
                                 <button
                                     onClick={() => setIsReqModalOpen(true)}
                                     className="flex items-center space-x-2 rounded-xl bg-[#2a2b2d] px-4 py-2 text-sm font-bold text-white hover:bg-gray-800 shadow-lg"
+                                    data-tour="create-requisition-btn"
                                 >
                                     <Plus className="h-4 w-4" />
                                     <span>New Requisition</span>
@@ -316,7 +325,7 @@ function ProcurementContent() {
                                 This module is currently under active development.
                                 Features for {TABS.find(t => t.id === activeTab)?.label.toLowerCase()} will be enabled in the next release.
                             </p>
-                            <button onClick={() => setActiveTab('overview')} className="mt-8 text-sm font-medium text-blue-600 hover:text-blue-800">
+                            <button onClick={() => handleTabChange('overview')} className="mt-8 text-sm font-medium text-blue-600 hover:text-blue-800">
                                 Return to Control Tower
                             </button>
                         </div>

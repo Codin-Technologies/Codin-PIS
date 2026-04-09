@@ -28,6 +28,7 @@ export const queryKeys = {
     rfq: (id: string) => ['rfq', id] as const,
     rfqQuotations: (branchId: string, rfqId: string, params?: object) =>
         ['rfqQuotations', branchId, rfqId, params] as const,
+    supplierPortalRfq: (token: string) => ['supplierPortalRfq', token] as const,
 
     reports: (branchId: string, type: string, filters?: object) =>
         ['reports', branchId, type, filters] as const,

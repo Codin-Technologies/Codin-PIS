@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 export async function putUser(req: NextRequest, id: string) {
   try {
@@ -21,7 +21,7 @@ export async function putUser(req: NextRequest, id: string) {
 
     const result = await db.update(users)
       .set(updatePayload)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
 
     if (result.length === 0) return NextResponse.json({ message: 'User not found' }, { status: 404 });

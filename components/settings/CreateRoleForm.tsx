@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { X, Shield, Check, CheckCircle2, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { usePermissions, useCreateRole } from '@/hooks/useUsers';
+import type { Role } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface CreateRoleFormProps {
     onClose: () => void;
-    onSuccess: (newRole: any) => void;
+    onSuccess: (newRole: Role) => void;
 }
 
 export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
@@ -75,12 +77,13 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
         createRoleMutation.mutate(payload, {
             onSuccess: (data) => {
                 setSuccess(true);
+                emitOnboardingAction('add-role');
                 setTimeout(() => {
                     onSuccess(data);
                 }, 1500);
             },
-            onError: (err: any) => {
-                setError(err.message || 'Failed to create role. Please try again.');
+            onError: (err) => {
+                setError(err instanceof Error ? err.message : 'Failed to create role. Please try again.');
             }
         });
     };
@@ -227,6 +230,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                         type="submit"
                         disabled={createRoleMutation.isPending}
                         className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
+                        data-tour="create-role-submit-btn"
                     >
                         {createRoleMutation.isPending ? (
                             <div className="flex items-center gap-2">

@@ -6,8 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { KeyRound, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
-export function ChangePasswordForm({ userId }: { userId: string }) {
+type ChangePasswordFormProps = {
+    userId: string;
+    title?: string;
+    description?: string;
+    submitLabel?: string;
+    onSuccess?: () => void | Promise<void>;
+};
+
+export function ChangePasswordForm({
+    userId,
+    title = 'Change Password',
+    description = 'Update your account security credentials.',
+    submitLabel = 'Update Password',
+    onSuccess,
+}: ChangePasswordFormProps) {
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,11 +56,13 @@ export function ChangePasswordForm({ userId }: { userId: string }) {
         try {
             await changePasswordAction(userId, oldPassword, newPassword);
             setSuccess("Password changed successfully.");
+            emitOnboardingAction('change-password');
             setOldPassword('');
             setNewPassword('');
             setConfirmPassword('');
-        } catch (err: any) {
-            setError(err.message || "Failed to change password. Please verify your old password.");
+            await Promise.resolve(onSuccess?.());
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to change password. Please verify your old password.");
         } finally {
             setIsLoading(false);
         }
@@ -58,8 +75,8 @@ export function ChangePasswordForm({ userId }: { userId: string }) {
                     <KeyRound className="w-5 h-5 text-orange-500" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">Change Password</h3>
-                    <p className="text-sm text-gray-500">Update your account security credentials.</p>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                    <p className="text-sm text-gray-500">{description}</p>
                 </div>
             </div>
 
@@ -116,12 +133,13 @@ export function ChangePasswordForm({ userId }: { userId: string }) {
                         type="submit"
                         disabled={isLoading}
                         className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold rounded-xl py-6 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                        data-tour="change-password-submit-btn"
                     >
                         {isLoading ? (
                             <span className="flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin" /> Updating Security...
                             </span>
-                        ) : 'Update Password'}
+                        ) : submitLabel}
                     </Button>
                 </div>
             </form>

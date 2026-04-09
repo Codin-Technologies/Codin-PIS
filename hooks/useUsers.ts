@@ -17,7 +17,6 @@ import {
     CreateUserPayload,
     Role,
     Organization,
-    User
 } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -31,7 +30,10 @@ export function useUsers() {
 export function useUser(id: string | null) {
     return useQuery({
         queryKey: queryKeys.user(id || ''),
-        queryFn: () => id ? fetchUserById(id) : null as any,
+        queryFn: async () => {
+            if (!id) throw new Error('user id is required');
+            return fetchUserById(id);
+        },
         enabled: !!id,
     });
 }
@@ -67,7 +69,10 @@ export function useOrganizations() {
 export function useOrganization(id: string | null) {
     return useQuery({
         queryKey: queryKeys.organization(id || ''),
-        queryFn: () => id ? fetchOrganizationById(id) : null as any,
+        queryFn: async () => {
+            if (!id) throw new Error('organization id is required');
+            return fetchOrganizationById(id);
+        },
         enabled: !!id,
     });
 }
@@ -77,6 +82,7 @@ export function useCreateUser() {
 
     return useMutation({
         mutationFn: (payload: CreateUserPayload) => createUser(payload),
+        meta: { errorTitle: 'Failed to create user' },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.users() });
         },
@@ -89,6 +95,7 @@ export function useUpdateUser() {
     return useMutation({
         mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateUserPayload> }) => 
             updateUser(id, payload),
+        meta: { errorTitle: 'Failed to update user' },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.users() });
         },
@@ -100,6 +107,7 @@ export function useDeleteUser() {
 
     return useMutation({
         mutationFn: (id: string) => deleteUser(id),
+        meta: { errorTitle: 'Failed to delete user' },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.users() });
         },

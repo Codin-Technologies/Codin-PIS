@@ -10,6 +10,7 @@ import { useCreateRFQ } from '@/hooks/useRFQs';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 import type { Requisition, CreateRFQPayload } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface CreateRFQFromReqModalProps {
     isOpen: boolean;
@@ -61,6 +62,7 @@ export function CreateRFQFromReqModal({ isOpen, onClose, requisition, onSuccess 
 
         createRFQMutation.mutate(payload, {
             onSuccess: () => {
+                emitOnboardingAction('create-rfq');
                 onSuccess();
             },
         });
@@ -258,6 +260,7 @@ export function CreateRFQFromReqModal({ isOpen, onClose, requisition, onSuccess 
                             onClick={handlePublish}
                             disabled={!form.title || selectedSupplierIds.length === 0 || createRFQMutation.isPending}
                             className="bg-[#2a2b2d] hover:bg-black text-white rounded-xl font-bold px-6 flex items-center gap-2 transition-all shadow-md"
+                            data-tour="create-rfq-submit-btn"
                         >
                             {createRFQMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

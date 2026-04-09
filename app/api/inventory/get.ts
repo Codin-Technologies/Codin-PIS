@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inventoryItems, departments } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
-import { AuthenticatedUser } from '@/lib/auth/utils';
+import { inventoryItems } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 function computeStatus(qty: number, minQty: number): 'Good' | 'Low' | 'Critical' {
   if (qty <= minQty) return 'Critical';
@@ -10,42 +9,15 @@ function computeStatus(qty: number, minQty: number): 'Good' | 'Low' | 'Critical'
   return 'Good';
 }
 
-export async function getInventory(req: NextRequest, user: AuthenticatedUser) {
+export async function getInventory(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const departmentId = searchParams.get('departmentId');
-    const organizationId = user.organizationId;
 
-    if (!organizationId) {
-      return NextResponse.json({ message: 'Organization context missing' }, { status: 400 });
-    }
-
-    let items: (typeof inventoryItems.$inferSelect & { department: typeof departments.$inferSelect | null })[];
-    
-    // Get all departments for the organization to ensure isolation
-    const orgDepartments = await db.query.departments.findMany({
-      where: eq(departments.organizationId, organizationId),
+    const items = await db.query.inventoryItems.findMany({
+      where: departmentId ? eq(inventoryItems.departmentId, departmentId) : undefined,
+      with: { department: true },
     });
-
-    const departmentIds = orgDepartments.map(dept => dept.id);
-
-    if (departmentIds.length > 0) {
-      // If a specific departmentId is requested, ensure it belongs to the user's organization
-      const targetDeptIds = departmentId 
-        ? departmentIds.filter(id => id === departmentId)
-        : departmentIds;
-
-      if (targetDeptIds.length > 0) {
-        items = await db.query.inventoryItems.findMany({
-          where: inArray(inventoryItems.departmentId, targetDeptIds),
-          with: { department: true },
-        });
-      } else {
-        items = [];
-      }
-    } else {
-      items = [];
-    }
 
     const enriched = items.map(({ minQty, qty, department, ...rest }) => ({
       ...rest,

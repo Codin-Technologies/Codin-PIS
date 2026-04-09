@@ -5,11 +5,11 @@ import {
     Users, Star, MapPin, AlertCircle,
     ShieldCheck,
     Plus, ExternalLink,
-    TrendingUp, Link, ArrowRight
+    TrendingUp, Link
 } from 'lucide-react';
-import LinkNext from 'next/link';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { NewSupplierModal } from './NewSupplierModal';
 import { SendRFQModal } from './SendRFQModal';
 import { SupplierDetailModal } from './SupplierDetailModal';
@@ -18,12 +18,13 @@ import { useBranch } from '@/hooks/useBranch';
 import { useCurrency } from '@/hooks/useCurrency';
 import { ErrorState } from '@/components/ui/error-state';
 import type { CreateSupplierPayload } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 const SUPPLIER_STATS_META = [
-    { label: 'Total Suppliers',    icon: Users,       color: 'text-indigo-600',  bg: 'bg-indigo-50'  },
-    { label: 'Avg Lead Time',      icon: TrendingUp,  color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Risk Alerts',        icon: AlertCircle, color: 'text-amber-600',   bg: 'bg-amber-50'   },
-    { label: 'Preferred Partners', icon: ShieldCheck, color: 'text-blue-600',    bg: 'bg-blue-50'    },
+    { label: 'Total Suppliers', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Avg Lead Time', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Risk Alerts', icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Preferred Partners', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
 ];
 
 function SupplierSkeleton() {
@@ -41,6 +42,9 @@ function SupplierSkeleton() {
 }
 
 export function SuppliersView() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { format: f } = useCurrency();
     const [searchTerm, setSearchTerm] = useState('');
@@ -54,18 +58,34 @@ export function SuppliersView() {
     });
 
     const createSupplierMutation = useCreateSupplier(branchId);
-
     const suppliers = data?.data ?? [];
+    const isSupplierModalVisible = isModalOpen || searchParams.get('action') === 'new-supplier';
 
     function handleCreateSupplier(payload: CreateSupplierPayload) {
         createSupplierMutation.mutate(payload, {
-            onSuccess: () => setIsModalOpen(false),
+            onSuccess: () => {
+                emitOnboardingAction('create-supplier');
+                closeSupplierModal();
+            },
         });
     }
 
+    function closeSupplierModal() {
+        setIsModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-supplier') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }
+
     const toggleSupplier = (id: string) => {
-        setSelectedSupplierIds(prev => 
-            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        setSelectedSupplierIds((prev) =>
+            prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
         );
     };
 
@@ -73,15 +93,15 @@ export function SuppliersView() {
         if (selectedSupplierIds.length === suppliers.length) {
             setSelectedSupplierIds([]);
         } else {
-            setSelectedSupplierIds(suppliers.map(s => s.id));
+            setSelectedSupplierIds(suppliers.map((supplier) => supplier.id));
         }
     };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <NewSupplierModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isSupplierModalVisible}
+                onClose={closeSupplierModal}
                 onSubmit={handleCreateSupplier}
                 isPending={createSupplierMutation.isPending}
                 branchId={branchId}
@@ -90,11 +110,10 @@ export function SuppliersView() {
             <SendRFQModal
                 isOpen={isRFQModalOpen}
                 onClose={() => setIsRFQModalOpen(false)}
-                selectedSuppliers={suppliers.filter(s => selectedSupplierIds.includes(s.id))}
+                selectedSuppliers={suppliers.filter((supplier) => selectedSupplierIds.includes(supplier.id))}
                 onSuccess={() => setSelectedSupplierIds([])}
             />
 
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Supplier Directory</h2>
@@ -113,6 +132,7 @@ export function SuppliersView() {
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                        data-tour="add-supplier-btn"
                     >
                         <Plus className="h-4 w-4" />
                         Add Supplier
@@ -120,34 +140,21 @@ export function SuppliersView() {
                 </div>
             </div>
 
-            {/* Portal Testing Links */}
             <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between gap-4 overflow-x-auto">
                 <div className="flex items-center gap-3 shrink-0">
                     <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                         <Link className="h-4 w-4" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-900">RFQ Portal Testing</p>
-                        <p className="text-[10px] text-gray-500">View mocked supplier tokens</p>
+                        <p className="text-xs font-bold text-gray-900">RFQ Supplier Portal</p>
+                        <p className="text-[10px] text-gray-500">Live supplier links are generated when you broadcast an RFQ.</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <LinkNext href="/supplier/rfq/mock-token-123" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center gap-1.5">
-                        Success FLow <ArrowRight className="h-3 w-3" />
-                    </LinkNext>
-                    <LinkNext href="/supplier/rfq/invalid-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-red-400 hover:text-red-600 transition-colors flex items-center gap-1.5">
-                        Invalid Link <ArrowRight className="h-3 w-3" />
-                    </LinkNext>
-                    <LinkNext href="/supplier/rfq/expired-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-orange-400 hover:text-orange-600 transition-colors flex items-center gap-1.5">
-                        Expired Link <ArrowRight className="h-3 w-3" />
-                    </LinkNext>
-                    <LinkNext href="/supplier/rfq/closed-token" target="_blank" className="text-[11px] font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1.5">
-                        Closed RFQ <ArrowRight className="h-3 w-3" />
-                    </LinkNext>
-                </div>
+                <p className="text-[11px] font-bold text-blue-700 bg-white border border-blue-200 px-3 py-1.5 rounded-lg shrink-0">
+                    Use RFQ broadcast to issue real supplier tokens
+                </p>
             </div>
 
-            {/* Stats — placeholder values until a dedicated stats endpoint is added */}
             <div className="grid grid-cols-4 gap-6">
                 {SUPPLIER_STATS_META.map((stat, idx) => (
                     <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
@@ -164,10 +171,9 @@ export function SuppliersView() {
                 ))}
             </div>
 
-            {/* Error state */}
             {isError && (
                 <div className="py-12">
-                    <ErrorState 
+                    <ErrorState
                         title="Supplier Directory Error"
                         error={error as Error}
                         onRetry={() => window.location.reload()}
@@ -175,7 +181,6 @@ export function SuppliersView() {
                 </div>
             )}
 
-            {/* Supplier Grid */}
             {!isError && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {isLoading && Array.from({ length: 6 }).map((_, i) => <SupplierSkeleton key={i} />)}
@@ -190,22 +195,21 @@ export function SuppliersView() {
                                 selectedSupplierIds.includes(supplier.id) ? "border-black ring-1 ring-black" : "border-gray-100"
                             )}
                         >
-                            {/* Checkbox */}
-                            <div 
+                            <div
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     toggleSupplier(supplier.id);
                                 }}
                                 className={clsx(
                                     "absolute top-4 right-4 h-5 w-5 rounded border transition-colors flex items-center justify-center z-10",
-                                    selectedSupplierIds.includes(supplier.id) 
-                                        ? "bg-black border-black text-white" 
+                                    selectedSupplierIds.includes(supplier.id)
+                                        ? "bg-black border-black text-white"
                                         : "border-gray-200 bg-white group-hover:border-gray-400"
                                 )}
                             >
                                 {selectedSupplierIds.includes(supplier.id) && (
                                     <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 )}
                             </div>
@@ -214,7 +218,8 @@ export function SuppliersView() {
                                 <div className="h-12 w-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
                                     <span className="text-lg font-bold text-gray-400">{supplier.name.charAt(0)}</span>
                                 </div>
-                                <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mr-8",
+                                <span className={clsx(
+                                    "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mr-8",
                                     supplier.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                                 )}>
                                     {supplier.status}
@@ -256,7 +261,6 @@ export function SuppliersView() {
                 </div>
             )}
 
-            {/* Empty state */}
             {!isLoading && !isError && suppliers.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                     <Users className="h-12 w-12 mb-2 opacity-50" />
@@ -264,7 +268,6 @@ export function SuppliersView() {
                 </div>
             )}
 
-            {/* Floating Selection Bar */}
             <AnimatePresence>
                 {selectedSupplierIds.length > 0 && (
                     <motion.div
@@ -279,8 +282,11 @@ export function SuppliersView() {
                             </div>
                             <div>
                                 <p className="text-sm font-bold">Suppliers Selected</p>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); setSelectedSupplierIds([]); }}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedSupplierIds([]);
+                                    }}
                                     className="text-[10px] text-gray-400 font-bold uppercase tracking-wider hover:text-white"
                                 >
                                     Clear Selection

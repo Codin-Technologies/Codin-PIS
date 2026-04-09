@@ -24,9 +24,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.fullName,
             roleId: user.roleId,
             organizationId: user.organizationId,
-          } as any;
-        } catch (error: any) {
-          console.error("Auth error:", error.message);
+            loginAt: user.loginAt?.toISOString?.() ?? null,
+            lastLoginAt: user.lastLoginAt?.toISOString?.() ?? null,
+            mustChangePassword: Boolean(user.mustChangePassword),
+          };
+        } catch (error: unknown) {
+          console.error("Auth error:", error instanceof Error ? error.message : error);
           return null;
         }
       },

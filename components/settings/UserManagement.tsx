@@ -1,16 +1,23 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { UserPlus, MoreVertical, Shield, User as UserIcon, Eye, Pencil, Trash2, AlertTriangle, X, Mail, Building2, Calendar, Phone, Activity } from 'lucide-react';
+import { UserPlus, MoreVertical, Shield, User as UserIcon, Eye, Pencil, Trash2, AlertTriangle, X, Mail, Building2, Calendar, Activity } from 'lucide-react';
 import clsx from 'clsx';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 import { CreateUserForm } from './CreateUserForm';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUsers, useUser, useDeleteUser } from '@/hooks/useUsers';
 import { Button } from '@/components/ui/button';
 import { User as UserType } from '@/lib/api';
+import { useSession } from 'next-auth/react';
 
 export function UserManagement() {
+    const { data: session } = useSession();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { data: usersData, isLoading } = useUsers();
     const deleteUserMutation = useDeleteUser();
     
@@ -35,6 +42,7 @@ export function UserManagement() {
     }, []);
 
     const users = usersData ?? [];
+    const isCreateModalVisible = isCreateModalOpen || searchParams.get('action') === 'create-user';
 
     const handleActionSuccess = () => {
         setIsCreateModalOpen(false);
@@ -42,12 +50,29 @@ export function UserManagement() {
         setDeletingUser(null);
     };
 
+    const closeCreateModal = () => {
+        setIsCreateModalOpen(false);
+
+        if (searchParams.get('action') !== 'create-user') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    };
+
     const handleDelete = async () => {
         if (!deletingUser) return;
+        if (session?.user?.id && deletingUser.id === session.user.id) {
+            toast.error('You cannot delete your own account.');
+            return;
+        }
         deleteUserMutation.mutate(deletingUser.id, {
             onSuccess: () => {
+                toast.success('User deactivated successfully.');
                 setDeletingUser(null);
-            }
+            },
         });
     };
 
@@ -61,6 +86,7 @@ export function UserManagement() {
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-pink-500/20 hover:opacity-90 transition-all font-sans"
+                    data-tour="add-user-btn"
                 >
                     <UserPlus className="w-4 h-4" />
                     Create User account
@@ -211,14 +237,14 @@ export function UserManagement() {
 
             {/* Create/Edit User Modal */}
             <AnimatePresence>
-                {(isCreateModalOpen || editingUser) && (
+                {(isCreateModalVisible || editingUser) && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => {
-                                setIsCreateModalOpen(false);
+                                closeCreateModal();
                                 setEditingUser(null);
                             }}
                             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -231,7 +257,7 @@ export function UserManagement() {
                         >
                             <CreateUserForm
                                 onClose={() => {
-                                    setIsCreateModalOpen(false);
+                                    closeCreateModal();
                                     setEditingUser(null);
                                 }}
                                 onSuccess={handleActionSuccess}

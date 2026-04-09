@@ -16,16 +16,6 @@ import { postInventory } from './post';
  *         schema:
  *           type: string
  *         description: Filter items by department UUID
- *       - in: query
- *         name: organizationId
- *         schema:
- *           type: string
- *         description: Filter items by organization UUID (returns all items from all departments in the organization)
- *       - in: query
- *         name: branchId
- *         schema:
- *           type: string
- *         description: Alias for organizationId
  *     responses:
  *       200:
  *         description: List of inventory items with status (Good/Low/Critical)
@@ -71,23 +61,24 @@ import { postInventory } from './post';
 import { AuthenticatedError, AuthenticatedUser, getAuthenticatedUser } from '@/lib/auth/utils';
 import { hasPermission } from '@/lib/rbac/utils';
 
-async function getUserContext(request: NextRequest, permission: string): Promise<NextResponse | AuthenticatedUser> {
+async function assertAuth(request: NextRequest, permission: string) {
   const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ message: 'Unauthorized Please login' }, { status: 401 });
   if ((user as AuthenticatedError).message) return NextResponse.json({ message: (user as AuthenticatedError).message }, { status: 400 });
   const allowed = await hasPermission(user as AuthenticatedUser, permission);
   if (!allowed) return NextResponse.json({ timestamp: new Date(), success: false, message: 'Forbidden!! Contact Administrator' }, { status: 403 });
-  return user as AuthenticatedUser;
+  return null;
 }
 
 export async function GET(request: NextRequest) {
-  const user = await getUserContext(request, 'inventory.read');
-  if (user instanceof NextResponse) return user;
-  return getInventory(request, user);
+  const err = await assertAuth(request, 'inventory.read');
+  if (err) return err;
+  return getInventory(request);
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getUserContext(request, 'inventory.create');
-  if (user instanceof NextResponse) return user;
+  const err = await assertAuth(request, 'inventory.create');
+  if (err) return err;
+  const user = await getAuthenticatedUser(request) as AuthenticatedUser;
   return postInventory(request, user);
 }

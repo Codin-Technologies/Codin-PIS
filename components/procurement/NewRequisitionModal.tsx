@@ -2,18 +2,20 @@
 
 import { useState } from 'react';
 import {
-    X, Plus, Trash2, AlertTriangle, FileText,
+    X, Plus, Trash2, AlertTriangle,
     ChevronRight, Loader2, Calculator
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CatalogModal } from './CatalogModal';
+import { CatalogLineItem, CatalogModal } from './CatalogModal';
 import { useCreateRequisition } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
+import type { CreateRequisitionPayload } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const { branchId } = useBranch();
@@ -22,7 +24,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
     const { data: budgetData } = useBudgets(branchId);
     const createMutation = useCreateRequisition(branchId);
 
-    const [lineItems, setLineItems] = useState<any[]>([]);
+    const [lineItems, setLineItems] = useState<CatalogLineItem[]>([]);
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
     // Form State
@@ -46,7 +48,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
         if (!formData.departmentId) return alert('Please select a department');
         if (lineItems.length === 0) return alert('Please add at least one item');
 
-        const payload = {
+        const payload: CreateRequisitionPayload = {
             branchId,
             departmentId: formData.departmentId,
             budgetId: formData.budgetId || null,
@@ -63,9 +65,10 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
 
         try {
             await createMutation.mutateAsync(payload);
+            emitOnboardingAction('create-requisition');
             onClose();
-        } catch (err: any) {
-            alert(err.message || 'Failed to submit requisition');
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to submit requisition');
         }
     }
 
@@ -321,6 +324,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                     onClick={handleSubmit}
                                     disabled={createMutation.isPending || lineItems.length === 0}
                                     className="px-10 py-6 rounded-xl bg-gray-900 text-white font-black text-sm shadow-xl hover:bg-gray-800 flex items-center justify-center gap-3 flex-1 md:flex-none transition-all group"
+                                    data-tour="create-requisition-submit-btn"
                                 >
                                     {createMutation.isPending ? (
                                         <Loader2 className="h-5 w-5 animate-spin" />

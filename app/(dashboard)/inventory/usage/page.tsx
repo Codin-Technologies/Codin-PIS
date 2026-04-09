@@ -7,8 +7,12 @@ import { UsageDetailModal } from '@/components/inventory/UsageDetailModal';
 import { useInventoryUsage } from '@/hooks/useInventory';
 import { useBranch } from '@/hooks/useBranch';
 import clsx from 'clsx';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 export default function DailyStockUsagePage() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { data: usageResponse, isLoading } = useInventoryUsage(branchId);
     const usageHistory = usageResponse?.data ?? [];
@@ -17,6 +21,7 @@ export default function DailyStockUsagePage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUsageId, setSelectedUsageId] = useState<string | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const isModalVisible = isModalOpen || searchParams.get('action') === 'new-usage';
 
     const filteredUsage = usageHistory.filter(record => 
         record.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,6 +34,19 @@ export default function DailyStockUsagePage() {
         setIsDetailModalOpen(true);
     };
 
+    const closeModal = () => {
+        setIsModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-usage') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
     return (
         <div className="h-full flex flex-col space-y-6 p-6">
             <div className="flex items-center justify-between">
@@ -39,6 +57,7 @@ export default function DailyStockUsagePage() {
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center gap-2 bg-[#2a2b2d] text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-lg active:scale-95"
+                    data-tour="record-usage-btn"
                 >
                     <Plus className="h-5 w-5" />
                     Record Usage
@@ -146,8 +165,8 @@ export default function DailyStockUsagePage() {
             </div>
 
             <NewUsageModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isModalVisible}
+                onClose={closeModal}
             />
 
             <UsageDetailModal 

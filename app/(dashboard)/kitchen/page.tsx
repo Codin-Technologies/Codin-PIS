@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import {
-    Search, Plus, ClipboardList, UtensilsCrossed,
+    Plus, ClipboardList,
     Zap, AlertCircle, ChefHat, Timer,
-    Activity, History, Filter, MoreHorizontal
+    Activity, History, MoreHorizontal
 } from 'lucide-react';
 import clsx from 'clsx';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CookingPlanCard } from '@/components/kitchen/CookingPlanCard';
 import { SpecialOrderForm } from '@/components/kitchen/SpecialOrderForm';
 import { NewProductionModal } from '@/components/kitchen/NewProductionModal';
@@ -16,10 +17,15 @@ import { ErrorState } from '@/components/ui/error-state';
 import { type SpecialOrder, type ProductionPlan } from '@/lib/api';
 
 export default function KitchenPage() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
-    const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'SPECIAL'>('PRODUCTION');
     const [isSpecialOrderModalOpen, setIsSpecialOrderModalOpen] = useState(false);
     const [isProductionModalOpen, setIsProductionModalOpen] = useState(false);
+    const activeTab: 'PRODUCTION' | 'SPECIAL' = searchParams.get('tab') === 'special' ? 'SPECIAL' : 'PRODUCTION';
+    const isProductionModalVisible = isProductionModalOpen || searchParams.get('action') === 'new-production';
+    const isSpecialOrderModalVisible = isSpecialOrderModalOpen || searchParams.get('action') === 'new-special-order';
 
     // Data Fetching
     const { 
@@ -46,6 +52,40 @@ export default function KitchenPage() {
         updateSpecialOrderStatusMutation.mutate({ id, status });
     };
 
+    const handleTabChange = (tab: 'PRODUCTION' | 'SPECIAL') => {
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set('tab', tab === 'SPECIAL' ? 'special' : 'production');
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
+    const closeProductionModal = () => {
+        setIsProductionModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-production') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
+    const closeSpecialOrderModal = () => {
+        setIsSpecialOrderModalOpen(false);
+
+        if (searchParams.get('action') !== 'new-special-order') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
     if (isProductionError || isSpecialOrdersError) {
         return (
             <div className="p-8">
@@ -61,13 +101,13 @@ export default function KitchenPage() {
     return (
         <div className="flex h-[calc(100vh-6rem)] gap-6 overflow-hidden">
             <SpecialOrderForm
-                isOpen={isSpecialOrderModalOpen}
-                onClose={() => setIsSpecialOrderModalOpen(false)}
+                isOpen={isSpecialOrderModalVisible}
+                onClose={closeSpecialOrderModal}
             />
 
             <NewProductionModal
-                isOpen={isProductionModalOpen}
-                onClose={() => setIsProductionModalOpen(false)}
+                isOpen={isProductionModalVisible}
+                onClose={closeProductionModal}
             />
 
             {/* Left: Production Dashboard */}
@@ -79,7 +119,7 @@ export default function KitchenPage() {
                             <ChefHat className="h-8 w-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold">Chef's Production Floor</h1>
+                            <h1 className="text-2xl font-bold">Chef&apos;s Production Floor</h1>
                             <p className="text-gray-400 text-sm flex items-center gap-2">
                                 <Activity className="h-4 w-4 text-green-500" />
                                 3 Active Cookings • Lunch Shift
@@ -89,20 +129,22 @@ export default function KitchenPage() {
                     <div className="flex gap-4">
                         <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                             <button
-                                onClick={() => setActiveTab('PRODUCTION')}
+                                onClick={() => handleTabChange('PRODUCTION')}
                                 className={clsx(
                                     "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                                     activeTab === 'PRODUCTION' ? "bg-white text-gray-900 shadow-lg" : "text-gray-400 hover:text-white"
                                 )}
+                                data-tour="kitchen-production-tab"
                             >
                                 Planned Production
                             </button>
                             <button
-                                onClick={() => setActiveTab('SPECIAL')}
+                                onClick={() => handleTabChange('SPECIAL')}
                                 className={clsx(
                                     "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                                     activeTab === 'SPECIAL' ? "bg-white text-gray-900 shadow-lg" : "text-gray-400 hover:text-white"
                                 )}
+                                data-tour="kitchen-special-tab"
                             >
                                 Special Orders
                                 {specialOrders.filter((o: SpecialOrder) => o.status === 'Pending').length > 0 && (
@@ -130,6 +172,7 @@ export default function KitchenPage() {
                             <button
                                 onClick={() => setIsProductionModalOpen(true)}
                                 className="h-full min-h-[160px] rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-all hover:bg-gray-50 bg-white/50"
+                                data-tour="create-production-plan-btn"
                             >
                                 <Plus className="h-6 w-6" />
                                 <span className="font-bold text-sm">Add to Production Plan</span>
@@ -142,6 +185,7 @@ export default function KitchenPage() {
                                 <button
                                     onClick={() => setIsSpecialOrderModalOpen(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800 shadow-lg transition-all"
+                                    data-tour="create-special-order-btn"
                                 >
                                     <Plus className="h-4 w-4" />
                                     New Special Order
@@ -165,7 +209,7 @@ export default function KitchenPage() {
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{order.logTime}</p>
                                             <select 
                                                 value={order.status}
-                                                onChange={(e) => handleSpecialOrderStatusUpdate(order.id, e.target.value as any)}
+                                                onChange={(e) => handleSpecialOrderStatusUpdate(order.id, e.target.value as SpecialOrder['status'])}
                                                 className={clsx("text-xs font-bold bg-transparent border-none focus:ring-0 p-0 cursor-pointer",
                                                     order.status === 'Pending' ? "text-orange-500" : "text-green-600"
                                                 )}

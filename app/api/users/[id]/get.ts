@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 export async function getUserById(id: string) {
   try {
     const user = await db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: and(eq(users.id, id), isNull(users.deletedAt)),
       with: {
         role: true,
         organization: true,
@@ -14,7 +14,8 @@ export async function getUserById(id: string) {
     });
     if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
-    const { passwordHash, role, organization, ...safeUser } = user;
+    const { passwordHash: _passwordHash, role, organization, ...safeUser } = user;
+    void _passwordHash;
     return NextResponse.json({ 
       data: {
         ...safeUser,

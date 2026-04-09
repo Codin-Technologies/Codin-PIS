@@ -15,9 +15,10 @@ import { useDeductProductionInventory } from '@/hooks/useKitchen';
 import { useInventory } from '@/hooks/useInventory';
 import { type ProductionPlan } from '@/lib/api';
 import clsx from 'clsx';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface KitchenRequisitionCardProps {
     plan: ProductionPlan;
@@ -31,19 +32,20 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
     const deductMutation = useDeductProductionInventory(branchId);
     const [isExpanded, setIsExpanded] = useState(false);
     const [issueQtys, setIssueQtys] = useState<Record<string, number>>({});
+    const [currentTimestamp] = useState(() => Date.now());
 
-    const inventoryItems = inventoryData?.data ?? [];
+    const inventoryItems = useMemo(() => inventoryData?.data ?? [], [inventoryData?.data]);
     const isHistory = mode === 'history';
 
     // How long ago was it approved (for history mode)
     const timeAgo = useMemo(() => {
         if (!approvedAt) return '';
-        const diff = Date.now() - approvedAt;
+        const diff = currentTimestamp - approvedAt;
         const hours = Math.floor(diff / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
         if (hours > 0) return `${hours}h ago`;
         return `${minutes}m ago`;
-    }, [approvedAt]);
+    }, [approvedAt, currentTimestamp]);
 
     const ingredientStocks = useMemo(() => {
         return plan.ingredients.map(ing => {
@@ -58,21 +60,19 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
             };
         });
     }, [plan.ingredients, inventoryItems]);
-
-    useEffect(() => {
-        if (isHistory) return;
+    const defaultIssueQtys = useMemo(() => {
         const initialQtys: Record<string, number> = {};
-        ingredientStocks.forEach(ing => {
+        ingredientStocks.forEach((ing) => {
             initialQtys[ing.inventoryItemId] = Math.min(ing.qty, ing.available);
         });
-        setIssueQtys(initialQtys);
-    }, [ingredientStocks, isHistory]);
+        return initialQtys;
+    }, [ingredientStocks]);
 
     const handleDeduct = () => {
         const payload = {
-            ingredients: Object.entries(issueQtys).map(([id, qty]) => ({
-                inventoryItemId: id,
-                qty
+            ingredients: ingredientStocks.map((ingredient) => ({
+                inventoryItemId: ingredient.inventoryItemId,
+                qty: issueQtys[ingredient.inventoryItemId] ?? defaultIssueQtys[ingredient.inventoryItemId] ?? 0,
             }))
         };
         deductMutation.mutate(
@@ -84,10 +84,8 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
                     const existing = JSON.parse(localStorage.getItem(key) || '[]');
                     existing.push({ id: plan.id, approvedAt: Date.now() });
                     localStorage.setItem(key, JSON.stringify(existing));
+                    emitOnboardingAction('approve-production-usage');
                     toast.success("Requisition approved and stock deducted!");
-                },
-                onError: (error: any) => {
-                    toast.error(error.message || "Failed to process requisition");
                 }
             }
         );
@@ -191,7 +189,7 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
                                                 max={ing.available}
                                                 min={0}
                                                 className="w-full h-8 px-2 rounded-lg border border-gray-100 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                                                value={issueQtys[ing.inventoryItemId] ?? 0}
+                                                value={issueQtys[ing.inventoryItemId] ?? defaultIssueQtys[ing.inventoryItemId] ?? 0}
                                                 onChange={(e) => setIssueQtys({
                                                     ...issueQtys,
                                                     [ing.inventoryItemId]: parseFloat(e.target.value) || 0
@@ -236,6 +234,7 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
                             ? "bg-[#2a2b2d] text-white hover:bg-gray-800" 
                             : "bg-orange-600 text-white hover:bg-orange-700"
                     )}
+                    data-tour="approve-production-usage-btn"
                 >
                     {deductMutation.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -246,11 +245,11 @@ export function KitchenRequisitionCard({ plan, mode = 'pending', approvedAt }: K
                 </button>
             </div>
             
-            {deductMutation.isError && (
-                <p className="text-[10px] text-red-600 mt-2 font-bold text-center bg-red-100/50 py-1 rounded-lg border border-red-100">
-                    {(deductMutation.error as Error).message}
+            {deductMutation.isError ? (
+                <p className="mt-2 rounded-lg border border-red-100 bg-red-100/50 py-1 text-center text-[10px] font-bold text-red-700">
+                    Sorry for encountering this error. Please contact our support via support@codin.co.tz.
                 </p>
-            )}
+            ) : null}
         </div>
     );
 }

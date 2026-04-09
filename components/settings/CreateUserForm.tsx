@@ -6,11 +6,12 @@ import { Field, FieldLabel, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { X, Shield, Building2, User, Key, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRoles, useOrganizations, useCreateUser, useUpdateUser } from '@/hooks/useUsers';
-import { User as UserType } from '@/lib/api';
+import { CreateUserPayload, User as UserType } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface CreateUserFormProps {
     onClose: () => void;
-    onSuccess: (newUser: any) => void;
+    onSuccess: (newUser: UserType) => void;
     user?: UserType;
 }
 
@@ -31,7 +32,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
         setSuccess(false);
 
         const formData = new FormData(e.target as HTMLFormElement);
-        const payload: any = {
+        const payload: CreateUserPayload = {
             fullName: formData.get('fullName') as string,
             email: formData.get('email') as string,
             roleId: formData.get('roleId') as string,
@@ -49,20 +50,21 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                         onSuccess(data);
                     }, 1500);
                 },
-                onError: (err: any) => {
-                    setError(err.message || 'Failed to update user. Please try again.');
+                onError: () => {
+                    setError('Sorry for encountering this error. Please contact our support via support@codin.co.tz. We will make sure this error becomes as rare as possible.');
                 }
             });
         } else {
-            createUserMutation.mutate(payload as any, {
+            createUserMutation.mutate(payload, {
                 onSuccess: (data) => {
                     setSuccess(true);
+                    emitOnboardingAction('add-user');
                     setTimeout(() => {
                         onSuccess(data);
                     }, 1500);
                 },
-                onError: (err: any) => {
-                    setError(err.message || 'Failed to create user. Please try again.');
+                onError: () => {
+                    setError('Sorry for encountering this error. Please contact our support via support@codin.co.tz. We will make sure this error becomes as rare as possible.');
                 }
             });
         }
@@ -205,6 +207,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                         type="submit"
                         disabled={createUserMutation.isPending || updateUserMutation.isPending}
                         className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
+                        data-tour="create-user-submit-btn"
                     >
                         {createUserMutation.isPending || updateUserMutation.isPending ? (
                             <div className="flex items-center gap-2">

@@ -51,6 +51,7 @@ export function useDeductProductionInventory(branchId: string) {
     return useMutation({
         mutationFn: ({ id, payload }: { id: string; payload?: DeductionPayload }) => 
             deductProductionInventoryAction(id, payload),
+        meta: { errorTitle: 'Failed to approve requisition' },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.kitchenProduction(branchId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });

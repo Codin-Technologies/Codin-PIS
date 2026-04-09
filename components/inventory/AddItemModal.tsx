@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Image as ImageIcon, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Plus, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-import type { Department } from '@/lib/api';
+import type { CreateInventoryItemPayload, Department } from '@/lib/api';
 
 interface AddItemModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (item: any) => void;
+    onAdd: (item: Omit<CreateInventoryItemPayload, 'branchId'>) => void;
     departments: Department[];
     isPending?: boolean;
     error?: Error | null;
@@ -182,6 +182,7 @@ export function AddItemModal({ isOpen, onClose, onAdd, departments = [], isPendi
                             type="submit"
                             disabled={isPending}
                             className="flex-1 py-3 bg-[#2a2b2d] text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            data-tour="add-inventory-submit-btn"
                         >
                             {isPending ? (
                                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

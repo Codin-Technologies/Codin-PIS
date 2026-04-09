@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, Save, Utensils, Package, Search, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
 import { useBranch } from '@/hooks/useBranch';
 import { useInventory } from '@/hooks/useInventory';
 import { useCreateProductionPlan } from '@/hooks/useKitchen';
 import { type InventoryItem } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 interface Ingredient {
     id: string;
@@ -46,7 +46,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
         setSelectedIngredients([
             ...selectedIngredients,
             { 
-                id: Math.random().toString(36).substr(2, 9), 
+                id: item.id,
                 name: item.name, 
                 qty: 1, 
                 unit: item.unit, 
@@ -82,6 +82,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
             }))
         }, {
             onSuccess: () => {
+                emitOnboardingAction('create-production-plan');
                 // Reset
                 setDish('');
                 setServings(10);
@@ -251,7 +252,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                         {/* Footer */}
                         <div className="px-8 py-6 bg-gray-50 border-t border-gray-100 flex items-center justify-between mt-auto">
                             <div className="text-[10px] text-gray-400 max-w-[200px]">
-                                Ingredients will be deducted from inventory once production is marked as "Completed".
+                                Ingredients will be deducted from inventory once production is marked as &quot;Completed&quot;.
                             </div>
                             <div className="flex gap-3">
                                 <button
@@ -265,6 +266,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                     type="submit"
                                     disabled={createProductionMutation.isPending}
                                     className="px-6 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    data-tour="create-production-submit-btn"
                                 >
                                     {createProductionMutation.isPending ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />

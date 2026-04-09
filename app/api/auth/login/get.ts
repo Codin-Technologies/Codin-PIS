@@ -12,15 +12,17 @@ export async function loginUser(request: NextRequest) {
       { message: "Login successful", user },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login error:", error);
     
-    if (error.message === "Email and password are required") {
-      return NextResponse.json({ message: error.message }, { status: 400 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+
+    if (message === "Email and password are required") {
+      return NextResponse.json({ message }, { status: 400 });
     }
     
-    if (error.message === "Invalid credentials") {
-      return NextResponse.json({ message: error.message }, { status: 401 });
+    if (message === "Invalid credentials") {
+      return NextResponse.json({ message }, { status: 401 });
     }
 
     return NextResponse.json(

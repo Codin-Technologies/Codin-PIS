@@ -12,6 +12,13 @@ import { toast } from 'sonner';
 import { useInventory, useRecordInventoryUsage } from '@/hooks/useInventory';
 import { useBranch } from '@/hooks/useBranch';
 import type { InventoryItem } from '@/lib/api';
+import { emitOnboardingAction } from '@/onboarding/helpers';
+
+type UsageLineItem = InventoryItem & { usageQty: number };
+type SessionUser = {
+    id?: string;
+    organizationId?: string;
+};
 
 interface NewUsageModalProps {
     isOpen: boolean;
@@ -25,7 +32,7 @@ export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
     const { mutate: recordUsage, isPending: isSaving } = useRecordInventoryUsage(branchId);
     
     const inventoryItems = inventoryData?.data ?? [];
-    const [lineItems, setLineItems] = useState<any[]>([]);
+    const [lineItems, setLineItems] = useState<UsageLineItem[]>([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -47,11 +54,13 @@ export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
             return;
         }
 
+        const sessionUser = session?.user as SessionUser | undefined;
+
         const payload = {
             date: formData.date,
             reason: formData.reason,
             notes: formData.notes,
-            organizationId: (session.user as any).organizationId || '',
+            organizationId: sessionUser?.organizationId || '',
             recordedById: session.user.id,
             items: lineItems.map(line => ({
                 inventoryItemId: line.id,
@@ -62,12 +71,10 @@ export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
         recordUsage(payload, {
             onSuccess: () => {
                 toast.success("Usage recorded successfully");
+                emitOnboardingAction('create-usage-log');
                 onClose();
                 setLineItems([]);
                 setFormData({ date: new Date().toISOString().split('T')[0], reason: 'Waste', notes: '' });
-            },
-            onError: (error: any) => {
-                toast.error(error.message || "Failed to record usage");
             }
         });
     };
@@ -229,6 +236,7 @@ export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
                                 onClick={handleSave}
                                 disabled={lineItems.length === 0 || isSaving}
                                 className="px-8 py-3 rounded-xl bg-[#2a2b2d] font-bold text-white shadow-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                                data-tour="record-usage-submit-btn"
                             >
                                 {isSaving ? (
                                     <>

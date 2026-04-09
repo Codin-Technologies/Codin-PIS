@@ -2,16 +2,35 @@
 
 import { useState } from 'react';
 import { Shield, Lock, CheckCircle2, MoreVertical, Plus } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CreateRoleForm } from './CreateRoleForm';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRoles } from '@/hooks/useUsers';
+import type { Role } from '@/lib/api';
 
 export function RoleManagement() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { data: roles, isLoading } = useRoles();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const isModalVisible = isModalOpen || searchParams.get('action') === 'create-role';
 
     const handleAddRole = () => {
+        closeModal();
+    };
+
+    const closeModal = () => {
         setIsModalOpen(false);
+
+        if (searchParams.get('action') !== 'create-role') {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     };
 
     return (
@@ -24,6 +43,7 @@ export function RoleManagement() {
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all shadow-sm font-sans"
+                    data-tour="create-role-btn"
                 >
                     <Plus className="w-4 h-4 text-pink-500" />
                     Create Role
@@ -44,7 +64,7 @@ export function RoleManagement() {
                                 <div>
                                     <h4 className="font-bold text-gray-900">{role.name}</h4>
                                     <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-0.5">
-                                        {(role as any).usersCount ?? 0} Users Assigned
+                                        {(role as Role & { usersCount?: number }).usersCount ?? 0} Users Assigned
                                     </p>
                                 </div>
                             </div>
@@ -75,13 +95,13 @@ export function RoleManagement() {
 
             {/* Create Role Modal */}
             <AnimatePresence>
-                {isModalOpen && (
+                {isModalVisible && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setIsModalOpen(false)}
+                            onClick={closeModal}
                             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         />
                         <motion.div
@@ -91,7 +111,7 @@ export function RoleManagement() {
                             className="relative w-full max-w-4xl bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden"
                         >
                             <CreateRoleForm
-                                onClose={() => setIsModalOpen(false)}
+                                onClose={closeModal}
                                 onSuccess={handleAddRole}
                             />
                         </motion.div>

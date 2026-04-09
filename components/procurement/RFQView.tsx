@@ -2,32 +2,29 @@
 
 import { useState } from 'react';
 import {
-    Plus, Search, Filter, ArrowRight, CheckCircle,
-    XCircle, Clock, TrendingUp, Users, DollarSign,
-    FileText, ChevronRight, Award, AlertTriangle,
-    BarChart3, ShieldCheck, Loader2
+    Plus, Search, ArrowRight, CheckCircle,
+    Clock, TrendingUp, Users,
+    FileText, Award, AlertTriangle,
+    BarChart3, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import {
-    useRFQs,
-    useCreateRFQ,
-    useRFQ,
-    useRFQQuotations,
-    useBroadcastRFQ,
-    useUpdateRFQStatus,
-} from '@/hooks/useRFQs';
+import { useRFQs, useCreateRFQ, useRFQ, useRFQQuotations, useBroadcastRFQ, useUpdateRFQStatus } from '@/hooks/useRFQs';
 import { useRequisitions } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
 import { useCurrency } from '@/hooks/useCurrency';
 import { ErrorState } from '@/components/ui/error-state';
 import type { CreateRFQPayload, RfqStatus } from '@/lib/api';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { emitOnboardingAction } from '@/onboarding/helpers';
 
 // --- Types ---
 type ViewState = 'DASHBOARD' | 'CREATE' | 'COMPARE';
 
 export function RFQView() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const { format: f } = useCurrency();
     const [view, setView] = useState<ViewState>('DASHBOARD');
@@ -44,6 +41,7 @@ export function RFQView() {
     });
     const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
     const [searchSupplier, setSearchSupplier] = useState('');
+    const [currentTimestamp] = useState(() => Date.now());
 
     // Queries
     const { data: rfqData, isLoading: isLoadingRFQs } = useRFQs(branchId);
@@ -56,22 +54,22 @@ export function RFQView() {
     const createRFQMutation = useCreateRFQ(branchId);
     const updateStatusMutation = useUpdateRFQStatus(branchId);
     const broadcastMutation = useBroadcastRFQ(branchId);
-    const { data: selectedRfqData } = useRFQ(selectedRfq);
+    const suppliers = supplierData?.data ?? [];
+    const rfqs = rfqData?.data ?? [];
+    const approvedRequisitions = requisitionData?.data ?? [];
+    const action = searchParams.get('action');
+    const currentView: ViewState = action === 'manage-latest' ? 'COMPARE' : action === 'create-rfq' ? 'CREATE' : view;
+    const activeRfqId = action === 'manage-latest' ? (rfqs[0]?.id ?? null) : selectedRfq;
+    const { data: selectedRfqData } = useRFQ(activeRfqId);
     const {
         data: quotationData,
         isLoading: isLoadingQuotations,
         isError: isQuotationError,
         error: quotationError,
-    } = useRFQQuotations(branchId, selectedRfq);
-
-    const suppliers = supplierData?.data ?? [];
-    const rfqs = rfqData?.data ?? [];
-    const approvedRequisitions = requisitionData?.data ?? [];
+    } = useRFQQuotations(branchId, activeRfqId);
 
     // --- Metrics Calculation ---
     const activeRFQs = rfqs.filter(r => r.status === 'active');
-    const evaluatingRFQs = rfqs.filter(r => r.status === 'evaluating');
-    
     const totalResponses = rfqs.reduce((acc, r) => acc + (r.responseCount || 0), 0);
     const totalInvited = rfqs.reduce((acc, r) => acc + (r.supplierIds?.length || 0), 0);
     const participationRate = totalInvited > 0 ? Math.round((totalResponses / totalInvited) * 100) : 0;
@@ -86,7 +84,7 @@ export function RFQView() {
     const isClosingSoon = (deadlineStr: string | null) => {
         if (!deadlineStr) return false;
         const deadline = new Date(deadlineStr);
-        const diff = deadline.getTime() - Date.now();
+        const diff = deadline.getTime() - currentTimestamp;
         return diff > 0 && diff < (3 * 24 * 60 * 60 * 1000);
     };
     const closingSoonCount = rfqs.filter(r => r.status === 'active' && isClosingSoon(r.deadline)).length;
@@ -113,6 +111,7 @@ export function RFQView() {
 
         createRFQMutation.mutate(payload, {
             onSuccess: () => {
+                emitOnboardingAction('create-rfq');
                 setView('DASHBOARD');
                 // Reset form
                 setForm({
@@ -129,16 +128,36 @@ export function RFQView() {
     };
 
     const handleStatusChange = (id: string, status: RfqStatus) => {
-        updateStatusMutation.mutate({ id, status });
+        updateStatusMutation.mutate(
+            { id, status },
+            {
+                onSuccess: () => {
+                    if (status === 'awarded') {
+                        emitOnboardingAction('manage-rfq');
+                    }
+                },
+            },
+        );
     };
 
     const handleBroadcast = (id: string) => {
         broadcastMutation.mutate(id);
     };
 
+    const clearActionParam = () => {
+        if (!action) {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete('action');
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
     // --- Sub-Components ---
 
-    const RFQDashboard = () => (
+    const renderRFQDashboard = () => (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* KPI Cards */}
             {/* KPI Cards */}
@@ -177,8 +196,11 @@ export function RFQView() {
                     </div>
                     <h4 className="text-sm font-bold text-gray-900 mb-1">Needs Sourcing</h4>
                     <p className="text-xs text-gray-500 mb-4">{needsSourcing.length} items awaiting RFQ creation</p>
-                    <button 
-                        onClick={() => setView('CREATE')}
+                    <button
+                        onClick={() => {
+                            clearActionParam();
+                            setView('CREATE');
+                        }}
                         className="w-full py-2 bg-gray-50 text-gray-900 text-xs font-bold rounded-lg hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center gap-2"
                     >
                         Convert Requisitions <ArrowRight className="h-3 w-3" />
@@ -220,8 +242,12 @@ export function RFQView() {
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900">Sourcing Events</h3>
                 <button
-                    onClick={() => setView('CREATE')}
+                    onClick={() => {
+                        clearActionParam();
+                        setView('CREATE');
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                    data-tour="create-rfq-btn"
                 >
                     <Plus className="h-4 w-4" />
                     Create RFQ
@@ -299,6 +325,7 @@ export function RFQView() {
                                             setView('COMPARE');
                                         }}
                                         className="text-blue-600 hover:text-blue-800 font-bold text-xs"
+                                        data-tour="manage-rfq-btn"
                                     >
                                         Manage
                                     </button>
@@ -311,11 +338,11 @@ export function RFQView() {
         </div>
     );
 
-    const CreateRFQ = () => (
+    const renderCreateRFQ = () => (
         <div className="space-y-6 animate-in slide-in-from-right duration-300">
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
-                <button onClick={() => setView('DASHBOARD')} className="p-2 hover:bg-gray-100 rounded-full">
+                <button onClick={() => { clearActionParam(); setView('DASHBOARD'); }} className="p-2 hover:bg-gray-100 rounded-full">
                     <ArrowRight className="h-6 w-6 rotate-180 text-gray-500" />
                 </button>
                 <div>
@@ -456,6 +483,7 @@ export function RFQView() {
                         onClick={handlePublish} 
                         disabled={createRFQMutation.isPending || !form.title || !form.requisitionId || selectedSupplierIds.length === 0}
                         className="w-full py-3 bg-[#2a2b2d] text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        data-tour="create-rfq-submit-btn"
                     >
                         {createRFQMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Publish RFQ
@@ -465,7 +493,7 @@ export function RFQView() {
         </div>
     );
 
-    const QuoteComparison = () => {
+    const renderQuoteComparison = () => {
         const currentRfq = selectedRfqData;
         const broadcastResults = broadcastMutation.data ?? [];
         const tokenFromLink = (portalLink: string) => portalLink.split('/').filter(Boolean).pop() ?? 'N/A';
@@ -474,12 +502,12 @@ export function RFQView() {
         <div className="space-y-6 animate-in slide-in-from-right duration-300">
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
-                <button onClick={() => setView('DASHBOARD')} className="p-2 hover:bg-gray-100 rounded-full">
+                <button onClick={() => { clearActionParam(); setView('DASHBOARD'); }} className="p-2 hover:bg-gray-100 rounded-full">
                     <ArrowRight className="h-6 w-6 rotate-180 text-gray-500" />
                 </button>
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">RFQ Manage Center</h2>
-                    <p className="text-xs text-gray-500">{currentRfq?.rfqNumber || selectedRfq || 'RFQ'}</p>
+                    <p className="text-xs text-gray-500">{currentRfq?.rfqNumber || activeRfqId || 'RFQ'}</p>
                 </div>
             </div>
 
@@ -608,11 +636,13 @@ export function RFQView() {
                                     onClick={() => {
                                         if (!selectedRfqData?.id) return;
                                         handleStatusChange(selectedRfqData.id, 'awarded');
+                                        clearActionParam();
                                         setView('DASHBOARD');
                                     }}
                                     className={clsx("w-full py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95",
                                         idx === 0 ? 'bg-[#2a2b2d] text-white hover:bg-gray-800' : 'bg-white border text-gray-700 hover:bg-gray-50'
                                     )}
+                                    data-tour="award-rfq-contract-btn"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Award className="h-4 w-4" />
@@ -630,9 +660,9 @@ export function RFQView() {
 
     return (
         <div className="h-full">
-            {view === 'DASHBOARD' && <RFQDashboard />}
-            {view === 'CREATE' && <CreateRFQ />}
-            {view === 'COMPARE' && <QuoteComparison />}
+            {currentView === 'DASHBOARD' && renderRFQDashboard()}
+            {currentView === 'CREATE' && renderCreateRFQ()}
+            {currentView === 'COMPARE' && renderQuoteComparison()}
         </div>
     );
 }
