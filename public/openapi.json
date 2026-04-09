@@ -1302,6 +1302,42 @@
             "description": "Plan not found"
           }
         }
+      },
+      "delete": {
+        "summary": "Delete a production plan",
+        "description": "Removes the plan and its ingredient rows (cascade). Requires kitchen.update.",
+        "tags": [
+          "Kitchen"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        }
       }
     },
     "/api/kitchen/production": {
@@ -3123,6 +3159,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "fullName",
+                  "email",
+                  "roleId",
+                  "password"
+                ],
                 "properties": {
                   "fullName": {
                     "type": "string"
@@ -3137,7 +3179,9 @@
                     "type": "string"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "Hashed for storage; same value is sent in the welcome email (if RESEND_API_KEY is set)."
                   }
                 }
               }
@@ -3146,7 +3190,7 @@
         },
         "responses": {
           "201": {
-            "description": "User created successfully"
+            "description": "User created successfully (welcomeEmailSent indicates if the welcome email was delivered)"
           }
         }
       }

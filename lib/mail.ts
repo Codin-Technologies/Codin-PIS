@@ -2,6 +2,8 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const defaultFrom = process.env.RESEND_FROM ?? "FleetCo <noreply@fleetcotelematics.com>";
+
 export async function sendOtpEmail({
   to,
   otp,
@@ -13,7 +15,7 @@ export async function sendOtpEmail({
 }) {
   try {
     const data = await resend.emails.send({
-      from: "FleetCo <noreply@fleetcotelematics.com>",
+      from: defaultFrom,
       to,
       subject: "Password Reset OTP - FleetCo",
       html: `
@@ -97,7 +99,7 @@ export async function sendRFQInviteEmail({
 }) {
   try {
     const data = await resend.emails.send({
-      from: "FleetCo <noreply@fleetcotelematics.com>",
+      from: defaultFrom,
       to,
       subject: `RFQ ${rfqNumber} — ${rfqTitle}`,
       html: `
@@ -129,6 +131,80 @@ export async function sendRFQInviteEmail({
     return data;
   } catch (error) {
     console.error("RFQ invite email failed:", error);
+    throw error;
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export async function sendWelcomeUserEmail({
+  to,
+  fullName,
+  username,
+  password,
+  appUrl,
+}: {
+  to: string;
+  fullName: string;
+  username: string;
+  password: string;
+  appUrl: string;
+}) {
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/login`;
+  const safeName = escapeHtml(fullName);
+  const safeUser = escapeHtml(username);
+  const safePass = escapeHtml(password);
+  const safeLoginText = escapeHtml(loginUrl);
+
+  try {
+    const data = await resend.emails.send({
+      from: defaultFrom,
+      to,
+      subject: "Welcome to the platform",
+      html: `
+  <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
+    <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
+      <div style="background:linear-gradient(to right, #004953, #006b7a); padding:24px; text-align:center;">
+        <span style="font-size:22px; font-weight:700; color:white;">Welcome</span>
+      </div>
+      <div style="padding:32px;">
+        <p style="color:#374151; line-height:1.6;">Hi ${safeName},</p>
+        <p style="color:#374151; line-height:1.6;">
+          Your account has been created. Sign in with the credentials below, then change your password from account settings when you can.
+        </p>
+        <div style="margin:24px 0; padding:20px; background:#f9fafb; border-radius:12px; border:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px; color:#6b7280; font-size:12px; font-weight:600; text-transform:uppercase;">Username (email)</p>
+          <p style="margin:0 0 16px; color:#111827; font-size:16px; font-family:monospace;">${safeUser}</p>
+          <p style="margin:0 0 8px; color:#6b7280; font-size:12px; font-weight:600; text-transform:uppercase;">Temporary password</p>
+          <p style="margin:0; color:#111827; font-size:16px; font-family:monospace;">${safePass}</p>
+        </div>
+        <div style="margin:28px 0; text-align:center;">
+          <a href="${loginUrl}" style="display:inline-block; background:#004953; color:white; padding:14px 28px; border-radius:10px; text-decoration:none; font-weight:700;">
+            Open the app
+          </a>
+        </div>
+        <p style="color:#6b7280; font-size:13px; word-break:break-all;">Or go to: ${safeLoginText}</p>
+        <div style="background-color:#fef3c7; border-left:4px solid #f59e0b; padding:16px; border-radius:8px; margin-top:24px;">
+          <p style="margin:0; color:#92400e; font-size:14px; line-height:1.5;">
+            <strong>Security:</strong> Do not share this email. Anyone with these credentials can access your account.
+          </p>
+        </div>
+      </div>
+      <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
+        © ${new Date().getFullYear()} FleetCo Telematics. All rights reserved.
+      </div>
+    </div>
+  </div>`,
+    });
+    return data;
+  } catch (error) {
+    console.error("Welcome user email failed:", error);
     throw error;
   }
 }

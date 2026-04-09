@@ -21,6 +21,11 @@ import { hasPermission } from '@/lib/rbac/utils';
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - fullName
+ *               - email
+ *               - roleId
+ *               - password
  *             properties:
  *               fullName:
  *                 type: string
@@ -32,9 +37,11 @@ import { hasPermission } from '@/lib/rbac/utils';
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8
+ *                 description: Hashed for storage; same value is sent in the welcome email (if RESEND_API_KEY is set).
  *     responses:
  *       201:
- *         description: User created successfully
+ *         description: User created successfully (welcomeEmailSent indicates if the welcome email was delivered)
  */
 
 // ── Real handlers with RBAC ───────────────────────────────────────────────────

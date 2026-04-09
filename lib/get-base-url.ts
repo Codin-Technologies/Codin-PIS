@@ -23,3 +23,12 @@ export function getBaseUrl(): string {
   // Local development
   return 'http://localhost:3000';
 }
+
+/** User-facing web app URL (login links in emails). Prefer APP_URL over API_BASE_URL. */
+export function getPublicSiteUrl(): string {
+  const trim = (s: string) => s.replace(/\/$/, '');
+  if (process.env.APP_URL?.trim()) return trim(process.env.APP_URL.trim());
+  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) return trim(process.env.NEXT_PUBLIC_APP_URL.trim());
+  if (process.env.VERCEL_URL?.trim()) return trim(`https://${process.env.VERCEL_URL.trim()}`);
+  return 'http://localhost:3000';
+}
