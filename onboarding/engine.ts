@@ -81,7 +81,7 @@ export async function startOnboardingStep(
     return false;
   }
 
-  const introModule = await import("intro.js").catch(() => null);
+  const introModule = (await import("intro.js").catch(() => null)) as any;
   const introFactory = introModule?.default ?? introModule?.introJs ?? null;
 
   if (typeof introFactory !== "function") {

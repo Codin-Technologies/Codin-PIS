@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Users, Shield, Building2, Settings, KeyRound, Layers } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +30,7 @@ const TABS = [
     { id: 'security', label: 'Security', icon: KeyRound, component: SecuritySettings },
 ];
 
-export default function SettingsPage() {
+function SettingsPageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -87,5 +88,13 @@ export default function SettingsPage() {
                 <ActiveComponent />
             </div>
         </div>
+    );
+}
+
+export default function SettingsPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-full text-gray-500">Loading settings...</div>}>
+            <SettingsPageContent />
+        </Suspense>
     );
 }

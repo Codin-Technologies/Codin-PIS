@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import {
     Plus, ClipboardList,
     Zap, AlertCircle, ChefHat, Timer,
@@ -16,7 +16,7 @@ import { useProductionPlans, useSpecialOrders, useUpdateSpecialOrderStatus } fro
 import { ErrorState } from '@/components/ui/error-state';
 import { type SpecialOrder, type ProductionPlan } from '@/lib/api';
 
-export default function KitchenPage() {
+function KitchenPageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -298,5 +298,13 @@ export default function KitchenPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function KitchenPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-full text-gray-500">Loading kitchen dashboard...</div>}>
+            <KitchenPageContent />
+        </Suspense>
     );
 }

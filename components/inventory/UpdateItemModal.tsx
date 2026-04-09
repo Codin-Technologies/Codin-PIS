@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { X, Save, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { InventoryItem, Department } from '@/lib/api';
+import type { InventoryItem, Department, CreateInventoryItemPayload } from '@/lib/api';
 
 interface UpdateItemModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onUpdate: (id: string, payload: any) => void;
+    onUpdate: (id: string, payload: Partial<CreateInventoryItemPayload>) => void;
     departments: Department[];
     item: InventoryItem | null;
     isPending?: boolean;
@@ -19,7 +19,7 @@ export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item, 
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
-        dept: 'Kitchen',
+        departmentId: '',
         qty: 0,
         unit: 'kg',
         minQty: 0,
@@ -29,10 +29,11 @@ export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item, 
 
     useEffect(() => {
         if (item) {
+            const deptObj = departments.find(d => d.name === item.dept);
             setFormData({
                 name: item.name,
                 sku: item.sku,
-                dept: item.dept,
+                departmentId: deptObj?.id || '',
                 qty: item.qty,
                 unit: item.unit,
                 minQty: item.minQty || 0,
@@ -105,11 +106,12 @@ export function UpdateItemModal({ isOpen, onClose, onUpdate, departments, item, 
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Department</label>
                             <select
                                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] bg-white"
-                                value={formData.dept}
-                                onChange={e => setFormData({ ...formData, dept: e.target.value })}
+                                value={formData.departmentId}
+                                onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
                             >
+                                <option value="">Select Department</option>
                                 {departments.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
+                                    <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>
                         </div>

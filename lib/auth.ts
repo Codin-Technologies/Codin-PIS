@@ -40,8 +40,7 @@ export async function verifyUserCredentials(email: string, password?: string) {
     .set({ loginAt: currentLoginAt })
     .where(eq(users.id, user.id));
 
-  const userWithoutPassword = { ...user };
-  delete userWithoutPassword.passwordHash;
+  const { passwordHash, ...userWithoutPassword } = user;
   return {
     ...userWithoutPassword,
     loginAt: currentLoginAt,

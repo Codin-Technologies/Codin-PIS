@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     X, Trash2, Save, Loader2
 } from 'lucide-react';
@@ -23,9 +23,10 @@ type SessionUser = {
 interface NewUsageModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialItemId?: string;
 }
 
-export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
+export function NewUsageModal({ isOpen, onClose, initialItemId }: NewUsageModalProps) {
     const { data: session } = useSession();
     const { branchId } = useBranch();
     const { data: inventoryData, isLoading: isInventoryLoading } = useInventory(branchId);
@@ -46,6 +47,16 @@ export function NewUsageModal({ isOpen, onClose }: NewUsageModalProps) {
             setLineItems([...lineItems, { ...item, usageQty: 0 }]);
         }
     };
+
+    // Pre-populate if initialItemId is provided
+    useEffect(() => {
+        if (isOpen && initialItemId && inventoryItems.length > 0) {
+            const item = inventoryItems.find(i => i.id === initialItemId);
+            if (item && !lineItems.find(i => i.id === item.id)) {
+                setLineItems([{ ...item, usageQty: 0 }]);
+            }
+        }
+    }, [isOpen, initialItemId, inventoryItems]);
 
     const handleSave = () => {
         if (lineItems.length === 0) return;

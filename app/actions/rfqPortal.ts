@@ -133,13 +133,15 @@ export async function getSupplierPortalRfqAction(token: string): Promise<Supplie
     return { status: payload.status };
   }
 
+  const openResult = payload as PortalApiOpenResult;
+
   return {
     status: 'open',
     rfq: {
-      ...payload.rfq,
+      ...openResult.rfq,
       status: 'open',
-      attachments: payload.rfq.attachments ?? [],
-      submittedQuotation: payload.rfq.submittedQuotation ?? null,
+      attachments: openResult.rfq.attachments ?? [],
+      submittedQuotation: openResult.rfq.submittedQuotation ?? null,
     },
   };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Plus, Search, FileText, Calendar, Loader2 } from 'lucide-react';
 import { NewUsageModal } from '@/components/inventory/NewUsageModal';
 import { UsageDetailModal } from '@/components/inventory/UsageDetailModal';
@@ -9,7 +9,7 @@ import { useBranch } from '@/hooks/useBranch';
 import clsx from 'clsx';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-export default function DailyStockUsagePage() {
+function UsagePageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -175,5 +175,13 @@ export default function DailyStockUsagePage() {
                 usageId={selectedUsageId}
             />
         </div>
+    );
+}
+
+export default function DailyStockUsagePage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading usage records...</div>}>
+            <UsagePageContent />
+        </Suspense>
     );
 }

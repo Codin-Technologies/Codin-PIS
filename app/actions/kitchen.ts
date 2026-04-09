@@ -24,7 +24,7 @@ async function getRequestConfig() {
     return { baseUrl, cookieHeader, user };
 }
 
-export async function getProductionPlansAction(branchId: string) {
+export async function getProductionPlansAction(branchId: string): Promise<{ data: ProductionPlan[] }> {
     try {
         const { baseUrl, cookieHeader, user } = await getRequestConfig();
         const query = new URLSearchParams({ branchId, organizationId: user.organizationId ?? '' });

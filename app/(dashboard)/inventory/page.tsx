@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { AddItemModal } from '@/components/inventory/AddItemModal';
 import { UpdateItemModal } from '@/components/inventory/UpdateItemModal';
 import { DeleteConfirmModal } from '@/components/inventory/DeleteConfirmModal';
-import { RecordUsageModal } from '@/components/inventory/RecordUsageModal';
+import { NewUsageModal } from '@/components/inventory/NewUsageModal';
 import { KitchenRequisitionCard } from '@/components/inventory/KitchenRequisitionCard';
 
 import { 
@@ -73,7 +73,6 @@ function InventoryContent() {
     const createItemMutation = useCreateInventoryItem(branchId);
     const updateItemMutation = useUpdateInventoryItem(branchId);
     const deleteItemMutation = useDeleteInventoryItem(branchId);
-    const recordUsageMutation = useRecordInventoryUsage(branchId);
     const createDeptMutation = useCreateDepartment(branchId);
 
     const items: InventoryItem[]  = data?.data ?? [];
@@ -81,12 +80,12 @@ function InventoryContent() {
     const departments = deptData ?? [];
     const totalValuation = items.reduce((sum, i) => sum + (i.qty * (i.unitCost ?? 0)), 0);
     const pendingRequisitions = (productionData?.data ?? []).filter(
-        (plan: ProductionPlan & { deductedAt?: string | null }) => !plan.deductedAt,
+        (plan: ProductionPlan) => !(plan as any).deductedAt,
     );
     const isAddModalVisible = isAddModalOpen || searchParams.get('action') === 'new-item';
 
     // Handlers
-    function handleAddItem(payload: CreateInventoryItemPayload) {
+    function handleAddItem(payload: Omit<CreateInventoryItemPayload, 'branchId'>) {
         createItemMutation.mutate(
             { ...payload, branchId }, 
             {
@@ -110,18 +109,6 @@ function InventoryContent() {
         });
     }
 
-    function handleRecordUsage(payload: {
-        date: string;
-        reason: string;
-        notes: string;
-        organizationId: string;
-        recordedById: string;
-        items: { inventoryItemId: string; qtyUsed: number }[];
-    }) {
-        recordUsageMutation.mutate(payload, {
-            onSuccess: () => setIsUsageModalOpen(false)
-        });
-    }
 
     function handleAddDept() {
         if (!newDeptName) return;
@@ -183,13 +170,10 @@ function InventoryContent() {
                 error={deleteItemMutation.error}
             />
 
-            <RecordUsageModal
+            <NewUsageModal
                 isOpen={isUsageModalOpen}
                 onClose={() => { setIsUsageModalOpen(false); setUsageItem(null); }}
-                onRecord={handleRecordUsage}
-                defaultItemId={usageItem?.id}
-                isPending={recordUsageMutation.isPending}
-                error={recordUsageMutation.error}
+                initialItemId={usageItem?.id}
             />
 
             {/* Left Section: Inventory Grid */}

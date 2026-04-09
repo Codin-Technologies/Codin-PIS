@@ -64,7 +64,7 @@ export function routeMatches(
     return false;
   }
 
-  for (const [key, value] of parsed.params.entries()) {
+  for (const [key, value] of Array.from(parsed.params.entries())) {
     if (searchParams.get(key) !== value) {
       return false;
     }
