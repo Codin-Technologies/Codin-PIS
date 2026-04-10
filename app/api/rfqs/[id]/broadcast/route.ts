@@ -7,7 +7,7 @@ import { postBroadcastRfq } from './post';
  *   post:
  *     summary: Broadcast RFQ to linked suppliers
  *     description: |
- *       Requires rfqs.update. Creates or regenerates per-supplier portal tokens, sends invite emails (Resend),
+ *       Requires rfqs.update. Creates or regenerates per-supplier portal tokens, sends invite emails (SMTP),
  *       sets RFQ status to `sent`, and returns `whatsappLink` strings for the UI (no WhatsApp API call).
  *     tags: [Procurement]
  *     parameters:

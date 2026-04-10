@@ -42,7 +42,7 @@ export async function postUser(req: NextRequest, sessionUser: AuthenticatedUser)
 
     let welcomeEmailSent = false;
     try {
-      if (process.env.RESEND_API_KEY) {
+      if (process.env.SMTP_HOST?.trim()) {
         await sendWelcomeUserEmail({
           to: email,
           fullName,
@@ -52,7 +52,7 @@ export async function postUser(req: NextRequest, sessionUser: AuthenticatedUser)
         });
         welcomeEmailSent = true;
       } else {
-        console.warn('[postUser] RESEND_API_KEY not set; skipping welcome email');
+        console.warn('[postUser] SMTP_HOST not set; skipping welcome email');
       }
     } catch (mailErr) {
       console.error('[postUser] Welcome email failed:', mailErr);

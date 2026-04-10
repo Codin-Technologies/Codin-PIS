@@ -38,7 +38,7 @@ import { hasPermission } from '@/lib/rbac/utils';
  *               password:
  *                 type: string
  *                 minLength: 8
- *                 description: Hashed for storage; same value is sent in the welcome email (if RESEND_API_KEY is set).
+ *                 description: Hashed for storage; same value is sent in the welcome email when SMTP (e.g. SMTP_HOST) is configured.
  *     responses:
  *       201:
  *         description: User created successfully (welcomeEmailSent indicates if the welcome email was delivered)

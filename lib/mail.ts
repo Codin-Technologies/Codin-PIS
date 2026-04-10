@@ -1,8 +1,45 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const defaultFrom = process.env.MAIL_FROM ?? "Codin PIS <noreply@codin.co.tz>";
 
-const defaultFrom = process.env.RESEND_FROM ?? "FleetCo <noreply@fleetcotelematics.com>";
+let transporter: nodemailer.Transporter | null = null;
+
+function getMailTransporter(): nodemailer.Transporter {
+  if (transporter) return transporter;
+
+  const host = process.env.SMTP_HOST;
+  if (!host?.trim()) {
+    throw new Error("SMTP_HOST is not configured");
+  }
+
+  const port = Number(process.env.SMTP_PORT ?? 465);
+  const secure = process.env.SMTP_SECURE !== "false";
+
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user?.trim() || pass === undefined || pass === "") {
+    throw new Error("SMTP_USER and SMTP_PASS are required");
+  }
+
+  transporter = nodemailer.createTransport({
+    host: host.trim(),
+    port,
+    secure,
+    auth: { user: user.trim(), pass },
+  });
+
+  return transporter;
+}
+
+async function sendHtmlMail(to: string, subject: string, html: string) {
+  const tx = getMailTransporter();
+  return tx.sendMail({
+    from: defaultFrom,
+    to,
+    subject,
+    html,
+  });
+}
 
 export async function sendOtpEmail({
   to,
@@ -14,11 +51,10 @@ export async function sendOtpEmail({
   userName: string;
 }) {
   try {
-    const data = await resend.emails.send({
-      from: defaultFrom,
+    const info = await sendHtmlMail(
       to,
-      subject: "Password Reset OTP - FleetCo",
-      html: `
+      "Password Reset OTP - FleetCo",
+      `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       
@@ -71,9 +107,9 @@ export async function sendOtpEmail({
     </div>
   </div>
       `,
-    });
+    );
 
-    return data;
+    return info;
   } catch (error) {
     console.error("OTP email sending failed:", error);
     throw error;
@@ -98,11 +134,10 @@ export async function sendRFQInviteEmail({
   portalLink: string;
 }) {
   try {
-    const data = await resend.emails.send({
-      from: defaultFrom,
+    const info = await sendHtmlMail(
       to,
-      subject: `RFQ ${rfqNumber} — ${rfqTitle}`,
-      html: `
+      `RFQ ${rfqNumber} — ${rfqTitle}`,
+      `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       <div style="background:#111827; padding:24px; text-align:center;">
@@ -127,8 +162,8 @@ export async function sendRFQInviteEmail({
       </div>
     </div>
   </div>`,
-    });
-    return data;
+    );
+    return info;
   } catch (error) {
     console.error("RFQ invite email failed:", error);
     throw error;
@@ -163,11 +198,10 @@ export async function sendWelcomeUserEmail({
   const safeLoginText = escapeHtml(loginUrl);
 
   try {
-    const data = await resend.emails.send({
-      from: defaultFrom,
+    const info = await sendHtmlMail(
       to,
-      subject: "Welcome to the platform",
-      html: `
+      "Welcome to the platform",
+      `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       <div style="background:linear-gradient(to right, #004953, #006b7a); padding:24px; text-align:center;">
@@ -201,8 +235,8 @@ export async function sendWelcomeUserEmail({
       </div>
     </div>
   </div>`,
-    });
-    return data;
+    );
+    return info;
   } catch (error) {
     console.error("Welcome user email failed:", error);
     throw error;
