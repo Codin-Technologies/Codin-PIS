@@ -1,45 +1,15 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const defaultFrom = process.env.MAIL_FROM ?? "Codin PIS <noreply@codin.co.tz>";
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-let transporter: nodemailer.Transporter | null = null;
+/** Envelope From — must match a sender verified in Resend (e.g. codin.co.tz). */
+const defaultFrom =
+  process.env.MAIL_FROM?.trim() ||
+  process.env.RESEND_FROM?.trim() ||
+  "Codin PIS <noreply@codin.co.tz>";
 
-function getMailTransporter(): nodemailer.Transporter {
-  if (transporter) return transporter;
-
-  const host = process.env.SMTP_HOST;
-  if (!host?.trim()) {
-    throw new Error("SMTP_HOST is not configured");
-  }
-
-  const port = Number(process.env.SMTP_PORT ?? 465);
-  const secure = process.env.SMTP_SECURE !== "false";
-
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!user?.trim() || pass === undefined || pass === "") {
-    throw new Error("SMTP_USER and SMTP_PASS are required");
-  }
-
-  transporter = nodemailer.createTransport({
-    host: host.trim(),
-    port,
-    secure,
-    auth: { user: user.trim(), pass },
-  });
-
-  return transporter;
-}
-
-async function sendHtmlMail(to: string, subject: string, html: string) {
-  const tx = getMailTransporter();
-  return tx.sendMail({
-    from: defaultFrom,
-    to,
-    subject,
-    html,
-  });
-}
+const brandName = "Codin PIS";
+const brandShort = "Codin PIS";
 
 export async function sendOtpEmail({
   to,
@@ -51,20 +21,21 @@ export async function sendOtpEmail({
   userName: string;
 }) {
   try {
-    const info = await sendHtmlMail(
+    const data = await resend.emails.send({
+      from: defaultFrom,
       to,
-      "Password Reset OTP - FleetCo",
-      `
+      subject: `Password reset — ${brandName}`,
+      html: `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       
       <!-- Header -->
       <div style="background:linear-gradient(to right, #004953, #004953); padding:24px; text-align:center;">
         <div style="width:56px; height:56px; margin:0 auto; background:white; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; color:#004953; font-size:24px; font-weight:700; box-shadow:0 0 10px rgba(255,255,255,0.2);">
-          <div>FC</div>
+          <div>${brandShort.slice(0, 2).toUpperCase()}</div>
         </div>
         <div style="margin-top:10px;">
-          <span style="font-size:28px; font-weight:700; color:white;">FleetCo</span>
+          <span style="font-size:28px; font-weight:700; color:white;">${brandName}</span>
         </div>
       </div>
 
@@ -102,14 +73,14 @@ export async function sendOtpEmail({
 
       <!-- Footer -->
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        © ${new Date().getFullYear()} FleetCo Telematics. All rights reserved.
+        © ${new Date().getFullYear()} ${brandName} · codin.co.tz
       </div>
     </div>
   </div>
       `,
-    );
+    });
 
-    return info;
+    return data;
   } catch (error) {
     console.error("OTP email sending failed:", error);
     throw error;
@@ -134,10 +105,11 @@ export async function sendRFQInviteEmail({
   portalLink: string;
 }) {
   try {
-    const info = await sendHtmlMail(
+    const data = await resend.emails.send({
+      from: defaultFrom,
       to,
-      `RFQ ${rfqNumber} — ${rfqTitle}`,
-      `
+      subject: `RFQ ${rfqNumber} — ${rfqTitle}`,
+      html: `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       <div style="background:#111827; padding:24px; text-align:center;">
@@ -158,12 +130,13 @@ export async function sendRFQInviteEmail({
         <p style="color:#6b7280; font-size:13px; word-break:break-all;">Or copy this link: ${portalLink}</p>
       </div>
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        This link is personal to your organization. Do not forward.
+        This link is personal to your organization. Do not forward.<br />
+        <span style="margin-top:8px; display:inline-block;">Sent by ${brandName} · noreply@codin.co.tz</span>
       </div>
     </div>
   </div>`,
-    );
-    return info;
+    });
+    return data;
   } catch (error) {
     console.error("RFQ invite email failed:", error);
     throw error;
@@ -198,10 +171,11 @@ export async function sendWelcomeUserEmail({
   const safeLoginText = escapeHtml(loginUrl);
 
   try {
-    const info = await sendHtmlMail(
+    const data = await resend.emails.send({
+      from: defaultFrom,
       to,
-      "Welcome to the platform",
-      `
+      subject: "Welcome to the platform",
+      html: `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
       <div style="background:linear-gradient(to right, #004953, #006b7a); padding:24px; text-align:center;">
@@ -231,12 +205,12 @@ export async function sendWelcomeUserEmail({
         </div>
       </div>
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        © ${new Date().getFullYear()} FleetCo Telematics. All rights reserved.
+        © ${new Date().getFullYear()} ${brandName} · codin.co.tz
       </div>
     </div>
   </div>`,
-    );
-    return info;
+    });
+    return data;
   } catch (error) {
     console.error("Welcome user email failed:", error);
     throw error;

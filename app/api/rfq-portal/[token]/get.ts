@@ -14,14 +14,6 @@ export async function getRfqPortal(req: NextRequest, tokenParam: string) {
 
     const row = await db.query.rfqSupplierTokens.findFirst({
       where: and(eq(rfqSupplierTokens.token, tokenParam), isNull(rfqSupplierTokens.deletedAt)),
-      with: {
-        quotation: {
-          with: {
-            items: true,
-            attachments: true,
-          },
-        },
-      },
     });
 
     if (!row) {
@@ -73,31 +65,6 @@ export async function getRfqPortal(req: NextRequest, tokenParam: string) {
         };
       }) ?? [];
 
-    const submittedQuotation = row.quotation
-      ? {
-          quotationId: row.quotation.id,
-          currency: row.quotation.currency,
-          validityDate: row.quotation.validityDate,
-          paymentTerms: row.quotation.paymentTerms,
-          incoterms: row.quotation.incoterms,
-          notes: row.quotation.notes ?? '',
-          totalAmount: Number(row.quotation.totalAmount ?? 0),
-          submittedAt: row.quotation.submittedAt?.toISOString() ?? row.quotation.createdAt.toISOString(),
-          items: row.quotation.items.map((item) => ({
-            requisitionItemId: item.requisitionItemId,
-            unitPrice: Number(item.unitPrice ?? 0),
-            leadTime: item.leadTime,
-            remarks: item.remarks ?? '',
-          })),
-          attachments: row.quotation.attachments.map((attachment) => ({
-            id: attachment.id,
-            fileName: attachment.fileName,
-            fileUrl: attachment.fileUrl,
-            fileSize: attachment.fileSize ?? '',
-          })),
-        }
-      : null;
-
     return NextResponse.json(
       {
         status: 'open' as const,
@@ -111,7 +78,6 @@ export async function getRfqPortal(req: NextRequest, tokenParam: string) {
           terms: rfq.terms ?? '',
           items,
           attachments: [] as { name: string; size: string }[],
-          submittedQuotation,
         },
       },
       { status: 200 },

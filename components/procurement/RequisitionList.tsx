@@ -1,28 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
-    Search, CheckCircle,
-    Clock, XCircle, AlertCircle, FileText, ChevronRight
+    Search, MoreHorizontal, CheckCircle,
+    Clock, XCircle, AlertCircle, FileText, ChevronRight, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RequisitionDetailModal } from './RequisitionDetailModal';
-import { useRequisitions } from '@/hooks/useRequisitions';
+import { useRequisitions, useUpdateRequisitionStatus } from '@/hooks/useRequisitions';
 import { useBranch } from '@/hooks/useBranch';
 import { ErrorState } from '@/components/ui/error-state';
 import type { Requisition } from '@/lib/api';
 import { requisitionStatusLabel } from '@/lib/procurement/requisition-status';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: typeof Clock }> = {
-    pending: { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
-    approved: { color: 'text-blue-600', bg: 'bg-blue-50', icon: CheckCircle },
+    pending:   { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
+    approved:  { color: 'text-blue-600',   bg: 'bg-blue-50',   icon: CheckCircle },
     in_review: { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock },
-    ordered: { color: 'text-purple-600', bg: 'bg-purple-50', icon: FileText },
-    delivered: { color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle },
-    rejected: { color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
+    ordered:   { color: 'text-purple-600', bg: 'bg-purple-50', icon: FileText },
+    delivered: { color: 'text-green-600',  bg: 'bg-green-50',  icon: CheckCircle },
+    rejected:  { color: 'text-red-600',    bg: 'bg-red-50',    icon: XCircle },
 };
 
+// --- Loading skeleton row ---
 function SkeletonRow() {
     return (
         <tr className="animate-pulse">
@@ -44,63 +44,44 @@ function SkeletonRow() {
 }
 
 export function RequisitionList() {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
     const { branchId } = useBranch();
     const [filterStatus, setFilterStatus] = useState('All');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedReq, setSelectedReq] = useState<Requisition | null>(null);
+    const [searchTerm, setSearchTerm]     = useState('');
+    const [selectedReq, setSelectedReq]   = useState<Requisition | null>(null);
 
+    // ── Data Fetching ────────────────────────────────────────────
     const { data, isLoading, isError, error } = useRequisitions(branchId, {
         status: filterStatus,
         search: searchTerm,
     });
 
-    const requisitions = useMemo(() => data?.data ?? [], [data?.data]);
-    const actionSelectedReq = useMemo(() => {
-        const action = searchParams.get('action');
+    const statusMutation = useUpdateRequisitionStatus(branchId);
 
-        if (action === 'review-pending') {
-            return requisitions.find((req) => req.status === 'pending' || req.status === 'in_review') ?? null;
-        }
+    const requisitions = data?.data ?? [];
 
-        if (action === 'create-rfq-from-approved') {
-            return requisitions.find((req) => req.status === 'approved') ?? null;
-        }
-
-        return null;
-    }, [requisitions, searchParams]);
-
-    const activeRequisition = selectedReq ?? actionSelectedReq;
-
-    const closeSelectedReq = () => {
-        setSelectedReq(null);
-
-        const action = searchParams.get('action');
-        if (action !== 'review-pending' && action !== 'create-rfq-from-approved') {
-            return;
-        }
-
-        const nextParams = new URLSearchParams(searchParams.toString());
-        nextParams.delete('action');
-        const query = nextParams.toString();
-        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // ── Handlers ─────────────────────────────────────────────────
+    const handleStatusChange = (id: string, newStatus: Requisition['status']) => {
+        statusMutation.mutate(
+            { id, status: newStatus },
+            { onSuccess: () => setSelectedReq(null) }
+        );
     };
 
     return (
         <div className="flex flex-col h-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {activeRequisition && (
+
+            {selectedReq && (
                 <RequisitionDetailModal
-                    requisitionId={activeRequisition.id}
-                    isOpen={!!activeRequisition}
-                    onClose={closeSelectedReq}
+                    requisitionId={selectedReq.id}
+                    isOpen={!!selectedReq}
+                    onClose={() => setSelectedReq(null)}
                 />
             )}
 
+            {/* Header / Controls */}
             <div className="p-6 border-b border-gray-100 flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                    {['All', 'Pending', 'In Review', 'Approved', 'Ordered', 'Delivered', 'Rejected'].map((status) => (
+                    {['All', 'Pending', 'In Review', 'Approved', 'Ordered', 'Delivered', 'Rejected'].map(status => (
                         <button
                             key={status}
                             onClick={() => setFilterStatus(status)}
@@ -127,12 +108,15 @@ export function RequisitionList() {
                 </div>
             </div>
 
+            {/* List Content */}
             <div className="flex-1 overflow-y-auto p-0 md:p-2">
+
+                {/* ── Error State ── */}
                 {isError && (
                     <div className="flex items-center justify-center min-h-[400px]">
-                        <ErrorState
+                        <ErrorState 
                             title="Requisitions Unavailable"
-                            error={error as Error}
+                            error={error as Error} 
                             onRetry={() => window.location.reload()}
                         />
                     </div>
@@ -150,16 +134,18 @@ export function RequisitionList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
+
+                            {/* ── Loading State ── */}
                             {isLoading && Array.from({ length: 5 }).map((_, i) => (
                                 <SkeletonRow key={i} />
                             ))}
 
+                            {/* ── Data ── */}
                             {!isLoading && requisitions.map((req) => {
                                 const cfg = STATUS_CONFIG[req.status] ?? {
                                     color: 'text-gray-600', bg: 'bg-gray-50', icon: AlertCircle,
                                 };
                                 const StatusIcon = cfg.icon;
-
                                 return (
                                     <tr
                                         key={req.id}
@@ -191,8 +177,7 @@ export function RequisitionList() {
                                         <td className="px-6 py-4">
                                             <span className={clsx(
                                                 "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold",
-                                                cfg.bg,
-                                                cfg.color
+                                                cfg.bg, cfg.color
                                             )}>
                                                 <StatusIcon className="h-3.5 w-3.5" />
                                                 {requisitionStatusLabel(req.status)}
@@ -210,6 +195,7 @@ export function RequisitionList() {
                     </table>
                 )}
 
+                {/* ── Empty State ── */}
                 {!isLoading && !isError && requisitions.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                         <FileText className="h-12 w-12 mb-2 opacity-50" />
