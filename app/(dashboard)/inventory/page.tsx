@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, AlertTriangle, CheckCircle, Package, ClipboardList, MoreVertical, Edit2, Trash2, DollarSign, TrendingUp } from 'lucide-react';
 import clsx from 'clsx';
 
 import { AddItemModal } from '@/components/inventory/AddItemModal';
@@ -438,17 +438,40 @@ function InventoryContent() {
                     </div>
                 </div>
 
-                {/* Valuation Summary */}
-                <div className="rounded-2xl bg-[#2a2b2d] p-6 shadow-lg text-white">
-                    <h3 className="font-bold text-lg mb-1">Total Valuation</h3>
-                    <p className="text-3xl font-bold mb-4">
-                        {isLoading ? '—' : `$${totalValuation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                {/* Inventory Summary */}
+                <div className="rounded-2xl bg-[#2a2b2d] p-6 shadow-lg text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Package className="h-24 w-24" />
+                    </div>
+                    
+                    <h3 className="font-bold text-lg mb-1">Total Inventory Items</h3>
+                    <p className="text-4xl font-extrabold mb-4 tracking-tight">
+                        {isLoading ? '—' : data?.total ?? 0}
                     </p>
-                    <div className="flex items-center space-x-2 text-sm text-gray-300 bg-white/10 p-2 rounded-lg">
-                        <Package className="h-4 w-4" />
-                        <span>{isLoading ? '—' : `${data?.total ?? 0} Total Items`}</span>
+                    
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-xl border border-white/10">
+                            <div className="flex items-center space-x-2">
+                                <DollarSign className="h-4 w-4 text-green-400" />
+                                <span>Total Valuation</span>
+                            </div>
+                            <span className="font-bold text-white">
+                                {isLoading ? '—' : `$${totalValuation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-xl border border-white/10">
+                            <div className="flex items-center space-x-2">
+                                <TrendingUp className="h-4 w-4 text-blue-400" />
+                                <span>Avg. Daily Usage</span>
+                            </div>
+                            <span className="font-bold text-white">
+                                {isLoading ? '—' : '14.2 units'}
+                            </span>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
     );

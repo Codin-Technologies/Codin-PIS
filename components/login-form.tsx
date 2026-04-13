@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,10 @@ export function LoginForm({
     const [resetOtp, setResetOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    // Password visibility state
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const {
         register,
@@ -162,7 +166,7 @@ export function LoginForm({
                     <ArrowLeft className="w-3 h-3" /> Back to Login
                 </button>
             )}
-            <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-orange-400">
+            <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-700 to-yellow-600">
                 {title}
             </h1>
             <p className="text-[#9ca6af] text-base font-medium">
@@ -200,8 +204,8 @@ export function LoginForm({
                                 id="email"
                                 type="email"
                                 {...register("email", { required: true })}
-                                placeholder="admin@pis-system.com"
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
+                                placeholder="admin@kongoniserengeticamp.com"
+                                className="bg-[#362e26] border-[#4a4034] text-white placeholder-gray-500 focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12"
                             />
                             {errors.email && (
                                 <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
@@ -214,17 +218,26 @@ export function LoginForm({
                                 <button
                                     type="button"
                                     onClick={() => { setStep('forgot_password_email'); clearMessages(); }}
-                                    className="ml-auto text-xs text-pink-500 hover:text-pink-400 transition-colors bg-transparent border-none p-0"
+                                    className="ml-auto text-xs text-amber-500 hover:text-amber-400 transition-colors bg-transparent border-none p-0"
                                 >
                                     Forgot password?
                                 </button>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                {...register("password")}
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    {...register("password")}
+                                    className="bg-[#362e26] border-[#4a4034] text-white focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12 pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-amber-500 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                             {errors.password && (
                                 <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
                             )}
@@ -236,7 +249,7 @@ export function LoginForm({
                                     type="checkbox"
                                     id="remember"
                                     {...register("remember")}
-                                    className="h-4 w-4 rounded border-[#3a3b3d] bg-[#2a2b2d] text-pink-500 focus:ring-pink-500 accent-pink-500"
+                                    className="h-4 w-4 rounded border-[#4a4034] bg-[#362e26] text-amber-500 focus:ring-amber-500 accent-amber-500"
                                 />
                                 <FieldLabel htmlFor="remember" className="font-normal text-[#9ca6af] text-sm">
                                     Keep me logged in
@@ -248,7 +261,7 @@ export function LoginForm({
                             <Button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
+                                className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
@@ -261,8 +274,8 @@ export function LoginForm({
 
                         <Field>
                             <FieldDescription className="text-center text-[#9ca6af] text-sm">
-                                New to Codin PIS?{" "}
-                                <a href="#" className="text-white hover:text-pink-400 transition-colors font-semibold">
+                                New to Kongoni System?{" "}
+                                <a href="#" className="text-white hover:text-amber-400 transition-colors font-semibold">
                                     Request access
                                 </a>
                             </FieldDescription>
@@ -285,7 +298,7 @@ export function LoginForm({
                                 value={resetEmail}
                                 onChange={(e) => setResetEmail(e.target.value)}
                                 placeholder="name@yourcompany.com"
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
+                                className="bg-[#362e26] border-[#4a4034] text-white placeholder-gray-500 focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12"
                                 required
                             />
                         </Field>
@@ -317,7 +330,7 @@ export function LoginForm({
                                 value={resetOtp}
                                 onChange={(e) => setResetOtp(e.target.value)}
                                 placeholder="000000"
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white placeholder-gray-500 text-center tracking-[0.5em] font-mono text-xl focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
+                                className="bg-[#362e26] border-[#4a4034] text-white placeholder-gray-500 text-center tracking-[0.5em] font-mono text-xl focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12"
                                 required
                                 maxLength={6}
                             />
@@ -344,33 +357,51 @@ export function LoginForm({
 
                         <Field>
                             <FieldLabel htmlFor="newPassword" className="text-gray-300 text-xs uppercase tracking-wider font-semibold">New Password</FieldLabel>
-                            <Input
-                                id="newPassword"
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="newPassword"
+                                    type={showPassword ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="bg-[#362e26] border-[#4a4034] text-white focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12 pr-10"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-amber-500 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </Field>
                         
                         <Field>
                             <FieldLabel htmlFor="confirmPassword" className="text-gray-300 text-xs uppercase tracking-wider font-semibold">Confirm Password</FieldLabel>
-                            <Input
-                                id="confirmPassword"
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="bg-[#2a2b2d] border-[#3a3b3d] text-white focus:ring-2 focus:ring-pink-500 transition-all rounded-xl h-12"
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="confirmPassword"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="bg-[#362e26] border-[#4a4034] text-white focus:ring-2 focus:ring-amber-500 transition-all rounded-xl h-12 pr-10"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-amber-500 transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </Field>
 
                         <Field className="mt-2">
                             <Button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
+                                className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
                             >
                                 {isLoading ? "Updating..." : "Update Password"}
                             </Button>
@@ -386,7 +417,7 @@ export function LoginForm({
                     <span className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_10px_oklch(0.723_0.219_149.579)]"></span>
                     <span>System Encrypted</span>
                 </div>
-                <p>© 2026 Codin Technologies. SECURE ACCESS ONLY.</p>
+                <p>© 2026 Kongoni Safari Camp. SECURE ACCESS ONLY.</p>
             </div>
         </div>
     )

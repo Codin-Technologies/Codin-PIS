@@ -1097,6 +1097,7 @@ export interface User {
     organizationId: string;
     branchName?: string;
     status: 'Active' | 'Inactive' | 'Pending';
+    loginAt?: string;
     createdAt: string;
 }
 

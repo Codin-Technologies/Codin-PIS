@@ -5,37 +5,97 @@ import {
   ArrowUpRight, ArrowDownRight, Activity, Calendar
 } from 'lucide-react';
 import clsx from 'clsx';
-
-const STATS = [
-  { label: 'Total Revenue', value: '$45,231.89', change: '+20.1%', trend: 'up', icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-  { label: 'Total Orders', value: '1,342', change: '+12%', trend: 'up', icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { label: 'Active Staff', value: '24', change: 'On Shift', trend: 'neutral', icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
-  { label: 'Avg Order Value', value: '$34.50', change: '-2.3%', trend: 'down', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-];
-
-const RECENT_ACTIVITY = [
-  { id: 1, type: 'Order', desc: 'Table #12 placed an order', time: '2 mins ago', amount: '$124.00' },
-  { id: 2, type: 'Stock', desc: 'Received delivery from Meat Co.', time: '15 mins ago', amount: '+45kg' },
-  { id: 3, type: 'Staff', desc: 'Sarah clocked in', time: '1 hour ago', amount: '' },
-  { id: 4, type: 'Alert', desc: 'Low stock: Tomatoes', time: '2 hours ago', amount: 'Critical' },
-];
+import { useSession } from 'next-auth/react';
+import { useInventory } from '@/hooks/useInventory';
+import { useUsers } from '@/hooks/useUsers';
+import { useBranch } from '@/hooks/useBranch';
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { useRequisitions } from '@/hooks/useRequisitions';
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const { branchId } = useBranch();
+  
+  // Data Fetching
+  const { data: inventoryData, isLoading: invLoading } = useInventory(branchId);
+  const { data: usersData, isLoading: usersLoading } = useUsers();
+  const { data: poData, isLoading: poLoading } = usePurchaseOrders(branchId);
+  const { data: reqData, isLoading: reqLoading } = useRequisitions(branchId);
+
+  const isAdmin = session?.user?.email?.includes('admin') || true; // Fallback for demo
+  const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'Admin';
+
+  // Stats Calculations
+  const inventory = inventoryData?.data || [];
+  const totalValuation = inventory.reduce((sum, item) => sum + (item.qty * (item.unitCost || 0)), 0);
+  
+  const activeUsers = (usersData || []).filter(u => u.status === 'Active').length;
+  
+  const totalOrders = (poData?.data?.length || 0) + (reqData?.data?.length || 0);
+
+  const isLoading = invLoading || usersLoading || poLoading || reqLoading;
+
+  const STATS = [
+    { 
+      label: 'Inventory Valuation', 
+      value: `$${totalValuation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 
+      change: 'Live Stock', 
+      trend: 'neutral', 
+      icon: DollarSign, 
+      color: 'text-green-600', 
+      bg: 'bg-green-50' 
+    },
+    { 
+      label: 'Total Orders', 
+      value: totalOrders.toString(), 
+      change: 'PO + Req', 
+      trend: 'up', 
+      icon: ShoppingBag, 
+      color: 'text-blue-600', 
+      bg: 'bg-blue-50' 
+    },
+    { 
+      label: 'Active Staff', 
+      value: activeUsers.toString(), 
+      change: 'On Shift', 
+      trend: 'neutral', 
+      icon: Users, 
+      color: 'text-orange-600', 
+      bg: 'bg-orange-50' 
+    },
+    { 
+      label: 'Stock Items', 
+      value: inventory.length.toString(), 
+      change: 'Unique SKU', 
+      trend: 'up', 
+      icon: Activity, 
+      color: 'text-purple-600', 
+      bg: 'bg-purple-50' 
+    },
+  ];
+
+  const RECENT_ACTIVITY = [
+    { id: 1, type: 'Order', desc: 'Table #12 placed an order', time: '2 mins ago', amount: '$124.00' },
+    { id: 2, type: 'Stock', desc: 'Received delivery from Meat Co.', time: '15 mins ago', amount: '+45kg' },
+    { id: 3, type: 'Staff', desc: 'Sarah clocked in', time: '1 hour ago', amount: '' },
+    { id: 4, type: 'Alert', desc: 'Low stock: Tomatoes', time: '2 hours ago', amount: 'Critical' },
+  ];
+
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-6 overflow-y-auto pr-2 scrollbar-thin">
 
       {/* Header */}
       <div className="flex items-center justify-between rounded-2xl bg-[#1e1f21] p-8 text-white shadow-lg">
         <div>
-          <h1 className="text-3xl font-bold">Good Evening, Admin</h1>
-          <p className="text-gray-400 mt-1">Here's what's happening in your restaurant today.</p>
+          <h1 className="text-3xl font-bold">Good Day, {userName}</h1>
+          <p className="text-gray-400 mt-1">Here's what's happening in your supply chain today.</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 rounded-xl bg-white/10 px-4 py-2 backdrop-blur-md">
-            <Calendar className="h-4 w-4 text-pink-400" />
-            <span className="text-sm font-medium">Jan 19, 2026</span>
+            <Calendar className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
-          <button className="rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-6 py-2 text-sm font-bold shadow-lg hover:opacity-90 transition-opacity">
+          <button className="rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 px-6 py-2 text-sm font-bold shadow-lg hover:opacity-90 transition-opacity">
             Generate Report
           </button>
         </div>
@@ -57,7 +117,11 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="mt-4">
-              <h3 className="text-3xl font-bold text-gray-900">{stat.value}</h3>
+              <h3 className="text-3xl font-bold text-gray-900">
+                {isLoading ? (
+                  <div className="h-9 w-24 bg-gray-100 animate-pulse rounded-lg" />
+                ) : stat.value}
+              </h3>
               <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
             </div>
           </div>

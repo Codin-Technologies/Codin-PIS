@@ -5,7 +5,7 @@ import { changePasswordAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
-import { KeyRound, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { KeyRound, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { emitOnboardingAction } from '@/onboarding/helpers';
 
 type ChangePasswordFormProps = {
@@ -26,6 +26,11 @@ export function ChangePasswordForm({
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    
+    // Password visibility state
+    const [showOldPassword, setShowOldPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -97,35 +102,62 @@ export function ChangePasswordForm({
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Field>
                     <FieldLabel className="text-gray-700 text-xs font-bold uppercase tracking-wider">Current Password</FieldLabel>
-                    <Input
-                        type="password"
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                        className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
-                        placeholder="Enter current password"
-                    />
+                    <div className="relative">
+                        <Input
+                            type={showOldPassword ? "text" : "password"}
+                            value={oldPassword}
+                            onChange={(e) => setOldPassword(e.target.value)}
+                            className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl pr-10"
+                            placeholder="Enter current password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowOldPassword(!showOldPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
+                        >
+                            {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </Field>
 
                 <Field>
                     <FieldLabel className="text-gray-700 text-xs font-bold uppercase tracking-wider">New Password</FieldLabel>
-                    <Input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
-                        placeholder="Minimum 8 characters"
-                    />
+                    <div className="relative">
+                        <Input
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl pr-10"
+                            placeholder="Minimum 8 characters"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
+                        >
+                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </Field>
 
                 <Field>
                     <FieldLabel className="text-gray-700 text-xs font-bold uppercase tracking-wider">Confirm New Password</FieldLabel>
-                    <Input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
-                        placeholder="Re-type new password"
-                    />
+                    <div className="relative">
+                        <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl pr-10"
+                            placeholder="Re-type new password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
+                        >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </Field>
 
                 <div className="pt-2">

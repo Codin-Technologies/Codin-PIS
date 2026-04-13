@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Plus, UtensilsCrossed, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Plus, UtensilsCrossed, FileText, LogOut, Users, Building2 } from 'lucide-react';
 
 const navItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -58,8 +58,8 @@ export function Sidebar({
         >
             {/* Brand / Logo Area */}
             <div className="flex h-16 items-center px-4 border-b border-[#2a2b2d]">
-                <div className="flex items-center justify-center w-8 h-8 rounded bg-gradient-to-br from-pink-500 to-orange-400 shrink-0">
-                    <span className="text-xs font-bold text-white">PIS</span>
+                <div className="flex items-center justify-center w-8 h-8 rounded bg-gradient-to-br from-amber-700 to-yellow-600 shrink-0">
+                    <span className="text-xs font-bold text-white">KSC</span>
                 </div>
                 <AnimatePresence>
                     {isFullyExpanded && (
@@ -69,7 +69,7 @@ export function Sidebar({
                             exit={{ opacity: 0 }}
                             className="ml-3 text-lg font-semibold tracking-tight whitespace-nowrap"
                         >
-                            PIS System
+                            Kongoni System
                         </motion.span>
                     )}
                 </AnimatePresence>
@@ -80,7 +80,7 @@ export function Sidebar({
                 <button
                     onClick={() => setIsCreateOpen(!isCreateOpen)}
                     className={clsx(
-                        "flex items-center justify-center rounded-full bg-[#f06a6a] hover:bg-[#d95d5d] text-white transition-all shadow-md z-20",
+                        "flex items-center justify-center rounded-full bg-amber-600 hover:bg-amber-700 text-white transition-all shadow-md z-20",
                         isFullyExpanded ? "px-3 py-2 w-full space-x-2" : "w-10 h-10"
                     )}
                 >
@@ -124,8 +124,34 @@ export function Sidebar({
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
                                     <ShoppingCart className="w-4 h-4 text-orange-400" />
-                                    <span>New PO</span>
+                                    <span>New Purchase Order</span>
                                 </Link>
+                                <div className="h-px bg-[#3e3f42] my-1 mx-2" />
+                                <Link
+                                    href="/kitchen?action=new-production"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <UtensilsCrossed className="w-4 h-4 text-pink-400" />
+                                    <span>New Production Plan</span>
+                                </Link>
+                                <Link
+                                    href="/settings?tab=users&action=create-user"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <span>New System User</span>
+                                </Link>
+                                <Link
+                                    href="/settings?tab=departments&action=create-department"
+                                    onClick={() => setIsCreateOpen(false)}
+                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
+                                >
+                                    <Building2 className="w-4 h-4 text-amber-400" />
+                                    <span>New Department</span>
+                                </Link>
+
                             </div>
                         </motion.div>
                     )}
@@ -158,7 +184,7 @@ export function Sidebar({
             <div className="p-4 border-t border-[#2a2b2d] mt-auto">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 shrink-0 flex items-center justify-center font-bold text-white shadow-md">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-700 to-yellow-600 shrink-0 flex items-center justify-center font-bold text-white shadow-md">
                             {userInitial}
                         </div>
                         <AnimatePresence>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { X, Shield, Building2, User, Key, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Shield, Building2, User, Key, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRoles, useOrganizations, useCreateUser, useUpdateUser } from '@/hooks/useUsers';
 import { CreateUserPayload, User as UserType } from '@/lib/api';
 import { emitOnboardingAction } from '@/onboarding/helpers';
@@ -23,6 +23,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
 
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const isEdit = !!user;
 
@@ -144,12 +145,19 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                             <Input
                                 id="password"
                                 name="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 required={!isEdit}
-                                className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl pl-10"
+                                className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl pl-10 pr-10"
                             />
                             <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                         </div>
                     </Field>
 

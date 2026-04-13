@@ -8,6 +8,7 @@ const PAGE_TITLES: { [key: string]: string } = {
     '/kitchen': 'Kitchen',
     '/inventory': 'Inventory',
     '/inventory/usage': 'Daily Stock Usage',
+
     '/procurement': 'Procurement',
     '/reports': 'Reports Center',
     '/settings': 'Settings',
@@ -15,14 +16,14 @@ const PAGE_TITLES: { [key: string]: string } = {
 
 export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void; isSidebarOpen: boolean }) {
     const pathname = usePathname();
-    const pageTitle = PAGE_TITLES[pathname] || 'PIS Platform';
+    const pageTitle = PAGE_TITLES[pathname] || 'Kongoni System';
 
     return (
         <header className="flex h-16 items-center justify-between border-b border-[#2a2b2d] bg-[#1e1f21] px-6 shadow-sm">
             <div className="flex items-center space-x-4">
                 <button
                     onClick={onMenuClick}
-                    className="rounded p-1 text-pink-500 hover:bg-[#2d2e30] focus:outline-none transition-colors"
+                    className="rounded p-1 text-amber-500 hover:bg-[#2d2e30] focus:outline-none transition-colors"
                 >
                     {isSidebarOpen ? (
                         <PanelLeftClose className="h-6 w-6" />
@@ -30,7 +31,7 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
                         <PanelLeftOpen className="h-6 w-6" />
                     )}
                 </button>
-                <h2 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-orange-400 tracking-tight">
+                <h2 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-700 to-yellow-600 tracking-tight">
                     {pageTitle}
                 </h2>
             </div>
@@ -43,7 +44,7 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
                     </div>
                     <input
                         type="text"
-                        className="block w-full rounded-full bg-[#2a2b2d] border-none py-1.5 pl-10 pr-3 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:bg-[#2a2b2d] transition-all"
+                        className="block w-full rounded-full bg-[#2a2b2d] border-none py-1.5 pl-10 pr-3 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:bg-[#2a2b2d] transition-all"
                         placeholder="Search..."
                     />
                 </div>

@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PIS - Unified Supply Chain",
-  description: "Restaurant Management Platform",
+  title: "Kongoni System - Safari Camp Management",
+  description: "Serengeti Safari Camp Management Platform",
 };
 
 export default function RootLayout({
