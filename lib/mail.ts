@@ -2,7 +2,14 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const defaultFrom = process.env.RESEND_FROM ?? "FleetCo <noreply@fleetcotelematics.com>";
+/** Envelope From — must match a sender verified in Resend (e.g. codin.co.tz). */
+const defaultFrom =
+  process.env.MAIL_FROM?.trim() ||
+  process.env.RESEND_FROM?.trim() ||
+  "Codin PIS <noreply@codin.co.tz>";
+
+const brandName = "Codin PIS";
+const brandShort = "Codin PIS";
 
 export async function sendOtpEmail({
   to,
@@ -17,7 +24,7 @@ export async function sendOtpEmail({
     const data = await resend.emails.send({
       from: defaultFrom,
       to,
-      subject: "Password Reset OTP - FleetCo",
+      subject: `Password reset — ${brandName}`,
       html: `
   <div style="background-color:#f6f8fa; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05); overflow:hidden;">
@@ -25,10 +32,10 @@ export async function sendOtpEmail({
       <!-- Header -->
       <div style="background:linear-gradient(to right, #004953, #004953); padding:24px; text-align:center;">
         <div style="width:56px; height:56px; margin:0 auto; background:white; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; color:#004953; font-size:24px; font-weight:700; box-shadow:0 0 10px rgba(255,255,255,0.2);">
-          <div>FC</div>
+          <div>${brandShort.slice(0, 2).toUpperCase()}</div>
         </div>
         <div style="margin-top:10px;">
-          <span style="font-size:28px; font-weight:700; color:white;">FleetCo</span>
+          <span style="font-size:28px; font-weight:700; color:white;">${brandName}</span>
         </div>
       </div>
 
@@ -66,7 +73,7 @@ export async function sendOtpEmail({
 
       <!-- Footer -->
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        © ${new Date().getFullYear()} FleetCo Telematics. All rights reserved.
+        © ${new Date().getFullYear()} ${brandName} · codin.co.tz
       </div>
     </div>
   </div>
@@ -123,7 +130,8 @@ export async function sendRFQInviteEmail({
         <p style="color:#6b7280; font-size:13px; word-break:break-all;">Or copy this link: ${portalLink}</p>
       </div>
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        This link is personal to your organization. Do not forward.
+        This link is personal to your organization. Do not forward.<br />
+        <span style="margin-top:8px; display:inline-block;">Sent by ${brandName} · noreply@codin.co.tz</span>
       </div>
     </div>
   </div>`,
@@ -197,7 +205,7 @@ export async function sendWelcomeUserEmail({
         </div>
       </div>
       <div style="background-color:#f9fafb; text-align:center; padding:16px; color:#9ca3af; font-size:12px;">
-        © ${new Date().getFullYear()} FleetCo Telematics. All rights reserved.
+        © ${new Date().getFullYear()} ${brandName} · codin.co.tz
       </div>
     </div>
   </div>`,

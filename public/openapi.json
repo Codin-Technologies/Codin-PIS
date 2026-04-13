@@ -3165,7 +3165,7 @@
                   "password": {
                     "type": "string",
                     "minLength": 8,
-                    "description": "Hashed for storage; same value is sent in the welcome email (if RESEND_API_KEY is set)."
+                    "description": "Hashed for storage; same value is sent in the welcome email when RESEND_API_KEY is set (From noreply@codin.co.tz unless MAIL_FROM / RESEND_FROM overrides)."
                   }
                 }
               }
