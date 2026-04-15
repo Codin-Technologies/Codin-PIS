@@ -19,11 +19,11 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
     const pageTitle = PAGE_TITLES[pathname] || 'Kongoni System';
 
     return (
-        <header className="flex h-16 items-center justify-between border-b border-[#2a2b2d] bg-[#1e1f21] px-6 shadow-sm">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
             <div className="flex items-center space-x-4">
                 <button
                     onClick={onMenuClick}
-                    className="rounded p-1 text-amber-500 hover:bg-[#2d2e30] focus:outline-none transition-colors"
+                    className="rounded p-1 text-amber-600 hover:bg-gray-100 focus:outline-none transition-colors"
                 >
                     {isSidebarOpen ? (
                         <PanelLeftClose className="h-6 w-6" />
@@ -44,7 +44,7 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
                     </div>
                     <input
                         type="text"
-                        className="block w-full rounded-full bg-[#2a2b2d] border-none py-1.5 pl-10 pr-3 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:bg-[#2a2b2d] transition-all"
+                        className="block w-full rounded-full bg-gray-100 border-none py-1.5 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:bg-gray-100 transition-all"
                         placeholder="Search..."
                     />
                 </div>
@@ -53,20 +53,21 @@ export function Header({ onMenuClick, isSidebarOpen }: { onMenuClick: () => void
             <div className="flex items-center space-x-4">
                 <button
                     onClick={requestOnboardingContinue}
-                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:bg-[#2d2e30] hover:text-white"
+                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 >
                     Continue Onboarding
                 </button>
                 <button
                     onClick={requestOnboardingRestart}
-                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:bg-[#2d2e30] hover:text-white"
+                    className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 >
                     Restart Onboarding
                 </button>
-                <button className="rounded-full p-1 text-gray-400 hover:bg-[#2d2e30] transition-colors">
+                <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100 transition-colors">
                     <Bell className="h-5 w-5" />
                 </button>
             </div>
+
         </header>
     );
 }

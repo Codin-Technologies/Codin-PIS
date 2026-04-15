@@ -60,7 +60,7 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {REPORT_CATEGORIES.map((cat, idx) => (
                     <div key={idx} className="flex flex-col gap-4">
-                        <h2 className="text-lg font-bold text-gray-900 pl-2 border-l-4 border-pink-500">{cat.title}</h2>
+                        <h2 className="text-lg font-bold text-gray-900 pl-2 border-l-4 border-amber-500">{cat.title}</h2>
                         <div className="space-y-4">
                             {cat.reports.map((report, rIdx) => (
                                 <div key={rIdx} className="group flex items-start p-4 rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md hover:border-pink-200 transition-all cursor-pointer">

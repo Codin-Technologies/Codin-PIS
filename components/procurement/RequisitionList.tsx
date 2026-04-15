@@ -14,12 +14,12 @@ import type { Requisition } from '@/lib/api';
 import { requisitionStatusLabel } from '@/lib/procurement/requisition-status';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: typeof Clock }> = {
-    pending:   { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
-    approved:  { color: 'text-blue-600',   bg: 'bg-blue-50',   icon: CheckCircle },
-    in_review: { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock },
-    ordered:   { color: 'text-purple-600', bg: 'bg-purple-50', icon: FileText },
-    delivered: { color: 'text-green-600',  bg: 'bg-green-50',  icon: CheckCircle },
-    rejected:  { color: 'text-red-600',    bg: 'bg-red-50',    icon: XCircle },
+    pending:   { color: 'text-amber-600',   bg: 'bg-amber-50',   icon: Clock },
+    approved:  { color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle },
+    in_review: { color: 'text-amber-500',   bg: 'bg-amber-50',   icon: Clock },
+    ordered:   { color: 'text-sky-600',     bg: 'bg-sky-50',     icon: FileText },
+    delivered: { color: 'text-green-600',   bg: 'bg-green-50',   icon: CheckCircle },
+    rejected:  { color: 'text-red-600',     bg: 'bg-red-50',     icon: XCircle },
 };
 
 // --- Loading skeleton row ---
@@ -88,7 +88,7 @@ export function RequisitionList() {
                             className={clsx(
                                 "px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors",
                                 filterStatus === status
-                                    ? 'bg-[#2a2b2d] text-white shadow-md'
+                                    ? 'bg-gradient-to-r from-amber-700 to-yellow-600 text-white shadow-md'
                                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                             )}
                         >
@@ -101,7 +101,7 @@ export function RequisitionList() {
                     <input
                         type="text"
                         placeholder="Search Requisitions..."
-                        className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d] w-full md:w-64"
+                        className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-full md:w-64"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />

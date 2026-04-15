@@ -19,10 +19,10 @@ const MOCK_POS = [
 ];
 
 const PO_STATS = [
-    { label: 'Open PO Value', value: '$24,850', icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Open PO Value', value: '$24,850', icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Overdue Delivery', value: '1', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
-    { label: 'Contract Compliance', value: '98.5%', icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Avg Lead Time', value: '3.2 Days', icon: Truck, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Contract Compliance', value: '98.5%', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Avg Lead Time', value: '3.2 Days', icon: Truck, color: 'text-amber-700', bg: 'bg-amber-50' },
 ];
 
 // --- Sub-Components ---
@@ -63,11 +63,11 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                 <div className="flex gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input type="text" placeholder="Search POs..." className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]" />
+                        <input type="text" placeholder="Search POs..." className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
                     </div>
                     <button
                         onClick={() => setView('CREATE')}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg transition-all"
                     >
                         <Plus className="h-4 w-4" />
                         Create PO
@@ -97,7 +97,7 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">{po.supplier.charAt(0)}</div>
+                                        <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-xs">{po.supplier.charAt(0)}</div>
                                         <div>
                                             <p className="font-medium text-gray-900">{po.supplier}</p>
                                             <p className="text-xs text-gray-500">{po.payment}</p>
@@ -118,10 +118,10 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                                 <td className="px-6 py-4 font-bold text-gray-900">${po.amount.toLocaleString()}</td>
                                 <td className="px-6 py-4">
                                     <span className={clsx("px-2 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1",
-                                        po.status === 'Open' ? 'bg-blue-100 text-blue-700' :
-                                            po.status === 'Acknowledged' ? 'bg-purple-100 text-purple-700' :
+                                        po.status === 'Open' ? 'bg-amber-100 text-amber-700' :
+                                            po.status === 'Acknowledged' ? 'bg-yellow-100 text-yellow-700' :
                                                 po.status === 'Overdue' ? 'bg-red-100 text-red-700' :
-                                                    'bg-green-100 text-green-700'
+                                                    'bg-emerald-100 text-emerald-700'
                                     )}>
                                         {po.status === 'Open' && <Clock className="h-3 w-3" />}
                                         {po.status === 'Acknowledged' && <CheckCircle className="h-3 w-3" />}
@@ -261,7 +261,7 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
 
                     <button
                         onClick={() => { alert('PO Generated and Sent to Supplier!'); setView('DASHBOARD'); }}
-                        className="w-full py-4 bg-[#2a2b2d] text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
                     >
                         <FileText className="h-5 w-5" />
                         Generate & Send PO
@@ -288,7 +288,7 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                     <div>
                         <div className="flex items-center gap-3">
                             <h2 className="text-xl font-bold text-gray-900">{selectedPO.id}</h2>
-                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">{selectedPO.status}</span>
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">{selectedPO.status}</span>
                         </div>
                         <p className="text-xs text-gray-500">Supplier: {selectedPO.supplier} • Sent: {selectedPO.date}</p>
                     </div>
@@ -329,13 +329,13 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                         <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase">Supplier Acknowledgement</h3>
 
                         {selectedPO.status === 'Open' ? (
-                            <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-start gap-4">
-                                <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0" />
+                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-start gap-4">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
                                 <div>
-                                    <h4 className="font-bold text-orange-800 text-sm">Pending Action</h4>
-                                    <p className="text-xs text-orange-700 mt-1 mb-3">Supplier has not yet acknowledged this order.</p>
+                                    <h4 className="font-bold text-amber-800 text-sm">Pending Action</h4>
+                                    <p className="text-xs text-amber-700 mt-1 mb-3">Supplier has not yet acknowledged this order.</p>
                                     <div className="flex gap-2">
-                                        <button className="px-3 py-1.5 bg-white border border-orange-200 text-orange-700 text-xs font-bold rounded-lg shadow-sm hover:bg-orange-100">
+                                        <button className="px-3 py-1.5 bg-white border border-amber-200 text-amber-700 text-xs font-bold rounded-lg shadow-sm hover:bg-amber-100">
                                             Send Reminder
                                         </button>
                                         <button
@@ -344,7 +344,7 @@ export function PurchaseOrderView({ initialView = 'DASHBOARD' }: { initialView?:
                                                 setSelectedPO(newPO); // Local Mock Update
                                                 alert('Simulated: Supplier Acknowledged via Portal');
                                             }}
-                                            className="px-3 py-1.5 bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-orange-700"
+                                            className="px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-amber-700"
                                         >
                                             Simulate Acknowledgement
                                         </button>

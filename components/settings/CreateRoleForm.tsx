@@ -106,7 +106,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
         <div className="flex flex-col gap-8 h-full max-h-[85vh]">
             <div className="flex items-center justify-between border-b border-gray-100 pb-6 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
                         <Shield className="w-5 h-5" />
                     </div>
                     <div>
@@ -139,7 +139,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                                 name="name"
                                 placeholder="e.g. Senior Procurement Officer"
                                 required
-                                className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl"
+                                className="h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 rounded-xl"
                             />
                         </Field>
                         <Field>
@@ -148,7 +148,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                                 id="description"
                                 name="description"
                                 placeholder="Briefly describe what this role is for..."
-                                className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl"
+                                className="h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 rounded-xl"
                             />
                         </Field>
                     </FieldGroup>
@@ -175,7 +175,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                                     {matrixData.map((module) => (
                                         <div key={module.name} className="contents">
                                             <tr className="bg-gray-50/30">
-                                                <td colSpan={5} className="px-6 py-2 text-[10px] font-bold text-pink-500 uppercase tracking-widest leading-none bg-pink-50/20 underline decoration-pink-500/30 underline-offset-4">{module.name}</td>
+                                                <td colSpan={5} className="px-6 py-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest leading-none bg-amber-50/20 underline decoration-amber-500/30 underline-offset-4">{module.name}</td>
                                             </tr>
                                             {module.features.map((feature) => (
                                                 <tr key={feature.name} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
@@ -193,8 +193,8 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                                                                         className={clsx(
                                                                             "w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center mx-auto",
                                                                             selectedPermissions.includes(permId)
-                                                                                ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-                                                                                : "border-gray-200 hover:border-pink-300"
+                                                                                ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                                                                                : "border-gray-200 hover:border-amber-300"
                                                                         )}
                                                                     >
                                                                         {selectedPermissions.includes(permId) && <Check className="w-4 h-4 stroke-[3px]" />}
@@ -229,7 +229,7 @@ export function CreateRoleForm({ onClose, onSuccess }: CreateRoleFormProps) {
                     <Button
                         type="submit"
                         disabled={createRoleMutation.isPending}
-                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
+                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
                         data-tour="create-role-submit-btn"
                     >
                         {createRoleMutation.isPending ? (

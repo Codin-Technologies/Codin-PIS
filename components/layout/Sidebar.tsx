@@ -107,7 +107,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <Package className="w-4 h-4 text-blue-400" />
+                                    <Package className="w-4 h-4 text-amber-500" />
                                     <span>New Item</span>
                                 </Link>
                                 <Link
@@ -115,7 +115,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <FileText className="w-4 h-4 text-green-400" />
+                                    <FileText className="w-4 h-4 text-amber-500" />
                                     <span>New Requisition</span>
                                 </Link>
                                 <Link
@@ -123,7 +123,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <ShoppingCart className="w-4 h-4 text-orange-400" />
+                                    <ShoppingCart className="w-4 h-4 text-amber-500" />
                                     <span>New Purchase Order</span>
                                 </Link>
                                 <div className="h-px bg-[#3e3f42] my-1 mx-2" />
@@ -132,7 +132,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <UtensilsCrossed className="w-4 h-4 text-pink-400" />
+                                    <UtensilsCrossed className="w-4 h-4 text-amber-500" />
                                     <span>New Production Plan</span>
                                 </Link>
                                 <Link
@@ -140,7 +140,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <Users className="w-4 h-4 text-amber-500" />
                                     <span>New System User</span>
                                 </Link>
                                 <Link
@@ -148,7 +148,7 @@ export function Sidebar({
                                     onClick={() => setIsCreateOpen(false)}
                                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#3e3f42] hover:text-white transition-colors"
                                 >
-                                    <Building2 className="w-4 h-4 text-amber-400" />
+                                    <Building2 className="w-4 h-4 text-amber-500" />
                                     <span>New Department</span>
                                 </Link>
 

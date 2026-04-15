@@ -92,7 +92,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     <input
                                         required
                                         type="text"
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         placeholder="e.g. Global Provisions Ltd"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -102,7 +102,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     <label className="text-xs font-bold text-gray-700">Category *</label>
                                     <select
                                         required
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                     >
@@ -125,7 +125,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     <input
                                         required
                                         type="text"
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         placeholder="Full Name"
                                         value={formData.contactPerson}
                                         onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
@@ -138,7 +138,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                         <input
                                             required
                                             type="email"
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             placeholder="contact@company.com"
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -152,7 +152,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                         <input
                                             required
                                             type="tel"
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             placeholder="+1 (555) 000-0000"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -165,7 +165,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <input
                                             type="url"
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             placeholder="https://..."
                                             value={formData.website}
                                             onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -184,7 +184,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     <label className="text-xs font-bold text-gray-700">Tax ID / VAT Number</label>
                                     <input
                                         type="text"
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         placeholder="Tax Identification"
                                         value={formData.taxId}
                                         onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
@@ -193,7 +193,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-700">Payment Terms</label>
                                     <select
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         value={formData.paymentTerms}
                                         onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
                                     >
@@ -215,7 +215,7 @@ export function NewSupplierModal({ isOpen, onClose, onSubmit, isPending, branchI
                                     <label className="text-xs font-bold text-gray-700">Street Address</label>
                                     <textarea
                                         rows={2}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                         placeholder="Full address details..."
                                         value={formData.address}
                                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}

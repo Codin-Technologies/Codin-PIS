@@ -91,7 +91,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                         </div>
                         <div className="flex items-center space-x-4">
                             <span className={clsx("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", 
-                                formData.priority === 'Emergency' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
+                                formData.priority === 'Emergency' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')}>
                                 {formData.priority}
                             </span>
                             <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
@@ -104,7 +104,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                         {/* 1. Requirement Details */}
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                                <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">1</div>
+                                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center text-sm mr-3 shadow-lg font-black">1</div>
                                 Requirement Details
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -140,7 +140,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                                 onClick={() => setFormData({ ...formData, priority: p })}
                                                 className={clsx("flex-1 py-3 text-xs font-bold rounded-xl border transition-all",
                                                     formData.priority === p
-                                                        ? (p === 'Emergency' ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-gray-900 text-white border-gray-900 shadow-md')
+                                                        ? (p === 'Emergency' ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-amber-600 text-white border-amber-600 shadow-md')
                                                         : 'bg-white text-gray-500 border-gray-100 hover:border-gray-300'
                                                 )}
                                             >
@@ -165,12 +165,12 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                                    <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">2</div>
+                                    <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center text-sm mr-3 shadow-lg font-black">2</div>
                                     Requested Items
                                 </h3>
                                 <Button
                                     onClick={() => setIsCatalogOpen(true)}
-                                    className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md flex items-center gap-2"
+                                    className="h-10 px-4 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 hover:opacity-90 text-white font-bold text-xs shadow-md flex items-center gap-2 transition-all"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Add Items
@@ -258,7 +258,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                         {/* 3. Budget Control */}
                         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                                <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm mr-3 shadow-lg">3</div>
+                                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center text-sm mr-3 shadow-lg font-black">3</div>
                                 Budget Allocation
                             </h3>
                             
@@ -323,7 +323,7 @@ export function NewRequisitionModal({ isOpen, onClose }: { isOpen: boolean; onCl
                                 <Button 
                                     onClick={handleSubmit}
                                     disabled={createMutation.isPending || lineItems.length === 0}
-                                    className="px-10 py-6 rounded-xl bg-gray-900 text-white font-black text-sm shadow-xl hover:bg-gray-800 flex items-center justify-center gap-3 flex-1 md:flex-none transition-all group"
+                                    className="px-10 py-6 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-black text-sm shadow-xl hover:opacity-90 flex items-center justify-center gap-3 flex-1 md:flex-none transition-all group"
                                     data-tour="create-requisition-submit-btn"
                                 >
                                     {createMutation.isPending ? (

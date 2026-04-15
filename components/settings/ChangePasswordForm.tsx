@@ -164,7 +164,7 @@ export function ChangePasswordForm({
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold rounded-xl py-6 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                        className="w-full bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold rounded-xl py-6 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                         data-tour="change-password-submit-btn"
                     >
                         {isLoading ? (

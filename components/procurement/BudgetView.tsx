@@ -50,10 +50,10 @@ const CATEGORY_ICONS: Record<BudgetCategory, React.ElementType> = {
 };
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-    Kitchen:        { bg: 'bg-orange-100', text: 'text-orange-600', bar: 'bg-orange-500' },
-    Maintenance:    { bg: 'bg-blue-100',   text: 'text-blue-600',   bar: 'bg-blue-500' },
-    Operations:     { bg: 'bg-emerald-100',text: 'text-emerald-600',bar: 'bg-emerald-500' },
-    Administration: { bg: 'bg-violet-100', text: 'text-violet-600', bar: 'bg-violet-500' },
+    Kitchen:        { bg: 'bg-amber-100',  text: 'text-amber-700',  bar: 'bg-amber-600' },
+    Maintenance:    { bg: 'bg-yellow-100', text: 'text-yellow-700', bar: 'bg-yellow-500' },
+    Operations:     { bg: 'bg-emerald-100',text: 'text-emerald-700',bar: 'bg-emerald-500' },
+    Administration: { bg: 'bg-amber-50',   text: 'text-amber-800',  bar: 'bg-amber-700' },
     Other:          { bg: 'bg-gray-100',   text: 'text-gray-600',   bar: 'bg-gray-500' },
 };
 
@@ -282,7 +282,7 @@ function BudgetFormPanel({
                     <button
                         onClick={handleSubmit}
                         disabled={isSaving}
-                        className="flex-1 py-2.5 rounded-xl bg-[#2a2b2d] text-white text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white text-sm font-bold hover:opacity-90 shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                         {mode === 'add' ? 'Create Budget' : 'Save Changes'}
@@ -556,7 +556,7 @@ export function BudgetView() {
                 </div>
                 <button
                     onClick={openAdd}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg"
                 >
                     <Plus className="h-4 w-4" />
                     New Budget
@@ -571,8 +571,8 @@ export function BudgetView() {
                         value: fmt(overallStats.allocated),
                         sub: `${budgets.length} Category Budgets`,
                         icon: BadgeDollarSign,
-                        color: 'text-indigo-600',
-                        bg: 'bg-indigo-50',
+                        color: 'text-amber-600',
+                        bg: 'bg-amber-50',
                     },
                     {
                         label: 'Auto-Tracked Spent',
@@ -587,8 +587,8 @@ export function BudgetView() {
                         value: fmt(Math.max(0, overallStats.remaining)),
                         sub: `${fmt(overallStats.committed)} committed`,
                         icon: PieChart,
-                        color: 'text-blue-600',
-                        bg: 'bg-blue-50',
+                        color: 'text-yellow-600',
+                        bg: 'bg-yellow-50',
                     },
                     {
                         label: 'Budget Warnings',
@@ -654,7 +654,7 @@ export function BudgetView() {
                         placeholder="Search budgets..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                     />
                 </div>
                 <div className="relative">
@@ -712,7 +712,7 @@ export function BudgetView() {
                     <BadgeDollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
                     <h3 className="text-sm font-bold text-gray-500">No budgets found</h3>
                     <p className="text-xs text-gray-400 mt-1">Try adjusting filters or create a new budget.</p>
-                    <button onClick={openAdd} className="mt-4 px-5 py-2 bg-[#2a2b2d] text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors">
+                    <button onClick={openAdd} className="mt-4 px-5 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg">
                         Add First Budget
                     </button>
                 </div>

@@ -162,7 +162,7 @@ function ProcurementContent() {
                                     : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent hover:border-gray-200"
                             )}
                         >
-                            <tab.icon className={clsx("h-5 w-5", activeTab === tab.id ? "text-pink-400" : "text-gray-400 group-hover:text-gray-600")} />
+                            <tab.icon className={clsx("h-5 w-5", activeTab === tab.id ? "text-amber-500" : "text-gray-400 group-hover:text-gray-600")} />
                             <span>{tab.label}</span>
                         </button>
                     ))}
@@ -184,7 +184,7 @@ function ProcurementContent() {
                                 </div>
                                 <button
                                     onClick={() => setIsReqModalOpen(true)}
-                                    className="flex items-center space-x-2 rounded-xl bg-[#2a2b2d] px-4 py-2 text-sm font-bold text-white hover:bg-gray-800 shadow-lg"
+                                    className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 px-4 py-2 text-sm font-bold text-white hover:opacity-90 shadow-lg transition-all"
                                     data-tour="create-requisition-btn"
                                 >
                                     <Plus className="h-4 w-4" />
@@ -217,7 +217,7 @@ function ProcurementContent() {
                             <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-bold text-gray-900">Requisition Pipeline</h3>
-                                    <button className="text-sm text-blue-600 font-medium hover:underline">View All</button>
+                                    <button className="text-sm text-amber-600 font-medium hover:underline">View All</button>
                                 </div>
                                 <div className="space-y-4">
                                     {isLoadingReqs ? (
@@ -227,7 +227,7 @@ function ProcurementContent() {
                                     ) : requisitions.slice(0, 3).map((req, i) => (
                                         <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer">
                                             <div className="flex items-center space-x-4">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">{req.priority === 'High' ? '🔥' : '📄'}</div>
+                                                <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-xs">{req.priority === 'High' ? '🔥' : '📄'}</div>
                                                 <div>
                                                     <p className="font-bold text-gray-900 line-clamp-1">{req.reason || 'Sourcing Event'}</p>
                                                     <p className="text-xs text-gray-500">{req.requisitionNumber} • {req.dept}</p>
@@ -236,7 +236,7 @@ function ProcurementContent() {
                                             <div className="text-right">
                                                 <p className="font-bold text-gray-900">{f(Number(req.estimatedTotal || 0))}</p>
                                                 <span className={clsx("text-xs font-semibold capitalize",
-                                                    req.status === 'approved' ? 'text-green-600' : 'text-orange-500')}>
+                                                    req.status === 'approved' ? 'text-green-600' : 'text-amber-600')}>
                                                     {req.status}
                                                 </span>
                                             </div>
@@ -257,7 +257,7 @@ function ProcurementContent() {
                                     ) : dynamicRisks.map((risk) => (
                                         <div key={risk.id} className={clsx("p-4 rounded-xl border-l-4",
                                             risk.severity === 'critical' ? "bg-red-50 border-red-500" :
-                                                risk.severity === 'warning' ? "bg-orange-50 border-orange-500" : "bg-blue-50 border-blue-500"
+                                                risk.severity === 'warning' ? "bg-amber-50 border-amber-600" : "bg-blue-50 border-blue-500"
                                         )}>
                                             <div className="flex justify-between items-start">
                                                 <h4 className={clsx("text-sm font-bold",
@@ -325,7 +325,7 @@ function ProcurementContent() {
                                 This module is currently under active development.
                                 Features for {TABS.find(t => t.id === activeTab)?.label.toLowerCase()} will be enabled in the next release.
                             </p>
-                            <button onClick={() => handleTabChange('overview')} className="mt-8 text-sm font-medium text-blue-600 hover:text-blue-800">
+                            <button onClick={() => handleTabChange('overview')} className="mt-8 text-sm font-medium text-amber-600 hover:text-amber-800">
                                 Return to Control Tower
                             </button>
                         </div>

@@ -163,10 +163,10 @@ export function RFQView() {
             {/* KPI Cards */}
             <div className="grid grid-cols-4 gap-6">
                 {[
-                    { label: 'Active RFQs', val: activeRFQs.length, icon: BarChart3, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Partic. Rate', val: `${participationRate}%`, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-                    { label: 'Avg Savings', val: '14.2%', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Active Bids', val: totalResponses, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
+                    { label: 'Active RFQs', val: activeRFQs.length, icon: BarChart3, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Partic. Rate', val: `${participationRate}%`, icon: Users, color: 'text-amber-700', bg: 'bg-amber-50' },
+                    { label: 'Avg Savings', val: '14.2%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Active Bids', val: totalResponses, icon: FileText, color: 'text-amber-500', bg: 'bg-amber-50' },
                 ].map((kpi, idx) => (
                     <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
@@ -246,7 +246,7 @@ export function RFQView() {
                         clearActionParam();
                         setView('CREATE');
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg transition-all"
                     data-tour="create-rfq-btn"
                 >
                     <Plus className="h-4 w-4" />
@@ -291,8 +291,8 @@ export function RFQView() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={clsx("px-2 py-1 rounded-md text-xs font-bold capitalize",
-                                        rfq.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                                            rfq.status === 'evaluating' ? 'bg-purple-100 text-purple-700' :
+                                        rfq.status === 'active' ? 'bg-amber-100 text-amber-700' :
+                                            rfq.status === 'evaluating' ? 'bg-yellow-100 text-yellow-700' :
                                                 'bg-gray-100 text-gray-700'
                                     )}>{rfq.status}</span>
                                 </td>
@@ -304,7 +304,7 @@ export function RFQView() {
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden w-20">
                                                 <div 
-                                                    className="h-full bg-indigo-500 rounded-full" 
+                                                    className="h-full bg-amber-500 rounded-full" 
                                                     style={{ width: `${rfq.supplierIds?.length ? Math.min(100, ((rfq.responseCount || 0) / rfq.supplierIds.length) * 100) : 0}%` }}
                                                 />
                                             </div>
@@ -324,7 +324,7 @@ export function RFQView() {
                                             setSelectedRfq(rfq.id);
                                             setView('COMPARE');
                                         }}
-                                        className="text-blue-600 hover:text-blue-800 font-bold text-xs"
+                                        className="text-amber-600 hover:text-amber-800 font-bold text-xs"
                                         data-tour="manage-rfq-btn"
                                     >
                                         Manage
@@ -596,7 +596,7 @@ export function RFQView() {
                     {!isLoadingQuotations && (quotationData?.data ?? []).map((quote, idx) => (
                         <div key={idx} className={clsx("p-6 flex flex-col relative border-r border-gray-100 last:border-0", idx === 0 ? 'bg-blue-50/30' : '')}>
                             {idx === 0 && (
-                                <div className="absolute top-0 left-0 right-0 bg-blue-600 text-white text-[10px] uppercase font-bold text-center py-1">
+                                <div className="absolute top-0 left-0 right-0 bg-amber-600 text-white text-[10px] uppercase font-bold text-center py-1">
                                     System Recommendation
                                 </div>
                             )}
@@ -624,7 +624,7 @@ export function RFQView() {
                                     </span>
                                 </div>
                                 <div className="h-8 flex items-center justify-center">
-                                    <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-700">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-amber-50 text-amber-700">
                                         {quote.status}
                                     </span>
                                 </div>
@@ -640,7 +640,7 @@ export function RFQView() {
                                         setView('DASHBOARD');
                                     }}
                                     className={clsx("w-full py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95",
-                                        idx === 0 ? 'bg-[#2a2b2d] text-white hover:bg-gray-800' : 'bg-white border text-gray-700 hover:bg-gray-50'
+                                        idx === 0 ? 'bg-gradient-to-r from-amber-700 to-yellow-600 text-white hover:opacity-90' : 'bg-white border text-gray-700 hover:bg-gray-50'
                                     )}
                                     data-tour="award-rfq-contract-btn"
                                 >

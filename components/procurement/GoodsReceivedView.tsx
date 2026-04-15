@@ -14,9 +14,9 @@ import { ErrorState } from '@/components/ui/error-state';
 import type { GRN } from '@/lib/api';
 
 const GRN_STATS = [
-    { label: "Today's Deliveries", value: '—', icon: Truck,       color: 'text-blue-600',  bg: 'bg-blue-50'  },
-    { label: 'Pending Inspection', value: '—', icon: Beaker,      color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Quality Pass Rate',  value: '—', icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: "Today's Deliveries", value: '—', icon: Truck,       color: 'text-amber-600',  bg: 'bg-amber-50'  },
+    { label: 'Pending Inspection', value: '—', icon: Beaker,      color: 'text-amber-500', bg: 'bg-amber-50' },
+    { label: 'Quality Pass Rate',  value: '—', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Discrepancy Rate',   value: '—', icon: Scale,       color: 'text-red-600',   bg: 'bg-red-50'   },
 ];
 
@@ -62,7 +62,7 @@ function GRNDashboard({
                     </button>
                     <button
                         onClick={onReceive}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg transition-all"
                     >
                         <Warehouse className="h-4 w-4" />
                         Receive Goods
@@ -112,7 +112,7 @@ function GRNDashboard({
                                     <td className="px-6 py-4 text-gray-600">{grn.poNumber}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+                                            <div className="h-6 w-6 rounded-full bg-amber-50 flex items-center justify-center text-[10px] font-bold text-amber-600">
                                                 {grn.supplier.charAt(0)}
                                             </div>
                                             <span className="font-medium text-gray-900">{grn.supplier}</span>
@@ -132,8 +132,8 @@ function GRNDashboard({
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold",
-                                            grn.status === 'Fully Received' ? 'text-green-600 bg-green-50' :
-                                            grn.status === 'Quarantined'    ? 'text-red-600 bg-red-50'     : 'text-blue-600 bg-blue-50'
+                                            grn.status === 'Fully Received' ? 'text-emerald-600 bg-emerald-50' :
+                                            grn.status === 'Quarantined'    ? 'text-red-600 bg-red-50'     : 'text-amber-600 bg-amber-50'
                                         )}>
                                             {grn.status}
                                         </span>
@@ -205,12 +205,12 @@ function ReceiveFlow({ onBack }: { onBack: () => void }) {
                         onChange={(e) => setPoInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
                         placeholder="Scan or Enter PO Number (e.g., PO-2026-8805)"
-                        className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                        className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                     <button
                         onClick={handleVerify}
                         disabled={isLoading}
-                        className="bg-[#2a2b2d] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-shadow shadow-lg disabled:opacity-50 flex items-center gap-2"
+                        className="bg-gradient-to-r from-amber-700 to-yellow-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
                     >
                         {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                         Verify PO

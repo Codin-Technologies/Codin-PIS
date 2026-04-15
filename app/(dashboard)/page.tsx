@@ -11,6 +11,8 @@ import { useUsers } from '@/hooks/useUsers';
 import { useBranch } from '@/hooks/useBranch';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useRequisitions } from '@/hooks/useRequisitions';
+import { useAuditLogs } from '@/hooks/useAuditLogs';
+
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const { data: usersData, isLoading: usersLoading } = useUsers();
   const { data: poData, isLoading: poLoading } = usePurchaseOrders(branchId);
   const { data: reqData, isLoading: reqLoading } = useRequisitions(branchId);
+  const { data: auditLogsData, isLoading: logsLoading } = useAuditLogs(branchId, { limit: 5 });
 
   const isAdmin = session?.user?.email?.includes('admin') || true; // Fallback for demo
   const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'Admin';
@@ -32,18 +35,19 @@ export default function DashboardPage() {
   const activeUsers = (usersData || []).filter(u => u.status === 'Active').length;
   
   const totalOrders = (poData?.data?.length || 0) + (reqData?.data?.length || 0);
+  const totalStockQty = inventory.reduce((sum, item) => sum + item.qty, 0);
 
-  const isLoading = invLoading || usersLoading || poLoading || reqLoading;
+  const isLoading = invLoading || usersLoading || poLoading || reqLoading || logsLoading;
 
   const STATS = [
     { 
-      label: 'Inventory Valuation', 
-      value: `$${totalValuation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 
-      change: 'Live Stock', 
+      label: 'Items in Stock', 
+      value: totalStockQty.toLocaleString(), 
+      change: 'Total Units', 
       trend: 'neutral', 
-      icon: DollarSign, 
-      color: 'text-green-600', 
-      bg: 'bg-green-50' 
+      icon: ShoppingBag, 
+      color: 'text-amber-600', 
+      bg: 'bg-amber-50' 
     },
     { 
       label: 'Total Orders', 
@@ -74,12 +78,13 @@ export default function DashboardPage() {
     },
   ];
 
-  const RECENT_ACTIVITY = [
-    { id: 1, type: 'Order', desc: 'Table #12 placed an order', time: '2 mins ago', amount: '$124.00' },
-    { id: 2, type: 'Stock', desc: 'Received delivery from Meat Co.', time: '15 mins ago', amount: '+45kg' },
-    { id: 3, type: 'Staff', desc: 'Sarah clocked in', time: '1 hour ago', amount: '' },
-    { id: 4, type: 'Alert', desc: 'Low stock: Tomatoes', time: '2 hours ago', amount: 'Critical' },
-  ];
+  const RECENT_ACTIVITY = (auditLogsData?.data || []).map((log: any) => ({
+    id: log.id,
+    type: log.actionGroup || 'System',
+    desc: log.description,
+    time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    amount: log.action || ''
+  }));
 
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-6 overflow-y-auto pr-2 scrollbar-thin">

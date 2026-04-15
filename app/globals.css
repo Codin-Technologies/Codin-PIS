@@ -3,11 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #b45309; /* amber-700 */
+  --primary-foreground: #ffffff;
+  --brand-espresso: #362e26;
+  --brand-espresso-border: #4a4034;
+  --brand-accent: #f59e0b; /* amber-500 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand-espresso: var(--brand-espresso);
+  --color-brand-border: var(--brand-espresso-border);
+  --color-brand-accent: var(--brand-accent);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }

@@ -217,7 +217,7 @@ export function CreateOrgForm({ onClose, onSuccess, organization }: CreateOrgFor
                     <Button
                         type="submit"
                         disabled={mutation.isPending}
-                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
+                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98] font-sans"
                     >
                         {mutation.isPending ? (
                             <div className="flex items-center gap-2">

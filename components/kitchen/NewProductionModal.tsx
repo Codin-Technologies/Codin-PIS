@@ -129,7 +129,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                         <input
                                             required
                                             type="text"
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             placeholder="e.g. Herb Roasted Chicken"
                                             value={dish}
                                             onChange={(e) => setDish(e.target.value)}
@@ -139,7 +139,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                         <label className="text-xs font-bold text-gray-700">Target Servings</label>
                                         <input
                                             type="number"
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             value={servings}
                                             onChange={(e) => setServings(parseInt(e.target.value))}
                                         />
@@ -148,7 +148,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                         <label className="text-xs font-bold text-gray-700">Estimated Start Time</label>
                                         <input
                                             type="text"
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none bg-gray-50/50"
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-gray-50/50"
                                             value={startTime}
                                             onChange={(e) => setStartTime(e.target.value)}
                                         />
@@ -180,7 +180,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                             autoFocus
                                             type="text"
                                             placeholder="Search inventory items..."
-                                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-amber-200 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />
@@ -218,7 +218,7 @@ export function NewProductionModal({ isOpen, onClose }: NewProductionModalProps)
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="number"
-                                                    className="w-20 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:ring-1 focus:ring-pink-500"
+                                                    className="w-20 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:ring-1 focus:ring-amber-500"
                                                     value={ing.qty}
                                                     onChange={(e) => updateIngredientQty(ing.id, parseFloat(e.target.value))}
                                                 />

@@ -55,10 +55,10 @@ const MOCK_INVOICES = [
 ];
 
 const INVOICE_STATS = [
-    { label: 'Unpaid Invoices', value: '$26,100', icon: Receipt, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Pending Match', value: '3', icon: LinkIcon, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Avg Payment Cycle', value: '8.5 Days', icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Audit Compliance', value: '100%', icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Unpaid Invoices', value: '$26,100', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Pending Match', value: '3', icon: LinkIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
+    { label: 'Avg Payment Cycle', value: '8.5 Days', icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
+    { label: 'Audit Compliance', value: '100%', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
 ];
 
 export function InvoiceView() {
@@ -96,9 +96,9 @@ export function InvoiceView() {
                 <div className="flex gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input type="text" placeholder="Search invoices..." className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]" />
+                        <input type="text" placeholder="Search invoices..." className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg">
                         <Plus className="h-4 w-4" />
                         Capture Invoice
                     </button>
@@ -135,8 +135,8 @@ export function InvoiceView() {
                                 <td className="px-6 py-4 text-gray-600">{inv.dueDate}</td>
                                 <td className="px-6 py-4">
                                     <span className={clsx("px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max",
-                                        inv.match.includes('Matched') ? 'bg-green-50 text-green-700' :
-                                            inv.match.includes('Pending') ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'
+                                        inv.match.includes('Matched') ? 'bg-emerald-50 text-emerald-700' :
+                                            inv.match.includes('Pending') ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
                                     )}>
                                         {inv.match.includes('Matched') && <BadgeCheck className="h-3 w-3" />}
                                         {inv.match.includes('Pending') && <Clock className="h-3 w-3" />}
@@ -146,8 +146,8 @@ export function InvoiceView() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold",
-                                        inv.status === 'Paid' ? 'text-green-600 bg-green-50' :
-                                            inv.status === 'Discrepancy' ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
+                                        inv.status === 'Paid' ? 'text-emerald-600 bg-emerald-50' :
+                                            inv.status === 'Discrepancy' ? 'text-red-600 bg-red-50' : 'text-amber-600 bg-amber-50'
                                     )}>
                                         {inv.status}
                                     </span>

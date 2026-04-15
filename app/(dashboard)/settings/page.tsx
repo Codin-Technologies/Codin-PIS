@@ -53,8 +53,8 @@ function SettingsPageContent() {
             {/* Header */}
             <div className="flex items-center justify-between rounded-2xl bg-[#1e1f21] p-8 text-white shadow-lg">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center">
-                        <Settings className="w-6 h-6 text-pink-500" />
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                        <Settings className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold">Organization Settings</h1>
@@ -72,7 +72,7 @@ function SettingsPageContent() {
                         className={clsx(
                             "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300",
                             activeTab === tab.id
-                                ? "bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/20"
+                                ? "bg-gradient-to-r from-amber-700 to-yellow-600 text-white shadow-lg shadow-amber-500/20"
                                 : "text-[#9ca6af] hover:text-white hover:bg-white/5"
                         )}
                         data-tour={`settings-${tab.id}-tab`}

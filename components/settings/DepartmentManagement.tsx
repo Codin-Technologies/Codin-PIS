@@ -50,7 +50,7 @@ export function DepartmentManagement() {
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition-all font-sans"
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition-all font-sans"
                     data-tour="add-department-btn"
                 >
                     <Plus className="w-4 h-4" />
@@ -66,14 +66,14 @@ export function DepartmentManagement() {
                     placeholder="Search departments..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/10 bg-white"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/10 bg-white"
                 />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {isLoading ? (
                     <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white border border-gray-100 rounded-3xl gap-3">
-                        <div className="w-8 h-8 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                         <p className="text-gray-400 text-sm font-medium">Loading units...</p>
                     </div>
                 ) : isError ? (
@@ -97,11 +97,11 @@ export function DepartmentManagement() {
                             key={dept.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-pink-200 transition-colors shadow-sm group"
+                            className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-amber-200 transition-colors shadow-sm group"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
                                         <Layers className="w-5 h-5" />
                                     </div>
                                     <div>
@@ -156,7 +156,7 @@ function CreateDepartmentModal({ onClose, onSuccess, branchId }: { onClose: () =
                 className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl overflow-hidden"
             >
                 <div className="mb-8">
-                    <div className="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500 mb-4">
+                    <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 mb-4">
                         <Layers className="w-7 h-7" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">New Department</h2>
@@ -173,7 +173,7 @@ function CreateDepartmentModal({ onClose, onSuccess, branchId }: { onClose: () =
                             onChange={e => { setName(e.target.value); setError(''); }}
                             className={clsx(
                                 "w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all",
-                                error ? "ring-red-500/20 border-red-500" : "focus:ring-pink-500/20 focus:border-pink-500"
+                                error ? "ring-red-500/20 border-red-500" : "focus:ring-amber-500/20 focus:border-amber-500"
                             )}
                         />
                         {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase tracking-wider">{error}</p>}

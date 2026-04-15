@@ -45,7 +45,7 @@ export function RoleManagement() {
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all shadow-sm font-sans"
                     data-tour="create-role-btn"
                 >
-                    <Plus className="w-4 h-4 text-pink-500" />
+                    <Plus className="w-4 h-4 text-amber-500" />
                     Create Role
                 </button>
             </div>
@@ -55,11 +55,11 @@ export function RoleManagement() {
                     <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-2xl p-6 h-40 shadow-sm" />
                 ))}
                 {!isLoading && roles?.map((role) => (
-                    <div key={role.id} className="group relative bg-white border border-gray-100 rounded-2xl p-6 hover:border-pink-500/30 transition-all shadow-sm">
+                    <div key={role.id} className="group relative bg-white border border-gray-100 rounded-2xl p-6 hover:border-amber-500/30 transition-all shadow-sm">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center">
-                                    <Shield className="w-6 h-6 text-pink-500" />
+                                <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
+                                    <Shield className="w-6 h-6 text-amber-500" />
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-gray-900">{role.name}</h4>

@@ -55,7 +55,7 @@ export function OrgManagement() {
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition-all font-sans"
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition-all font-sans"
                 >
                     <Plus className="w-4 h-4" />
                     New Organization
@@ -65,7 +65,7 @@ export function OrgManagement() {
             <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 rounded-3xl gap-4">
-                        <div className="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
+                        <div className="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                         <p className="text-gray-500 font-medium">Loading organizations...</p>
                     </div>
                 ) : error ? (
@@ -85,10 +85,10 @@ export function OrgManagement() {
                     </div>
                 ) : (
                     orgs?.map((org) => (
-                        <div key={org.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 hover:bg-gray-50 transition-colors border-l-4 border-l-orange-500/50 shadow-sm relative">
+                        <div key={org.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-5 hover:bg-gray-50 transition-colors border-l-4 border-l-amber-500/50 shadow-sm relative">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center">
-                                    <Building2 className="w-6 h-6 text-orange-400" />
+                                <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
+                                    <Building2 className="w-6 h-6 text-amber-500" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export function OrgManagement() {
                                                     }}
                                                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                                                 >
-                                                    <Eye className="w-4 h-4 text-orange-500" />
+                                                    <Eye className="w-4 h-4 text-amber-500" />
                                                     View Details
                                                 </button>
                                                 <button
@@ -234,13 +234,13 @@ export function OrgManagement() {
 
                             {isLoadingView ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                    <div className="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
+                                    <div className="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                                     <p className="text-gray-500 font-medium">Fetching details...</p>
                                 </div>
                             ) : viewingOrg ? (
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-5 border-b border-gray-100 pb-8">
-                                        <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500">
+                                        <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500">
                                             <Building2 className="w-8 h-8" />
                                         </div>
                                         <div>
@@ -278,11 +278,11 @@ export function OrgManagement() {
 
                                             <div>
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Finance & Currency</h4>
-                                                <div className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-4 flex items-center gap-3">
-                                                    <Globe className="w-5 h-5 text-orange-500" />
+                                                <div className="bg-amber-50/50 border border-amber-100/50 rounded-2xl p-4 flex items-center gap-3">
+                                                    <Globe className="w-5 h-5 text-amber-500" />
                                                     <div>
-                                                        <p className="text-sm font-bold text-orange-900">{viewingOrg.currency} ({viewingOrg.currencyDisplay})</p>
-                                                        <p className="text-xs text-orange-700">Platform-wide standard currency.</p>
+                                                        <p className="text-sm font-bold text-amber-900">{viewingOrg.currency} ({viewingOrg.currencyDisplay})</p>
+                                                        <p className="text-xs text-amber-700">Platform-wide standard currency.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -309,7 +309,7 @@ export function OrgManagement() {
                                                     viewingOrg.users.map((user: any) => (
                                                         <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center text-xs font-bold text-orange-500">
+                                                                <div className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center text-xs font-bold text-amber-500">
                                                                     {user.fullName.charAt(0)}
                                                                 </div>
                                                                 <div>

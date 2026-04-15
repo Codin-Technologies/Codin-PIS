@@ -87,7 +87,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
         <div className="flex flex-col gap-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-6">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
                         <User className="w-5 h-5" />
                     </div>
                     <div>
@@ -120,7 +120,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                             placeholder="e.g. John Doe"
                             required
                             defaultValue={user?.fullName}
-                            className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl"
+                            className="h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 rounded-xl"
                         />
                     </Field>
 
@@ -133,7 +133,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                             placeholder="john@pis-system.com"
                             required
                             defaultValue={user?.email}
-                            className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl"
+                            className="h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 rounded-xl"
                         />
                     </Field>
 
@@ -146,13 +146,13 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 required={!isEdit}
-                                className="h-12 border-gray-200 focus:border-pink-500 focus:ring-pink-500/20 rounded-xl pl-10 pr-10"
+                                className="h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 rounded-xl pl-10 pr-10"
                             />
                             <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-500 transition-colors"
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -165,7 +165,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                             <select
                                 id="roleId"
                                 name="roleId"
-                                className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:opacity-50"
+                                className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all disabled:opacity-50"
                                 defaultValue={user?.roleId || ""}
                                 required
                                 disabled={isLoadingRoles}
@@ -185,7 +185,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                             <select
                                 id="organizationId"
                                 name="organizationId"
-                                className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:opacity-50"
+                                className="w-full h-12 px-4 appearance-none bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all disabled:opacity-50"
                                 defaultValue={user?.organizationId || ""}
                                 required
                                 disabled={isLoadingOrgs}
@@ -212,7 +212,7 @@ export function CreateUserForm({ onClose, onSuccess, user }: CreateUserFormProps
                     <Button
                         type="submit"
                         disabled={createUserMutation.isPending || updateUserMutation.isPending}
-                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
+                        className="flex-1 h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-all active:scale-[0.98]"
                     >
                         {createUserMutation.isPending || updateUserMutation.isPending ? (
                             <div className="flex items-center gap-2">

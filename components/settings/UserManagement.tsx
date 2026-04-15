@@ -85,7 +85,7 @@ export function UserManagement() {
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-pink-500/20 hover:opacity-90 transition-all font-sans"
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-amber-500/20 hover:opacity-90 transition-all font-sans"
                     data-tour="add-user-btn"
                 >
                     <UserPlus className="w-4 h-4" />
@@ -99,8 +99,9 @@ export function UserManagement() {
                         <tr className="border-b border-gray-50 bg-gray-50/50">
                             <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400">User</th>
                             <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400">Role</th>
-                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400 border-l border-gray-50/10">Org / Branch</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400">Org / Branch</th>
                             <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400">Status</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400">Last Login</th>
                             <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-gray-400 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -119,6 +120,7 @@ export function UserManagement() {
                                 <td className="px-6 py-4"><div className="h-4 w-28 rounded bg-gray-100" /></td>
                                 <td className="px-6 py-4"><div className="h-4 w-28 rounded bg-gray-100" /></td>
                                 <td className="px-6 py-4"><div className="h-6 w-16 rounded-full bg-gray-100" /></td>
+                                <td className="px-6 py-4"><div className="h-4 w-24 rounded bg-gray-100" /></td>
                                 <td className="px-6 py-4 text-right"><div className="h-8 w-8 ml-auto rounded bg-gray-50" /></td>
                             </tr>
                         ))}
@@ -126,7 +128,7 @@ export function UserManagement() {
                             <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold group-hover:bg-pink-100 transition-colors">
+                                        <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold group-hover:bg-amber-100 transition-colors">
                                             {user.fullName.charAt(0)}
                                         </div>
                                         <div>
@@ -137,7 +139,7 @@ export function UserManagement() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className="flex items-center gap-1.5 text-sm text-gray-700 font-medium">
-                                        <Shield className="w-3.5 h-3.5 text-orange-400" />
+                                        <Shield className="w-3.5 h-3.5 text-amber-500" />
                                         {user.roleName || 'System User'}
                                     </span>
                                 </td>
@@ -153,6 +155,16 @@ export function UserManagement() {
                                         user.status === 'Inactive' ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"
                                     )}>
                                         {user.status || 'Active'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="text-sm text-gray-500 font-medium">
+                                        {user.loginAt ? new Date(user.loginAt).toLocaleDateString(undefined, { 
+                                            month: 'short', 
+                                            day: 'numeric', 
+                                            hour: '2-digit', 
+                                            minute: '2-digit' 
+                                        }) : 'Never'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
@@ -187,7 +199,7 @@ export function UserManagement() {
                                                         }}
                                                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                                                     >
-                                                        <Eye className="w-4 h-4 text-orange-500" />
+                                                        <Eye className="w-4 h-4 text-amber-500" />
                                                         View Profile
                                                     </button>
                                                     <button
@@ -221,7 +233,7 @@ export function UserManagement() {
                         ))}
                         {!isLoading && users.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-6 py-20 text-center">
+                                <td colSpan={6} className="px-6 py-20 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
                                             <UserIcon className="w-6 h-6" />
@@ -293,13 +305,13 @@ export function UserManagement() {
 
                             {isLoadingView ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-                                    <div className="w-10 h-10 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+                                    <div className="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                                     <p className="text-gray-500 font-medium font-sans">Fetching profile details...</p>
                                 </div>
                             ) : viewingUser ? (
                                 <div className="space-y-8">
                                     <div className="flex flex-col items-center text-center gap-4">
-                                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white text-4xl font-bold shadow-xl shadow-pink-200">
+                                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-700 to-yellow-600 flex items-center justify-center text-white text-4xl font-bold shadow-xl shadow-amber-200">
                                             {viewingUser.fullName.charAt(0)}
                                         </div>
                                         <div>
@@ -307,7 +319,7 @@ export function UserManagement() {
                                             <p className="text-gray-500 font-medium">{viewingUser.email}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                                                 <Shield className="w-3.5 h-3.5" /> {viewingUser.roleName || 'System User'}
                                             </span>
                                             <span className={clsx(
@@ -362,7 +374,7 @@ export function UserManagement() {
                                                 setEditingUser(viewingUser);
                                                 setViewingUserId(null);
                                             }}
-                                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-200"
+                                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 text-white font-bold hover:opacity-90 transition-all shadow-lg shadow-amber-200"
                                         >
                                             Edit Profile
                                         </Button>

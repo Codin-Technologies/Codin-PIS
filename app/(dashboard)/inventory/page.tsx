@@ -79,6 +79,7 @@ function InventoryContent() {
     const alerts: InventoryAlert[] = (alertsData as InventoryAlert[]) ?? [];
     const departments = deptData ?? [];
     const totalValuation = items.reduce((sum, i) => sum + (i.qty * (i.unitCost ?? 0)), 0);
+    const totalStockQty = items.reduce((sum, i) => sum + i.qty, 0);
     const pendingRequisitions = (productionData?.data ?? []).filter(
         (plan: ProductionPlan) => !(plan as any).deductedAt,
     );
@@ -452,11 +453,11 @@ function InventoryContent() {
                     <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-xl border border-white/10">
                             <div className="flex items-center space-x-2">
-                                <DollarSign className="h-4 w-4 text-green-400" />
-                                <span>Total Valuation</span>
+                                <Package className="h-4 w-4 text-amber-400" />
+                                <span>Total Stock Units</span>
                             </div>
                             <span className="font-bold text-white">
-                                {isLoading ? '—' : `$${totalValuation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                                {isLoading ? '—' : totalStockQty.toLocaleString()}
                             </span>
                         </div>
 

@@ -230,7 +230,7 @@ export function OnboardingController() {
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl border border-gray-100">
         <div className="mb-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-pink-500">Welcome</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-amber-500">Welcome</p>
           <h2 className="mt-3 text-3xl font-black text-gray-900">Hi, {userName}.</h2>
           <p className="mt-3 text-sm leading-6 text-gray-500">
             Ready to set up your workspace? We can guide you through Settings, Inventory,
@@ -260,7 +260,7 @@ export function OnboardingController() {
           <button
             type="button"
             onClick={startOnboarding}
-            className="flex-1 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-pink-200 transition-opacity hover:opacity-90"
+            className="flex-1 rounded-xl bg-gradient-to-r from-amber-700 to-yellow-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-200 transition-opacity hover:opacity-90"
           >
             Start onboarding
           </button>

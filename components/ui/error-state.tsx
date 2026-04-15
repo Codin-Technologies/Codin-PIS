@@ -43,7 +43,7 @@ export function ErrorState({
                 <motion.div
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="h-20 w-20 rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20"
+                    className="h-20 w-20 rounded-2xl bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center shadow-lg shadow-red-500/20"
                 >
                     <Icon className="h-10 w-10 text-white" />
                 </motion.div>

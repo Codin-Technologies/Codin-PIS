@@ -21,10 +21,10 @@ import type { CreateSupplierPayload } from '@/lib/api';
 import { emitOnboardingAction } from '@/onboarding/helpers';
 
 const SUPPLIER_STATS_META = [
-    { label: 'Total Suppliers', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Total Suppliers', icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Avg Lead Time', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Risk Alerts', icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Preferred Partners', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Risk Alerts', icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-50' },
+    { label: 'Preferred Partners', icon: ShieldCheck, color: 'text-amber-700', bg: 'bg-amber-50' },
 ];
 
 function SupplierSkeleton() {
@@ -126,12 +126,12 @@ export function SuppliersView() {
                             placeholder="Search suppliers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-4 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a2b2d]"
+                            className="pl-4 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#2a2b2d] text-white rounded-xl font-bold text-sm hover:bg-gray-800"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg transition-all"
                         data-tour="add-supplier-btn"
                     >
                         <Plus className="h-4 w-4" />
@@ -140,9 +140,9 @@ export function SuppliersView() {
                 </div>
             </div>
 
-            <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between gap-4 overflow-x-auto">
+            <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 flex items-center justify-between gap-4 overflow-x-auto">
                 <div className="flex items-center gap-3 shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                         <Link className="h-4 w-4" />
                     </div>
                     <div>
@@ -150,7 +150,7 @@ export function SuppliersView() {
                         <p className="text-[10px] text-gray-500">Live supplier links are generated when you broadcast an RFQ.</p>
                     </div>
                 </div>
-                <p className="text-[11px] font-bold text-blue-700 bg-white border border-blue-200 px-3 py-1.5 rounded-lg shrink-0">
+                <p className="text-[11px] font-bold text-amber-700 bg-white border border-amber-200 px-3 py-1.5 rounded-lg shrink-0">
                     Use RFQ broadcast to issue real supplier tokens
                 </p>
             </div>
@@ -303,7 +303,7 @@ export function SuppliersView() {
                             </button>
                             <button
                                 onClick={() => setIsRFQModalOpen(true)}
-                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors shadow-lg"
+                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-700 to-yellow-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-colors shadow-lg"
                             >
                                 <ExternalLink className="h-4 w-4" />
                                 Send Quotation Request
